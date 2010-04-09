@@ -51,7 +51,7 @@ extern struct wake_lock main_wake_lock;
 #define CPU_CONTEXT_SAVE_AREA_SIZE 4096
 #define TEMP_SAVE_AREA_SIZE 16
 #define ENABLE_LP2 1
-#define LP2_PADDING_FACTOR	5
+#define LP2_PADDING_FACTOR	2
 #define LP2_ROUNDTRIP_TIME_US	2500ul
 //Let Max LP2 time wait be 71 min (Almost a wrap around)
 #define LP2_MAX_WAIT_TIME_US	(71*60*1000000ul)
