@@ -59,8 +59,6 @@ typedef struct NvAudioFxObjectRec *NvAudioFxObjectHandle;
 
 typedef struct NvAudioFxRec *NvAudioFxHandle;
 
-typedef struct NvAudioFxIoRec *NvAudioFxIoHandle;
-
 typedef struct NvAudioFxMixBufferRec *NvAudioFxMixBufferHandle;
 
 typedef struct NvAudioFxMixerRec *NvAudioFxMixerHandle;
@@ -98,6 +96,7 @@ typedef NvS32 NvObjectId;
 #define NvAudioFxI2sId (0x11100002)
 #define NvAudioFxI2s2Id (0x11100002)
 #define NvAudioFxSpdifId (0x11100003)
+#define NvAudioFxSilenceId (0x11100004)
 #define NvAudioFxDefaultPlaybackMixId (0x11300001)
 #define NvAudioFxDefaultPlaybackSplitId (0x11300002)
 #define NvAudioFxDefaultRecordMixId (0x11300003)
@@ -113,8 +112,7 @@ typedef NvS32 NvObjectId;
 #define NvAudioFxSpdifLoopbackSplitId (0x1130000d)
 #define NvAudioFxMusicMixId (0x1130000e)
 #define NvAudioFxMusicSplitId (0x1130000f)
-#define NvAudioFxPhoneMixId (0x11300010)
-#define NvAudioFxPhoneSplitId (0x11300011)
+#define NvAudioFxRingtoneMixId (0x11300010)
 
 //
 //                  Mixer
@@ -151,6 +149,7 @@ typedef NvS32 NvAudioFxProperty;
 #define NvAudioFxPinProperty_Format (0x2000)
 #define NvAudioFxDrcProperty_Drc (0x3000)
 #define NvAudioFxEqProperty_Eq (0x4000)
+#define NvAudioFxI2sProperty_InputSelect (0x4a00)
 #define NvAudioFxIoProperty_AddEvent (0x5000)
 #define NvAudioFxIoProperty_Position (0x5010)
 #define NvAudioFxIoProperty_RemoveEvent (0x5020)
@@ -171,6 +170,7 @@ typedef NvS32 NvAudioFxProperty;
 
 typedef struct NvAudioFxConnectionDescriptorRec
 {
+    NvAudioFxHandle hSource;
     NvAudioFxPin SourcePin;
     NvAudioFxHandle hSink;
     NvAudioFxPin SinkPin;
@@ -244,7 +244,7 @@ typedef struct NvAudioFxEqDescriptorRec
 {
     NvS32 dBGain[NvAudioFxEqNumChannels][NvAudioFxEqNumFilters];
 
-}NvAudioFxEqDescriptor;
+} NvAudioFxEqDescriptor;
 
 // Audio Spreader information.
 
@@ -253,7 +253,20 @@ typedef struct NvAudioFxSpreaderDescriptorRec
     NvU32 SpeakerWidth;
 } NvAudioFxSpreaderDescriptor;
 
-// Parameteric EQ Filter types
+// I2S inputs.
+
+typedef NvS32 NvAudioFxI2sInputSelect;
+
+// Default is configurable based on the device.
+#define NvAudioFxI2sInputSelect_Default (0x0)
+#define NvAudioFxI2sInputSelect_Bluetooth (0x1)
+#define NvAudioFxI2sInputSelect_BuiltinMic (0x2)
+#define NvAudioFxI2sInputSelect_LineIn (0x3)
+#define NvAudioFxI2sInputSelect_Mic (0x4)
+#define NvAudioFxI2sInputSelect_Phone (0x5)
+#define NvAudioFxI2sInputSelect_Radio (0x6)
+
+// Parameteric EQ Filter types.
 
 typedef enum
 {
@@ -273,7 +286,7 @@ typedef struct NvAudioFxPeqDescriptorRec
     NvS32 Bandwidth[NvAudioFxIirFilter_Num];
     NvS32 dBGain[NvAudioFxIirFilter_Num];
 
-}NvAudioFxPeqDescriptor;
+} NvAudioFxPeqDescriptor;
 
 // Audio pin-specific format information of the stream or buffer.
 
@@ -345,6 +358,8 @@ typedef NvS32 NvAudioFxEvent;
 #define NvAudioFxEventFormatChange (0x4)
 #define NvAudioFxEventEndOfStream (0x8)
 #define NvAudioFxEventPowerStateChange (0x10)
+#define NvAudioFxEventIoChange (0x20)
+#define NvAudioFxEventControlChange (0x40)
 #define NvAudioFxEventAll (0xffffffff)
 
 typedef struct NvAudioFxMessageRec
@@ -359,6 +374,18 @@ typedef struct NvAudioFxBufferDoneMessageRec
     NvAudioFxMessage m;
     NvAudioFxPosition Position;
 } NvAudioFxBufferDoneMessage;
+
+typedef struct NvAudioFxControlChangeMessageRec
+{
+    NvAudioFxMessage m;
+    NvAudioFxProperty Property;
+} NvAudioFxControlChangeMessage;
+
+typedef struct NvAudioFxI2sControlChangeMessageRec
+{
+    NvAudioFxControlChangeMessage m;
+    NvAudioFxI2sInputSelect InputSelect;
+} NvAudioFxI2sControlChangeMessage;
 
 typedef struct NvAudioFxStateChangeMessageRec
 {
@@ -377,6 +404,13 @@ typedef struct NvAudioFxPowerStateChangeMessageRec
     NvAudioFxMessage m;
     NvAudioFxPowerState PowerState;
 } NvAudioFxPowerStateChangeMessage;
+
+typedef struct NvAudioFxIoChangeMessageRec
+{
+    NvAudioFxMessage m;
+    NvAudioFxProperty Property;
+    NvAudioFxConnectionDescriptor Connection;
+} NvAudioFxIoChangeMessage;
 
  /**
  * @brief Initializes and opens the AudioFX Mixer.

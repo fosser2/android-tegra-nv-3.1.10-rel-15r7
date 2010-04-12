@@ -755,6 +755,7 @@ void tegra_audiofx_destroyfx(struct tegra_audio_data *audio_context)
 	}
 
 #define audiofx_path_connect(path_object, sink_object)                         \
+	connection.hSource = path_object,                                      \
 	connection.SourcePin = NvAudioFxSourcePin;                             \
 	connection.SinkPin = NvAudioFxSinkPin;                                 \
 	connection.hSink = (NvAudioFxHandle)sink_object;                       \
@@ -791,6 +792,7 @@ NvError tegra_audiofx_create_output(NvRmDeviceHandle hRmDevice,
 	audiofx_path_connect(pPath->Convert, pPath->Resize);
 	audiofx_path_connect(pPath->Resize, pPath->Volume);
 
+	connection.hSource = pPath->Volume;
 	connection.SourcePin = NvAudioFxSourcePin;
 	connection.hSink = 0;
 	connection.SinkPin = NvAudioFxSinkPin;
@@ -872,6 +874,7 @@ NvError tegra_audiofx_create_input(NvRmDeviceHandle hRmDevice,
 	audiofx_create_object(pInput->Convert,NvAudioFxConvertId);
 
 	/* Wire 1 */
+	connection.hSource = pInput->Stream;
 	connection.SourcePin = NvAudioFxSourcePin;
 	connection.hSink = (NvAudioFxHandle)pInput->Resize;
 	connection.SinkPin = NvAudioFxCopySinkPin;
@@ -889,6 +892,7 @@ NvError tegra_audiofx_create_input(NvRmDeviceHandle hRmDevice,
 	audiofx_path_connect(pInput->Src, pInput->Convert);
 
 	/* Wire 5 */
+	connection.hSource = 0;
 	connection.SourcePin = (InputSelect == NvAudioInputSelect_Record) ?
 				NvAudioFxSourcePin :  NvAudioFxLoopbackPin;
 	connection.hSink = (NvAudioFxHandle)pInput->Src;
