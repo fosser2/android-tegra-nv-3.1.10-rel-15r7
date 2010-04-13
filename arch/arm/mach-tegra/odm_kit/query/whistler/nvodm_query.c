@@ -238,11 +238,11 @@ static const NvOdmSdramControllerConfigAdv s_NvOdmE1108HynixEmcConfigTable[] =
     {
                   0x20,   /* Rev 2.0 */
                  18000,   /* SDRAM frquency */
-                  1000,   /* EMC core voltage */
+                   950,   /* EMC core voltage */
                     46,   /* Number of EMC parameters below */
         {
             0x00000002,   /* RC */
-            0x00000003,   /* RFC */
+            0x00000006,   /* RFC */
             0x00000003,   /* RAS */
             0x00000003,   /* RP */
             0x00000006,   /* R2W */
@@ -277,7 +277,7 @@ static const NvOdmSdramControllerConfigAdv s_NvOdmE1108HynixEmcConfigTable[] =
             0x00000003,   /* FBIO_CFG6 */
             0x00000000,   /* ODT_WRITE */
             0x00000000,   /* ODT_READ */
-            0x00000282,   /* FBIO_CFG5 */
+            0x00000082,   /* FBIO_CFG5 */
             0x00780006,   /* CFG_DIG_DLL */
             0x00000010,   /* DLL_XFORM_DQS */
             0x00000008,   /* DLL_XFORM_QUSE */
@@ -292,11 +292,11 @@ static const NvOdmSdramControllerConfigAdv s_NvOdmE1108HynixEmcConfigTable[] =
     {
                   0x20,   /* Rev 2.0 */
                  27000,   /* SDRAM frquency */
-                  1000,   /* EMC core voltage */
+                   950,   /* EMC core voltage */
                     46,   /* Number of EMC parameters below */
         {
             0x00000002,   /* RC */
-            0x00000004,   /* RFC */
+            0x00000006,   /* RFC */
             0x00000003,   /* RAS */
             0x00000003,   /* RP */
             0x00000006,   /* R2W */
@@ -331,7 +331,7 @@ static const NvOdmSdramControllerConfigAdv s_NvOdmE1108HynixEmcConfigTable[] =
             0x00000003,   /* FBIO_CFG6 */
             0x00000000,   /* ODT_WRITE */
             0x00000000,   /* ODT_READ */
-            0x00000282,   /* FBIO_CFG5 */
+            0x00000082,   /* FBIO_CFG5 */
             0x00780006,   /* CFG_DIG_DLL */
             0x00000010,   /* DLL_XFORM_DQS */
             0x00000008,   /* DLL_XFORM_QUSE */
@@ -385,7 +385,7 @@ static const NvOdmSdramControllerConfigAdv s_NvOdmE1108HynixEmcConfigTable[] =
             0x00000000,   /* FBIO_CFG6 */
             0x00000000,   /* ODT_WRITE */
             0x00000000,   /* ODT_READ */
-            0x00000282,   /* FBIO_CFG5 */
+            0x00000082,   /* FBIO_CFG5 */
             0x00780006,   /* CFG_DIG_DLL */
             0x00000010,   /* DLL_XFORM_DQS */
             0x00000008,   /* DLL_XFORM_QUSE */
@@ -439,7 +439,7 @@ static const NvOdmSdramControllerConfigAdv s_NvOdmE1108HynixEmcConfigTable[] =
             0x00000000,   /* FBIO_CFG6 */
             0x00000000,   /* ODT_WRITE */
             0x00000000,   /* ODT_READ */
-            0x00000282,   /* FBIO_CFG5 */
+            0x00000082,   /* FBIO_CFG5 */
             0xD0780323,   /* CFG_DIG_DLL */
             0x007FD010,   /* DLL_XFORM_DQS */
             0x00000010,   /* DLL_XFORM_QUSE */
@@ -493,7 +493,7 @@ static const NvOdmSdramControllerConfigAdv s_NvOdmE1108HynixEmcConfigTable[] =
             0x00000001,   /* FBIO_CFG6 */
             0x00000000,   /* ODT_WRITE */
             0x00000000,   /* ODT_READ */
-            0x00000282,   /* FBIO_CFG5 */
+            0x00000082,   /* FBIO_CFG5 */
             0xD05E0323,   /* CFG_DIG_DLL */
             0x007FD010,   /* DLL_XFORM_DQS */
             0x00000010,   /* DLL_XFORM_QUSE */
