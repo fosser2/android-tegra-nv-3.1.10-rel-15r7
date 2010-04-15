@@ -642,7 +642,8 @@ static NvBool NvOdmIsE1108Hynix(void)
     {
         // ID                      SKU     FAB   Rev            Minor Rev  
         { BOARD_ID_WHISTLER_E1108, 0x0A14, 0x01, BOARD_REV_ALL, BOARD_REV_ALL},
-        { BOARD_ID_WHISTLER_E1108, 0x0A00, 0x02, BOARD_REV_ALL, BOARD_REV_ALL}
+        { BOARD_ID_WHISTLER_E1108, 0x0A00, 0x02, BOARD_REV_ALL, BOARD_REV_ALL},
+        { BOARD_ID_WHISTLER_E1108, 0x0A0A, 0x02, BOARD_REV_ALL, BOARD_REV_ALL}
     };
     return NvOdmIsBoardPresent(s_WhistlerE1108Hynix,
                                NV_ARRAY_SIZE(s_WhistlerE1108Hynix));
