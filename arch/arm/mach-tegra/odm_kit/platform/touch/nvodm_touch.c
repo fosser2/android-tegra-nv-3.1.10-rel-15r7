@@ -36,7 +36,9 @@
 #if defined(NV_TOUCH_TPK)
 #include "nvodm_touch_tpk.h"
 #endif
-
+#if defined(NV_TOUCH_PANJIT)
+#include "nvodm_touch_panjit.h"
+#endif
 
 /** Implementation for the NvOdm TouchPad */
 
@@ -47,6 +49,9 @@ NvOdmTouchDeviceOpen( NvOdmTouchDeviceHandle *hDevice )
 
 #if defined(NV_TOUCH_TPK)
     ret = TPK_Open(hDevice);
+#endif
+#if defined(NV_TOUCH_PANJIT)
+    ret = PANJIT_Open(hDevice);
 #endif
 
     return ret;

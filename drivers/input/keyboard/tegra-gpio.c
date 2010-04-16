@@ -53,9 +53,9 @@ struct nvgpio_key_info {
 
 static struct nvgpio_key_info s_nvgpio_key_info[] = {
 	//port,		pin,	type,	bounce,	pin,	intr,	code
-	{'c'-'a',	3,	0,	10,	NULL,	NULL,	KEY_MENU},
-	{'d'-'a',	3,	0,	10,	NULL,	NULL,	KEY_HOME},
-	{'d'-'a',	4,	0,	10,	NULL,	NULL,	KEY_BACK}
+	{'q'-'a',	0,	0,	10,	NULL,	NULL,	KEY_MENU},
+	{'q'-'a',	1,	0,	10,	NULL,	NULL,	KEY_HOME},
+	{'q'-'a',	2,	0,	10,	NULL,	NULL,	KEY_BACK}
 };
 
 static int s_num_pins = sizeof(s_nvgpio_key_info)/sizeof(s_nvgpio_key_info[0]);

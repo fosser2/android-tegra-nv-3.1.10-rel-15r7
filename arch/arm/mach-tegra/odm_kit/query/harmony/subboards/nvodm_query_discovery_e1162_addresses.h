@@ -415,7 +415,14 @@ static const NvOdmIoAddress s_AudioCodecAddressesI2C_1[] =
 // TouchPanel
 static const NvOdmIoAddress s_TouchPanelAddresses[] = 
 {
-    { NvOdmIoModule_I2c, 0x00, 0x28 }, /* I2C device address is 0x28 */
-    { NvOdmIoModule_Gpio, (NvU32)'a'-'a', 0x00 }, /* GPIO Port A and Pin 0 */
+    { NvOdmIoModule_I2c_Pmu, 0x00, 0x06 }, /* I2C address (7-bit) 0x03<<1=0x06(8-bit)  */
+    { NvOdmIoModule_Gpio, (NvU32)'d'-'a', 0x02 }, /* GPIO Port D and Pin 2 */
 };
+
+static const NvOdmIoAddress s_AcceleroAddresses[] =
+{
+    { NvOdmIoModule_I2c_Pmu, 0x00, 0x70 }, /* I2C address (7-bit) 0x38<<1 = 0x70(8-bit) */
+    { NvOdmIoModule_Gpio, (NvU32)'c'-'a', 0x03 }, /* Gpio port C and Pin 3 */
+};
+
 

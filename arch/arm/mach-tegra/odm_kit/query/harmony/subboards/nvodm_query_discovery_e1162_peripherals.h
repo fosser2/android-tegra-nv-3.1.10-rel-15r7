@@ -436,9 +436,18 @@
 
 // Touch panel
 {
-    NV_ODM_GUID('s','y','n','t','o','u','c','h'),
+    NV_ODM_GUID('p','a','n','j','i','t','_','0'),
     s_TouchPanelAddresses,
     NV_ARRAY_SIZE(s_TouchPanelAddresses),
     NvOdmPeripheralClass_HCI
 },
+
+// Accelerometer Module
+{
+    NV_ODM_GUID('b','m','a','1','5','0','a','c'),
+    s_AcceleroAddresses,
+    NV_ARRAY_SIZE(s_AcceleroAddresses),
+    NvOdmPeripheralClass_Other,
+},
+
 // NOTE: This list *must* end with a trailing comma.
