@@ -60,6 +60,7 @@ obj-$(CONFIG_MACH_TEGRA_GENERIC)	+= nvodm/
 obj-$(CONFIG_MACH_TEGRA_GENERIC)	+= odm_kit/
 obj-$(CONFIG_MACH_TEGRA_GENERIC)	+= nvos_user.o
 obj-$(CONFIG_MACH_TEGRA_GENERIC)	+= nvrm_user.o
+obj-$(CONFIG_MACH_TEGRA_GENERIC)	+= nvrpc_user.o
 obj-$(CONFIG_MACH_TEGRA_GENERIC)	+= init_common.o
 obj-$(CONFIG_MACH_TEGRA_GENERIC)	+= board_nvodm.o
 obj-$(CONFIG_MACH_TEGRA_GENERIC)	+= odm_to_plat.o
