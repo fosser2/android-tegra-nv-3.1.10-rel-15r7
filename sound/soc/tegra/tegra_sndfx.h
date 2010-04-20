@@ -92,27 +92,27 @@ typedef NvS32 NvObjectId;
 #define NvAudioFxSrcId (0x1100000a)
 #define NvAudioFxSwitchId (0x1100000b)
 #define NvAudioFxVolumeId (0x1100000c)
-#define NvAudioFxStreamId (0x11100001)
-#define NvAudioFxI2sId (0x11100002)
-#define NvAudioFxI2s2Id (0x11100002)
-#define NvAudioFxSpdifId (0x11100003)
-#define NvAudioFxSilenceId (0x11100004)
-#define NvAudioFxDefaultPlaybackMixId (0x11300001)
-#define NvAudioFxDefaultPlaybackSplitId (0x11300002)
-#define NvAudioFxDefaultRecordMixId (0x11300003)
-#define NvAudioFxDefaultRecordSplitId (0x11300004)
-#define NvAudioFxI2sPlaybackMixId (0x11300005)
-#define NvAudioFxI2sRecordSplitId (0x11300006)
-#define NvAudioFxI2sLoopbackSplitId (0x11300007)
-#define NvAudioFxI2s2PlaybackMixId (0x11300008)
-#define NvAudioFxI2s2RecordSplitId (0x11300009)
-#define NvAudioFxI2s2LoopbackSplitId (0x1130000a)
-#define NvAudioFxSpdifPlaybackMixId (0x1130000b)
-#define NvAudioFxSpdifRecordSplitId (0x1130000c)
-#define NvAudioFxSpdifLoopbackSplitId (0x1130000d)
-#define NvAudioFxMusicMixId (0x1130000e)
-#define NvAudioFxMusicSplitId (0x1130000f)
-#define NvAudioFxRingtoneMixId (0x11300010)
+#define NvAudioFxStreamId (0x11100000)
+#define NvAudioFxSpdifId (0x11100001)
+#define NvAudioFxSilenceId (0x11100002)
+#define NvAudioFxI2s1Id (0x11110000)
+#define NvAudioFxI2s2Id (0x11110001)
+#define NvAudioFxPlaybackMixId (0x11300000)
+#define NvAudioFxPlaybackSplitId (0x11300001)
+#define NvAudioFxRecordMixId (0x11300002)
+#define NvAudioFxRecordSplitId (0x11300003)
+#define NvAudioFxSpdifPlaybackMixId (0x11300004)
+#define NvAudioFxSpdifRecordSplitId (0x11300005)
+#define NvAudioFxSpdifLoopbackSplitId (0x11300006)
+#define NvAudioFxMusicMixId (0x11300007)
+#define NvAudioFxMusicSplitId (0x11300008)
+#define NvAudioFxRingtoneMixId (0x11300009)
+#define NvAudioFxI2s1PlaybackMixId (0x11310000)
+#define NvAudioFxI2s1RecordSplitId (0x11310001)
+#define NvAudioFxI2s1LoopbackSplitId (0x11310002)
+#define NvAudioFxI2s2PlaybackMixId (0x11311000)
+#define NvAudioFxI2s2RecordSplitId (0x11311001)
+#define NvAudioFxI2s2LoopbackSplitId (0x11311002)
 
 //
 //                  Mixer
@@ -150,6 +150,7 @@ typedef NvS32 NvAudioFxProperty;
 #define NvAudioFxDrcProperty_Drc (0x3000)
 #define NvAudioFxEqProperty_Eq (0x4000)
 #define NvAudioFxI2sProperty_InputSelect (0x4a00)
+#define NvAudioFxI2sProperty_AllocChannel (0x4a01)
 #define NvAudioFxIoProperty_AddEvent (0x5000)
 #define NvAudioFxIoProperty_Position (0x5010)
 #define NvAudioFxIoProperty_RemoveEvent (0x5020)
@@ -265,6 +266,14 @@ typedef NvS32 NvAudioFxI2sInputSelect;
 #define NvAudioFxI2sInputSelect_Mic (0x4)
 #define NvAudioFxI2sInputSelect_Phone (0x5)
 #define NvAudioFxI2sInputSelect_Radio (0x6)
+
+// Description of the NvAudioFxI2sProperty_AllocChannel property.
+
+typedef struct NvAudioFxI2sChannelDescriptorRec
+{
+    NvAudioFxPin Pin;
+    NvU32 Id;
+} NvAudioFxI2sChannelDescriptor;
 
 // Parameteric EQ Filter types.
 
