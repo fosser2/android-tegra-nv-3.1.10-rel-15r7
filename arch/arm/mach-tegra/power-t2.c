@@ -279,7 +279,7 @@ void power_lp0_init(void)
 	//Enable CPU power request. Leave it enabled to be ready for LP2/LP1.
 	Reg = NV_PMC_REGR(g_pPMC, CNTRL);
 	Reg = NV_FLD_SET_DRF_DEF(APBDEV_PMC, CNTRL, CPUPWRREQ_OE, ENABLE, Reg);
-	NV_ASSERT(Reg == APBDEV_PMC_CNTRL_0_CPUPWRREQ_OE_ENABLE);
+	NV_PMC_REGW(g_pPMC,CNTRL,Reg);
 
 	//If the system supports deep sleep (LP0), initialize PMC accordingly.
 	if (LPStateInfo->LowestPowerState == NvOdmSocPowerState_DeepSleep)
