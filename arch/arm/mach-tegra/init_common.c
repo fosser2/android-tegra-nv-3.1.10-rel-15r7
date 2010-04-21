@@ -47,6 +47,8 @@
 #include "nvrm_interrupt.h"
 #include "ap20/arusb.h"
 #include "linux/nvmem_ioctl.h"
+#include <asm/cacheflush.h>
+#include <asm/outercache.h>
 
 const char *tegra_partition_list = NULL;
 char *tegra_boot_device = NULL;
@@ -1003,6 +1005,16 @@ extern int __init tegra_dma_init(void);
 #define tegra_dma_init() do {} while (0)
 #endif
 
+extern int disable_nonboot_cpus(void);
+
+static void tegra_machine_restart(char mode)
+{
+    disable_nonboot_cpus();
+    flush_cache_all();
+    outer_shutdown();
+    arm_machine_restart(mode);
+}
+
 void __init tegra_common_init(void)
 {
     if (tegra_get_module_inst_size("iram", 0)) {
@@ -1024,6 +1036,7 @@ void __init tegra_common_init(void)
     tegra_register_usb();
     tegra_register_w1();
     tegra_wake_init();
+    arm_pm_restart = tegra_machine_restart;
 #ifdef CONFIG_PM
 #ifdef MACH_TEGRA_GENERIC_DEBUG
     /* This is needed to get prints on UART
