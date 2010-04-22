@@ -21,3 +21,11 @@ obj-y				+= nvddk_fuse_ap20.o
 obj-$(CONFIG_MTD_NAND_TEGRA)	+= nvddk_nand.o
 
 obj-$(CONFIG_TEGRA_SNOR)	+= nvsnor_controller.o
+
+ifeq ($(CONFIG_TEGRA_AES),y)
+obj-y				+= nvddk_aes_intf_ap20.o
+obj-y				+= NvDdkAES_Dispatch.o
+obj-y				+= nvddk_aes_core_ap20.o
+obj-y				+= nvddk_aes.o
+obj-y				+= nvddk_aes_dispatch.o
+endif

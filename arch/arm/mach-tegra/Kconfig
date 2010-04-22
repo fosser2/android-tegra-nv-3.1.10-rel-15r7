@@ -83,6 +83,18 @@ config TEGRA_NVEC_USER
 	  Enabling this option will expose a device node to enable user-land
 	  clients to access embedded controller features.
 
+config TEGRA_AES
+	bool "Include driver for Tegra cryptographic engine (AES)"
+	depends on MACH_TEGRA_GENERIC
+	help
+	  Adds support for the NVIDIA Tegra cryptographic engine (AES).
+
+config TEGRA_AES_USER
+	bool "Enable user-land access to Tegra cryptographic engine (AES)"
+	depends on TEGRA_AES
+	help
+	  Adds support for the NVIDIA Tegra cryptographic engine (AES).
+
 config TEGRA_ODM_VIBRATE
 	boolean "System vibrator device driver using NVIDIA Tegra ODM kit"
 	depends on ANDROID_TIMED_OUTPUT && MACH_TEGRA_GENERIC
