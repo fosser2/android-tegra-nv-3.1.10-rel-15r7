@@ -131,6 +131,13 @@ static int play_thread( void *arg)
 								size);
 		}
 
+		if (buffer_in_queue == 0) {
+			prtd->play_thread_waiting = TRUE;
+			wait_for_completion(&prtd->appl_ptr_comp);
+			prtd->play_thread_waiting = FALSE;
+			init_completion(&prtd->appl_ptr_comp);
+		}
+
 		if ((buffer_to_prime == buffer_in_queue) ||
 			(prtd->audiofx_frames >=
 			runtime->control->appl_ptr)) {
@@ -463,6 +470,12 @@ static int pcm_common_close(struct snd_pcm_substream *substream)
 
 	prtd->state = SNDRV_PCM_TRIGGER_STOP;
 
+	if (completion_done(&prtd->thread_comp) == 0)
+		complete(&prtd->thread_comp);
+
+	if (completion_done(&prtd->appl_ptr_comp) == 0)
+		complete(&prtd->appl_ptr_comp);
+
 	if (prtd->play_thread)
 		kthread_stop(prtd->play_thread);
 
@@ -534,6 +547,8 @@ static int tegra_pcm_open(struct snd_pcm_substream *substream)
 		goto fail;
 
 	init_completion(&prtd->thread_comp);
+	init_completion(&prtd->appl_ptr_comp);
+	prtd->play_thread_waiting = FALSE;
 	sema_init(&prtd->buf_done_sem, 0);
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
@@ -671,6 +686,17 @@ static int tegra_pcm_mmap(struct snd_pcm_substream *substream,
 	return err;
 }
 
+static int tegra_pcm_ack(struct snd_pcm_substream *substream)
+{
+	struct pcm_runtime_data *prtd = substream->runtime->private_data;
+
+	if (prtd->play_thread_waiting) {
+		complete(&prtd->appl_ptr_comp);
+	}
+
+	return 0;
+}
+
 static struct snd_pcm_ops tegra_pcm_ops = {
 	.open = tegra_pcm_open,
 	.close = tegra_pcm_close,
@@ -680,7 +706,8 @@ static struct snd_pcm_ops tegra_pcm_ops = {
 	.prepare = tegra_pcm_prepare,
 	.trigger = tegra_pcm_trigger,
 	.pointer = tegra_pcm_pointer,
-	.mmap    = tegra_pcm_mmap,
+	.mmap = tegra_pcm_mmap,
+	.ack = tegra_pcm_ack,
 };
 
 static int tegra_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
