@@ -102,6 +102,11 @@ config TEGRA_PCI
 config TEGRA_SNOR
 	boolean
 
+config TEGRA_USB_VBUS_DETECT_BY_PMU
+	boolean "VBUS detection by PMU"
+	help
+		Enables USB VBUS detection by PMU
+
 source "arch/arm/mach-tegra/odm_kit/Kconfig"
 
 endif

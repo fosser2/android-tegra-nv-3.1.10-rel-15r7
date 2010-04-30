@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.29
-# Fri Apr 23 16:48:15 2010
+# Fri Apr 30 17:38:10 2010
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -200,6 +200,7 @@ CONFIG_TEGRA_ODM_RFKILL=y
 # CONFIG_TEGRA_NVEC is not set
 CONFIG_TEGRA_ODM_VIBRATE=y
 # CONFIG_TEGRA_PCI is not set
+CONFIG_TEGRA_USB_VBUS_DETECT_BY_PMU=y
 # CONFIG_TEGRA_ODM_HARMONY is not set
 CONFIG_TEGRA_ODM_WHISTLER=y
 # CONFIG_TEGRA_ODM_CONCORDE is not set

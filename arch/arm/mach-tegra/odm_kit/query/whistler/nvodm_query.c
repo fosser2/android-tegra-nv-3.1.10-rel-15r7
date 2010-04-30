@@ -1146,7 +1146,11 @@ NvOdmQueryPinAttributes(const NvOdmPinAttrib** pPinAttributes)
 
 NvBool NvOdmQueryGetPmuProperty(NvOdmPmuProperty* pPmuProperty)
 {
+#ifdef CONFIG_TEGRA_USB_VBUS_DETECT_BY_PMU
+    pPmuProperty->IrqConnected = NV_TRUE;
+#else
     pPmuProperty->IrqConnected = NV_FALSE;
+#endif
     pPmuProperty->PowerGoodCount = 0x7E;
     pPmuProperty->IrqPolarity = NvOdmInterruptPolarity_Low;
     
@@ -1202,13 +1206,17 @@ const NvOdmUsbProperty*
 NvOdmQueryGetUsbProperty(NvOdmIoModule OdmIoModule,
                          NvU32 Instance)
 {
-
+#ifdef CONFIG_TEGRA_USB_VBUS_DETECT_BY_PMU
+#define NVODM_USE_INTERNAL_PHY_VBUS_DETECTION  NV_FALSE
+#else
+#define NVODM_USE_INTERNAL_PHY_VBUS_DETECTION  NV_TRUE
+#endif
     static const NvOdmUsbProperty Usb1Property =
     {
         NvOdmUsbInterfaceType_Utmi,
         (NvOdmUsbChargerType_SE0 | NvOdmUsbChargerType_SE1 | NvOdmUsbChargerType_SK),
         20,
-        NV_TRUE,
+        NVODM_USE_INTERNAL_PHY_VBUS_DETECTION,
 #ifdef CONFIG_USB_TEGRA_OTG
         NvOdmUsbModeType_OTG,
 #else
@@ -1224,7 +1232,7 @@ NvOdmQueryGetUsbProperty(NvOdmIoModule OdmIoModule,
         NvOdmUsbInterfaceType_UlpiExternalPhy,
         NvOdmUsbChargerType_UsbHost,
         20,
-        NV_TRUE,
+        NVODM_USE_INTERNAL_PHY_VBUS_DETECTION,
         NvOdmUsbModeType_None,
         NvOdmUsbIdPinType_None,
         NvOdmUsbConnectorsMuxType_None,
@@ -1236,7 +1244,7 @@ NvOdmQueryGetUsbProperty(NvOdmIoModule OdmIoModule,
         NvOdmUsbInterfaceType_UlpiNullPhy,
         NvOdmUsbChargerType_UsbHost,
         20,
-        NV_TRUE,
+        NVODM_USE_INTERNAL_PHY_VBUS_DETECTION,
         NvOdmUsbModeType_Host,
         NvOdmUsbIdPinType_None,
         NvOdmUsbConnectorsMuxType_None,
@@ -1249,7 +1257,7 @@ NvOdmQueryGetUsbProperty(NvOdmIoModule OdmIoModule,
         NvOdmUsbInterfaceType_Utmi,
         NvOdmUsbChargerType_UsbHost,
         20,
-        NV_TRUE,
+        NVODM_USE_INTERNAL_PHY_VBUS_DETECTION,
         NvOdmUsbModeType_Host,
         NvOdmUsbIdPinType_CableId,
         NvOdmUsbConnectorsMuxType_None,
@@ -1262,7 +1270,7 @@ NvOdmQueryGetUsbProperty(NvOdmIoModule OdmIoModule,
         NvOdmUsbInterfaceType_Utmi,
         NvOdmUsbChargerType_UsbHost,
         20,
-        NV_TRUE,
+        NVODM_USE_INTERNAL_PHY_VBUS_DETECTION,
         NvOdmUsbModeType_None,
         NvOdmUsbIdPinType_None,
         NvOdmUsbConnectorsMuxType_None,
