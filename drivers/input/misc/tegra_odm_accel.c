@@ -95,13 +95,12 @@ void close_odm_accl(void)
  * settings will be lost. This function will help in switching
  * between power modes
  */
-int open_def_odm_accl(void)
+NvBool open_def_odm_accl(void)
 {
-	NvS32 err = -1;
+	NvBool err;
 	
 	err = NvOdmAccelOpen(&(accel_dev->hOdmAcr));
 	if (!err) {
-		err = -ENODEV;
 		pr_err("open_def_odm_accl: NvOdmAccelOpen failed\n");
 		return err;
 	}
@@ -109,7 +108,7 @@ int open_def_odm_accl(void)
 	err = NvOdmAccelSetIntForceThreshold(accel_dev->hOdmAcr,
 		 NvOdmAccelInt_MotionThreshold, 0, 900);
 	if (!err) {
-		pr_err("open_def_odm_accl: NvOdmAccelSetIntForceThreshold\n");
+		pr_err("open_def_odm_accl: Set Motion Thresold failed\n");
 		return err;
 	}
 
@@ -117,7 +116,7 @@ int open_def_odm_accl(void)
 		NvOdmAccelInt_MotionThreshold, NvOdmAccelAxis_All, 0, NV_TRUE);
 
 	if (!err) {
-		pr_err("open_def_odm_accl: NvOdmAccelSetIntEnable failed\n");
+		pr_err("open_def_odm_accl: Enable Motion Thresold failed\n");
 		return err;
 	}
 	
@@ -126,7 +125,7 @@ int open_def_odm_accl(void)
 		NvOdmAccelInt_TapThreshold, NvOdmAccelAxis_All, 0, NV_TRUE);
 
 	if (!err) {
-		pr_err("open_def_odm_accl: NvOdmAccelSetIntEnable failed\n");
+		pr_err("open_def_odm_accl: Enable Tap Threshold failed\n");
 		return err;
 	}
 
@@ -134,7 +133,7 @@ int open_def_odm_accl(void)
 		NvOdmAccelInt_TapThreshold, 0, 120);
 
 	if (!err) {
-		pr_err("open_def_odm_accl: NvOdmAccelSetIntForceThreshold\n");
+		pr_err("open_def_odm_accl: Set Tap Threshold failed\n");
 		return err;
 	}
 
@@ -142,7 +141,7 @@ int open_def_odm_accl(void)
 		NvOdmAccelInt_TapThreshold, 0, 2);
 
 	if (!err) {
-		pr_err("open_def_odm_accl: NvOdmAccelSetIntTimeThreshold\n");
+		pr_err("open_def_odm_accl: SetIntTimeThreshold failed\n");
 		return err;
 	}
 	return err;
@@ -354,6 +353,7 @@ static NvS32 __init tegra_acc_probe(struct platform_device *pdev)
 	struct tegra_acc_device_data *accelerometer = NULL;
 	struct input_dev *input_dev = NULL;
 	NvS32 err;
+	NvBool ret;
 
 	accelerometer = kzalloc(sizeof(*accelerometer), GFP_KERNEL);
 	if (accelerometer == NULL) {
@@ -371,16 +371,16 @@ static NvS32 __init tegra_acc_probe(struct platform_device *pdev)
 	}
 	g_input_dev = input_dev;
 	
-	err = open_def_odm_accl();
-	if (!err) {
-		pr_err("open_def_odm_accl: NvOdmAccelSetIntForceThreshold\n");
+	ret = open_def_odm_accl();
+	if (!ret) {
+		pr_err("open_def_odm_accl failed\n");
 		goto allocate_dev_fail;
 	}
 
 	//start the Int thread.
 	accelerometer->task = kthread_create(tegra_acc_thread, 
 		accelerometer, "tegra_acc_thread");
-	if(accelerometer->task == NULL) {
+	if (accelerometer->task == NULL) {
 		err = -1;
 		goto thread_create_failed;
 	}
