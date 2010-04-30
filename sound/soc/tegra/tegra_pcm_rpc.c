@@ -97,10 +97,12 @@ static int play_thread( void *arg)
 						 sizeof(NvAudioFxState),
 						 &state);
 			prtd->state = NVALSA_INVALID_STATE;
-			goto EXIT;
 		default:
 			;
 		}
+
+		if (kthread_should_stop())
+			break;
 
 		if (prtd->audiofx_frames < runtime->control->appl_ptr) {
 			memset(&abd, 0, sizeof(NvAudioFxBufferDescriptor));
@@ -136,6 +138,7 @@ static int play_thread( void *arg)
 			wait_for_completion(&prtd->appl_ptr_comp);
 			prtd->play_thread_waiting = false;
 			init_completion(&prtd->appl_ptr_comp);
+			continue;
 		}
 
 		if ((buffer_to_prime == buffer_in_queue) ||
@@ -180,8 +183,6 @@ EXIT:
 		buffer_in_queue--;
 	}
 
-	while (!kthread_should_stop()) {
-	}
 	return 0;
 }
 
