@@ -92,3 +92,18 @@ bool tegra_udc_charger_detection(void)
 
 	return Status.ChargerDetected;
 }
+
+void tegra_udc_dtd_prepare(void)
+{
+	/* When we are programming two DTDs very close to each other,
+	 * the second DTD is being prefetched before it is actually written
+	 * to DDR. To prevent this, we disable prefetcher before programming
+	 * any new DTD and re-enable it before priming endpoint.
+	 */
+	NvDdkUsbPhyMemoryPrefetch(s_hUsbPhy, NV_FALSE);
+}
+
+void tegra_udc_ep_barrier(void)
+{
+	NvDdkUsbPhyMemoryPrefetch(s_hUsbPhy, NV_TRUE);
+}

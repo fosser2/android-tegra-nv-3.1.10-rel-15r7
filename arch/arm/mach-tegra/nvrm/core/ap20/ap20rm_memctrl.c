@@ -152,29 +152,6 @@ void NvRmPrivAp20SetupMc(NvRmDeviceHandle hRm)
         NV_ASSERT(!"MC LL Path not enabled!");
     // For AP20, no need to program any MC timeout registers here. Default 
     // values should be good enough.
-
-    // Setup the AHB MEM configuration for USB performance.
-    // Enabling the AHB prefetch bits for USB1 USB2 and USB3.
-    // 64kiloByte boundaries 
-    // 4096 cycles before prefetched data is invalidated due to inactivity. 
-    reg = NV_DRF_NUM(AHB_AHB_MEM, PREFETCH_CFG1, ENABLE, 1) |
-          NV_DRF_DEF(AHB_AHB_MEM, PREFETCH_CFG1, AHB_MST_ID, AHBDMA)|
-          NV_DRF_NUM(AHB_AHB_MEM, PREFETCH_CFG1, ADDR_BNDRY, 0xC) |
-          NV_DRF_NUM(AHB_AHB_MEM, PREFETCH_CFG1, SPEC_THROTTLE, 0x0) |
-          NV_DRF_NUM(AHB_AHB_MEM, PREFETCH_CFG1, INACTIVITY_TIMEOUT, 0x1000);
-    NV_REGW( hRm, NvRmPrivModuleID_Ahb_Arb_Ctrl, 0,
-             AHB_AHB_MEM_PREFETCH_CFG1_0, reg );
-
-    reg = NV_DRF_NUM(AHB_AHB_MEM, PREFETCH_CFG2, ENABLE, 1) |
-          NV_DRF_DEF(AHB_AHB_MEM, PREFETCH_CFG2, AHB_MST_ID, USB)|
-          NV_DRF_DEF(AHB_AHB_MEM, PREFETCH_CFG2, AHB_MST_ID, USB2)|
-          NV_DRF_DEF(AHB_AHB_MEM, PREFETCH_CFG2, AHB_MST_ID, USB3)|
-          NV_DRF_NUM(AHB_AHB_MEM, PREFETCH_CFG2, ADDR_BNDRY, 0xC) |
-          NV_DRF_NUM(AHB_AHB_MEM, PREFETCH_CFG2, SPEC_THROTTLE, 0x0) |
-          NV_DRF_NUM(AHB_AHB_MEM, PREFETCH_CFG2, INACTIVITY_TIMEOUT, 0x1000);
-    NV_REGW( hRm, NvRmPrivModuleID_Ahb_Arb_Ctrl, 0,
-             AHB_AHB_MEM_PREFETCH_CFG2_0, reg );
-
 }
 
 

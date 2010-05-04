@@ -719,6 +719,8 @@ static void fsl_queue_td(struct fsl_ep *ep, struct fsl_req *req)
 	/* Ensure that updates to the QH will occure before priming. */
 	wmb();
 
+	platform_udc_ep_barrier();
+
 	/* Prime endpoint by writing 1 to ENDPTPRIME */
 	temp = ep_is_in(ep)
 		? (1 << (ep_index(ep) + 16))
@@ -801,6 +803,8 @@ static int fsl_req_to_dtd(struct fsl_req *req)
 	int		is_first =1;
 	struct ep_td_struct	*last_dtd = NULL, *dtd;
 	dma_addr_t dma;
+
+	platform_udc_dtd_prepare();
 
 	do {
 		dtd = fsl_build_dtd(req, &count, &dma, &is_last);

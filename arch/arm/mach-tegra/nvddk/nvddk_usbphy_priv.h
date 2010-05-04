@@ -185,6 +185,8 @@ typedef struct NvDdkUsbPhyRec
     NvError (*PowerDown)(NvDdkUsbPhyHandle hUsbPhy);
     // Pointer to the h/w specific WaitForStableClock function.
     NvError (*WaitForStableClock)(NvDdkUsbPhyHandle hUsbPhy);
+    // Pointer to the h/w specific usb prefetcher function
+    void (*MemoryPrefetch)(NvDdkUsbPhyHandle hUsbPhy, NvBool Enable);
     // Pointer to the h/w specific CloseHwInterface function.
     void (*CloseHwInterface)(NvDdkUsbPhyHandle hUsbPhy);
     // Pointer to save context function

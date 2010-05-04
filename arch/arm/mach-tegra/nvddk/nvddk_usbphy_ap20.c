@@ -46,6 +46,7 @@
 #include "nvrm_hardware_access.h"
 #include "nvddk_usbphy_priv.h"
 #include "nvodm_query.h"
+#include "ap20/arahb_arbc.h"
 
 /* Defines for USB register read and writes */
 #define USB_REG_RD(reg)\
@@ -1248,6 +1249,44 @@ Ap20UsbPhyWaitForStableClock(
     return NvSuccess;
 }
 
+static void Ap20UsbPhyMemoryPrefetch(NvDdkUsbPhy* pUsbPhy, NvBool Enable)
+{
+    NvU32 regVal = 0;
+
+    if (Enable)
+    {
+        // Setup the AHB MEM configuration for USB performance.
+        // Enabling the AHB prefetch bits for USB1.
+        // 64kiloByte boundaries.
+        // 4096 cycles before prefetched data is invalidated due to inactivity.
+        regVal = NV_DRF_NUM(AHB_AHB_MEM, PREFETCH_CFG1, ENABLE, 1) |
+              NV_DRF_DEF(AHB_AHB_MEM, PREFETCH_CFG1, AHB_MST_ID, AHBDMA)|
+              NV_DRF_NUM(AHB_AHB_MEM, PREFETCH_CFG1, ADDR_BNDRY, 0xC) |
+              NV_DRF_NUM(AHB_AHB_MEM, PREFETCH_CFG1, SPEC_THROTTLE, 0x0) |
+              NV_DRF_NUM(AHB_AHB_MEM, PREFETCH_CFG1, INACTIVITY_TIMEOUT, 0x1000);
+        NV_REGW( pUsbPhy->hRmDevice, NvRmPrivModuleID_Ahb_Arb_Ctrl, 0,
+             AHB_AHB_MEM_PREFETCH_CFG1_0, regVal);
+
+        regVal = NV_DRF_NUM(AHB_AHB_MEM, PREFETCH_CFG2, ENABLE, 1) |
+              NV_DRF_DEF(AHB_AHB_MEM, PREFETCH_CFG2, AHB_MST_ID, USB)|
+              NV_DRF_NUM(AHB_AHB_MEM, PREFETCH_CFG2, ADDR_BNDRY, 0xC) |
+              NV_DRF_NUM(AHB_AHB_MEM, PREFETCH_CFG2, SPEC_THROTTLE, 0x0) |
+              NV_DRF_NUM(AHB_AHB_MEM, PREFETCH_CFG2, INACTIVITY_TIMEOUT, 0x1000);
+        NV_REGW( pUsbPhy->hRmDevice, NvRmPrivModuleID_Ahb_Arb_Ctrl, 0,
+                 AHB_AHB_MEM_PREFETCH_CFG2_0, regVal);
+    }
+    else
+    {
+        regVal = NV_DRF_NUM(AHB_AHB_MEM, PREFETCH_CFG1, ENABLE, 0);
+        NV_REGW( pUsbPhy->hRmDevice, NvRmPrivModuleID_Ahb_Arb_Ctrl, 0,
+                 AHB_AHB_MEM_PREFETCH_CFG1_0, regVal);
+
+        regVal = NV_DRF_NUM(AHB_AHB_MEM, PREFETCH_CFG2, ENABLE, 0);
+        NV_REGW( pUsbPhy->hRmDevice, NvRmPrivModuleID_Ahb_Arb_Ctrl, 0,
+                 AHB_AHB_MEM_PREFETCH_CFG2_0, regVal);
+    }
+}
+
 static NvError 
 Ap20UsbPhyPowerUp(
     NvDdkUsbPhy *pUsbPhy)
@@ -1492,6 +1531,7 @@ Ap20UsbPhyOpenHwInterface(
     pUsbPhy->PowerDown = Ap20UsbPhyPowerDown;
     pUsbPhy->Ioctl = Ap20UsbPhyIoctl;
     pUsbPhy->WaitForStableClock = Ap20UsbPhyWaitForStableClock;
+    pUsbPhy->MemoryPrefetch = Ap20UsbPhyMemoryPrefetch;
     pUsbPhy->CloseHwInterface = Ap20UsbPhyClose;
     pUsbPhy->SaveContext = Ap20PhySaveContext;
     pUsbPhy->RestoreContext = Ap20PhyRestoreContext;

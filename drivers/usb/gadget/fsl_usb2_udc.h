@@ -625,6 +625,17 @@ extern void platform_udc_clk_release(void);
 extern void platform_udc_clk_suspend(void);
 extern void platform_udc_clk_resume(void);
 extern bool platform_udc_charger_detection(void);
+
+#ifdef CONFIG_ARCH_TEGRA
+#define platform_udc_dtd_prepare	__glue(_UDC_NAME,_udc_dtd_prepare)
+#define platform_udc_ep_barrier		__glue(_UDC_NAME,_udc_ep_barrier)
+extern void platform_udc_dtd_prepare(void);
+extern void platform_udc_ep_barrier(void);
+#else
+static inline void platform_udc_dtd_prepare(void) { }
+static inline void platform_udc_ep_barrier(void) { }
+#endif
+
 #else
 static inline int platform_udc_clk_init(struct platform_device *pdev)
 {
@@ -638,6 +649,10 @@ static inline bool platform_udc_charger_detection(void)
 {
 	return 0;
 }
+static inline void platform_udc_dtd_prepare(void)
+{ }
+static inline void platform_udc_ep_barrier(void)
+{ }
 #endif
 
 #endif

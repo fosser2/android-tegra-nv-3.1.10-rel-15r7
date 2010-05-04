@@ -939,7 +939,13 @@ Ap16UsbPhyWaitForStableClock(
     return NvSuccess;
 }
 
-
+static void
+Ap16UsbPhyMemoryPrefetch(
+    NvDdkUsbPhy *pUsbphy, NvBool Enable)
+{
+    // USB prefetcher configuration not implemented for AP16.
+    return;
+}
 static NvError 
 Ap16UsbPhyPowerUp(
     NvDdkUsbPhy *pUsbPhy)
@@ -1029,6 +1035,7 @@ Ap16UsbPhyOpenHwInterface(
     pUsbPhy->PowerDown = Ap16UsbPhyPowerDown;
     pUsbPhy->Ioctl = Ap16UsbPhyIoctl;
     pUsbPhy->WaitForStableClock = Ap16UsbPhyWaitForStableClock;
+    pUsbPhy->MemoryPrefetch = Ap16UsbPhyMemoryPrefetch;
     pUsbPhy->CloseHwInterface = Ap16UsbPhyClose;
     pUsbPhy->SaveContext = Ap16PhySaveContext;
     pUsbPhy->RestoreContext = Ap16PhyRestoreContext;

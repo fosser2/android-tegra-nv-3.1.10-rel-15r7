@@ -773,6 +773,12 @@ NvDdkUsbPhyWaitForStableClock(
     return hUsbPhy->WaitForStableClock(hUsbPhy);
 }
 
+void NvDdkUsbPhyMemoryPrefetch(NvDdkUsbPhyHandle hUsbPhy, NvBool Enable)
+{
+    NV_ASSERT(hUsbPhy);
+
+    hUsbPhy->MemoryPrefetch(hUsbPhy, Enable);
+}
 
 NvError
 NvDdkUsbPhyIoctl(

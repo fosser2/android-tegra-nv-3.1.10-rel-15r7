@@ -162,7 +162,6 @@ typedef enum
      */
     NvDdkUsbPhyIoctlType_UsbBusyHintsOnOff,
 
-
     NvDdkUsbPhyIoctlType_Num,
     /**
      * Ignore -- Forces compilers to make 32-bit enums.
@@ -242,7 +241,6 @@ typedef struct NvDdkUsbPhyIoctl_UsbBusyHintsOnOffInputArgsRec
     NvU32 BoostDurationMs;
 } NvDdkUsbPhyIoctl_UsbBusyHintsOnOffInputArgs;
 
-
 /**
  * Opens the Usb Phy, allocates the resources and initializes the phy.
  *
@@ -320,6 +318,14 @@ NvError NvDdkUsbPhyIoctl(
  */
 NvError NvDdkUsbPhyWaitForStableClock(NvDdkUsbPhyHandle hUsbPhy);
 
+/**
+ * Configures Prefetcher for USB.
+ *
+ * @param hUsbPhy Handle acquired during the NvDdkUsbPhyOpen() call.
+ * @param Enable If NV_TRUE, prefetcher is enabled, else disabled.
+ *
+ */
+void NvDdkUsbPhyMemoryPrefetch(NvDdkUsbPhyHandle hUsbPhy, NvBool Enable);
 
 #if defined(__cplusplus)
 }
