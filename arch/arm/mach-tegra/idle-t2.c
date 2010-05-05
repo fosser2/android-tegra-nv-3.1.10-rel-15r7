@@ -53,7 +53,7 @@ extern struct wake_lock main_wake_lock;
 #define TEMP_SAVE_AREA_SIZE 16
 #define ENABLE_LP2 1
 #define LP2_PADDING_FACTOR	2
-#define LP2_ROUNDTRIP_TIME_US	2500ul
+#define LP2_ROUNDTRIP_TIME_US	2500l
 //Let Max LP2 time wait be 71 min (Almost a wrap around)
 #define LP2_MAX_WAIT_TIME_US	(71*60*1000000ul)
 
@@ -308,7 +308,7 @@ void cpu_ap20_do_idle(void)
 void mach_tegra_idle(void)
 {
 	bool lp2_ok = true;
-	unsigned long sleep_time;
+	s64 sleep_time;
 
 #ifdef CONFIG_WAKELOCK
 	if (!main_wake_lock.flags || has_wake_lock(WAKE_LOCK_IDLE))
@@ -330,40 +330,31 @@ void mach_tegra_idle(void)
 			lp2_ok = false;
 	}
 
-        if (lp2_ok) {
-		unsigned long now, sleep_jiffies;
+	if (lp2_ok) {
+		sleep_time = ktime_to_us(tick_nohz_get_sleep_length());
 
-		now = (unsigned long)get_jiffies_64();
-		sleep_jiffies = get_next_timer_interrupt(now) - now;
-
-		if (sleep_jiffies > 1) {
-			sleep_time = jiffies_to_usecs(sleep_jiffies - 1);
-
-			sleep_time = min_t(unsigned long, sleep_time,
-				LP2_MAX_WAIT_TIME_US);
-
-			if (sleep_time <=
-				(LP2_ROUNDTRIP_TIME_US*LP2_PADDING_FACTOR))
-				lp2_ok = false;
-		} else
+		if (sleep_time <= (LP2_ROUNDTRIP_TIME_US*LP2_PADDING_FACTOR))
 			lp2_ok = false;
 	}
 
 	if (lp2_ok) {
+		unsigned long lp2_time;
+
 		sleep_time -= LP2_ROUNDTRIP_TIME_US;
-		tegra_lp2_set_trigger(sleep_time);
+		tegra_lp2_set_trigger((unsigned long)sleep_time);
 		cpu_ap20_do_lp2();
 		tegra_lp2_set_trigger(0);
 
 		/* add the actual amount of time spent in lp2 to the timers */
-		sleep_time = NV_REGR(s_hRmGlobal, NvRmModuleID_Pmif,
+		lp2_time = NV_REGR(s_hRmGlobal, NvRmModuleID_Pmif,
 			0, APBDEV_PMC_SCRATCH39_0);
-		sleep_time -= NV_REGR(s_hRmGlobal, NvRmModuleID_Pmif,
+		lp2_time -= NV_REGR(s_hRmGlobal, NvRmModuleID_Pmif,
 			0, APBDEV_PMC_SCRATCH38_0);
 
-		// jiffies += usecs_to_jiffies(sleep_time);
-		// jiffies updated by tick_nohz_restart_sched_tick() after exit
-		NvRmPrivSetLp2TimeUS(s_hRmGlobal, sleep_time);
+		NvRmPrivSetLp2TimeUS(s_hRmGlobal, lp2_time);
+
+		/* adjust kernel timers */
+		hrtimer_peek_ahead_timers();
 	} else
 		cpu_ap20_do_idle();
 
