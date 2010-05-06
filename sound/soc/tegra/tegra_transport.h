@@ -391,10 +391,9 @@ struct pcm_runtime_data {
 	int state;
 	int stream;
 	int shutdown_thrd;
-	bool play_thread_waiting;
 	unsigned int audiofx_frames;
 	struct completion thread_comp;
-	struct completion appl_ptr_comp;
+	wait_queue_head_t buf_wait;
 	struct semaphore buf_done_sem;
 	StandardPath* stdoutpath;
 	StandardPath* stdinpath;

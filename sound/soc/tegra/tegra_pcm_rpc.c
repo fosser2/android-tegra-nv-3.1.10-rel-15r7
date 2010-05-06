@@ -78,7 +78,7 @@ static int play_thread( void *arg)
 	rtbuffersize = frames_to_bytes(runtime, runtime->buffer_size);
 	buffer_to_prime  = (rtbuffersize / TEGRA_DEFAULT_BUFFER_SIZE);
 
-	while (!prtd->shutdown_thrd) {
+	for(;;) {
 		switch (prtd->state) {
 		case SNDRV_PCM_TRIGGER_START:
 			state = NvAudioFxState_Run;
@@ -134,16 +134,15 @@ static int play_thread( void *arg)
 		}
 
 		if (buffer_in_queue == 0) {
-			prtd->play_thread_waiting = true;
-			wait_for_completion(&prtd->appl_ptr_comp);
-			prtd->play_thread_waiting = false;
-			init_completion(&prtd->appl_ptr_comp);
+			DEFINE_WAIT(wq);
+			prepare_to_wait(&prtd->buf_wait, &wq, TASK_INTERRUPTIBLE);
+			schedule();
+			finish_wait(&prtd->buf_wait, &wq);
 			continue;
 		}
 
 		if ((buffer_to_prime == buffer_in_queue) ||
-			(prtd->audiofx_frames >=
-			runtime->control->appl_ptr)) {
+			(prtd->audiofx_frames >= runtime->control->appl_ptr)) {
 			down(&prtd->buf_done_sem);
 
 			buffer_in_queue--;
@@ -177,12 +176,10 @@ static int play_thread( void *arg)
 			}
 		}
 	}
-EXIT:
 	while (buffer_in_queue > 0) {
 		down(&prtd->buf_done_sem);
 		buffer_in_queue--;
 	}
-
 	return 0;
 }
 
@@ -474,8 +471,7 @@ static int pcm_common_close(struct snd_pcm_substream *substream)
 	if (completion_done(&prtd->thread_comp) == 0)
 		complete(&prtd->thread_comp);
 
-	if (completion_done(&prtd->appl_ptr_comp) == 0)
-		complete(&prtd->appl_ptr_comp);
+	wake_up_all(&prtd->buf_wait);
 
 	if (prtd->play_thread)
 		kthread_stop(prtd->play_thread);
@@ -548,8 +544,7 @@ static int tegra_pcm_open(struct snd_pcm_substream *substream)
 		goto fail;
 
 	init_completion(&prtd->thread_comp);
-	init_completion(&prtd->appl_ptr_comp);
-	prtd->play_thread_waiting = false;
+	init_waitqueue_head(&prtd->buf_wait);
 	sema_init(&prtd->buf_done_sem, 0);
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
@@ -691,10 +686,7 @@ static int tegra_pcm_ack(struct snd_pcm_substream *substream)
 {
 	struct pcm_runtime_data *prtd = substream->runtime->private_data;
 
-	if (prtd->play_thread_waiting) {
-		complete(&prtd->appl_ptr_comp);
-	}
-
+	wake_up(&prtd->buf_wait);
 	return 0;
 }
 
