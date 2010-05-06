@@ -227,6 +227,7 @@ void cpu_ap20_do_lp1(void)
 
 void cpu_ap20_do_lp2(void)
 {
+    bool dfs_stop = NV_TRUE;
     unsigned int proc_id = smp_processor_id();
 
     //Save our context ptrs to scratch regs
@@ -240,7 +241,11 @@ void cpu_ap20_do_lp2(void)
     if (!proc_id)
     {
         //Disable the Statistics interrupt
-        disable_irq(INT_SYS_STATS_MON);
+	if (g_Lp2Policy == NvRmLp2Policy_MaskInLowCorner)
+		dfs_stop = (NvRmPrivGetDfsFlags(s_hRmGlobal) &
+			NvRmDfsStatusFlags_Pause);
+	if (dfs_stop)
+	        disable_irq(INT_SYS_STATS_MON);
         do_suspend_prep();
 
         // Save/clear CPU clock divider ("voltage-safe", as scaling is
@@ -257,7 +262,8 @@ void cpu_ap20_do_lp2(void)
     if (!proc_id)
     {
         //We're back
-        enable_irq(INT_SYS_STATS_MON);
+        if (dfs_stop)
+		enable_irq(INT_SYS_STATS_MON);
 
         //Delay if needed
 
