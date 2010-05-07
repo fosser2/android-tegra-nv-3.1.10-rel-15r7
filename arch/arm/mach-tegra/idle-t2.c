@@ -269,8 +269,6 @@ void cpu_ap20_do_idle(void)
     unsigned int tmp = 0;
     volatile uint32_t *addr = 0;
 
-    dsb();
-
     if (likely(s_pFlowCtrl))
     {
         /*
@@ -289,19 +287,23 @@ void cpu_ap20_do_idle(void)
 
         NV_WRITE32(addr, tmp);
         tmp = NV_READ32(addr);
-    }
 
-    // Wait for any interrupt
-    __asm__ volatile ("wfi");
+        // Wait for any interrupt
+        dsb();
+        __asm__ volatile ("wfi");
 
-    if (addr)
-    {
         /*
          * Signal "stats monitor" to stop counting the idle cycles.
          */
         tmp = NV_DRF_DEF(FLOW_CTLR, HALT_CPU1_EVENTS, MODE, FLOW_MODE_NONE);
         NV_WRITE32(addr, tmp);
         tmp = NV_READ32(addr);
+    }
+    else
+    {
+        // Wait for any interrupt
+        dsb();
+        __asm__ volatile ("wfi");
     }
 }
 
