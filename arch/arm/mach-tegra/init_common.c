@@ -858,13 +858,29 @@ fail:
 #else
 #include <asm/hardware/cache-l2x0.h>
 #include "ap20/arpl310.h"
+extern volatile void *g_pPL310;
 void tegra_pl310_init(void)
 {
     NvRmPhysAddr CachePa;
-    NvU32 Len;
-    volatile NvU8 *pCache = NULL;
+    NvU32 Len, AuxValue;
 
-    NvU32 AuxValue =
+    if (!g_pPL310)
+    {
+        if (!NvRmModuleGetNumInstances(s_hRmGlobal, NvRmPrivModuleID_Pl310))
+            return;
+
+        NvRmModuleGetBaseAddress(s_hRmGlobal,
+            NVRM_MODULE_ID(NvRmPrivModuleID_Pl310, 0), &CachePa, &Len);
+
+        if (NvRmPhysicalMemMap(CachePa, Len, NVOS_MEM_READ_WRITE,
+                NvOsMemAttribute_Uncached, (void **)&g_pPL310)!=NvSuccess)
+        {
+            printk(__FILE__ ":%d failed to map PL310\n", __LINE__);
+            return;
+        }
+    }
+
+    AuxValue =
         NV_DRF_NUM(PL310, AUXILIARY_CONTROL, FULL_LINE_OF_ZERO, 1) |
         NV_DRF_NUM(PL310, AUXILIARY_CONTROL, SO_DEV_HIGH_PRIORITY, 0) |
         /* FIXME:  Read performance tests show ~8-10% performance loss (uniprocessor
@@ -883,25 +899,13 @@ void tegra_pl310_init(void)
         NV_DRF_DEF(PL310, AUXILIARY_CONTROL, FORCE_WRITE_ALLOCATE, DISABLED) |
         NV_DRF_NUM(PL310, AUXILIARY_CONTROL, SHARED_ATTRIBUTE_OVERRIDE, 0) |
         NV_DRF_NUM(PL310, AUXILIARY_CONTROL, EARLY_BRESP, 1);
-  
-    if (!NvRmModuleGetNumInstances(s_hRmGlobal, NvRmPrivModuleID_Pl310))
-        return;
 
-    NvRmModuleGetBaseAddress(s_hRmGlobal,
-        NVRM_MODULE_ID(NvRmPrivModuleID_Pl310, 0), &CachePa, &Len);
-
-    if (NvRmPhysicalMemMap(CachePa, Len, NVOS_MEM_READ_WRITE,
-            NvOsMemAttribute_Uncached, (void **)&pCache)!=NvSuccess)
-    {
-        printk(__FILE__ ":%d failed to map PL310\n", __LINE__);
-        return;
-    }
-
-    NV_WRITE32(pCache + PL310_TAG_RAM_LATENCY_0,
+    NV_WRITE32(g_pPL310 + PL310_TAG_RAM_LATENCY_0,
         NV_DRF_DEF(PL310, TAG_RAM_LATENCY, SETUP, SW_DEFAULT) |
         NV_DRF_DEF(PL310, TAG_RAM_LATENCY, READ, SW_DEFAULT) |
         NV_DRF_DEF(PL310, TAG_RAM_LATENCY, WRITE, SW_DEFAULT));
-    NV_WRITE32(pCache + PL310_DATA_RAM_LATENCY_0,
+
+    NV_WRITE32(g_pPL310 + PL310_DATA_RAM_LATENCY_0,
         NV_DRF_DEF(PL310, DATA_RAM_LATENCY, SETUP, SW_DEFAULT) |
         NV_DRF_DEF(PL310, DATA_RAM_LATENCY, READ, SW_DEFAULT) |
         NV_DRF_DEF(PL310, DATA_RAM_LATENCY, WRITE, SW_DEFAULT));
@@ -926,7 +930,7 @@ void tegra_pl310_init(void)
         MCR(p15, 0, Reg, c1, c0, 1);
         local_irq_restore(flags);
     }
-    l2x0_init((void __iomem *)pCache, AuxValue, 0x8200c3fe);    
+    l2x0_init((void __iomem *)g_pPL310, AuxValue, 0x8200c3fe);
 }
 #endif
 

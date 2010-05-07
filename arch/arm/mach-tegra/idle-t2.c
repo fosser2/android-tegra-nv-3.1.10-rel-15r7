@@ -43,7 +43,7 @@ extern NvU32 g_ArmPerif;
 extern NvU32 g_enterLP2PA;
 extern volatile void *g_pPMC, *g_pAHB, *g_pCLK_RST_CONTROLLER, *g_pRtc;
 extern volatile void *g_pEMC, *g_pMC, *g_pAPB_MISC, *g_pIRAM, *g_pTimerus;
-extern volatile void *g_pPL310;
+
 #ifdef CONFIG_WAKELOCK
 extern struct wake_lock main_wake_lock;
 #endif
@@ -210,18 +210,6 @@ void __init NvAp20InitFlowController(void)
             (void**)&g_pRtc)!=NvSuccess)
     {
         printk(KERN_INFO "failed to map rtc; DVFS will not function"
-               " correctly as a result\n");
-        return;
-    }
-
-    NvRmModuleGetBaseAddress(s_hRmGlobal,
-        NVRM_MODULE_ID(NvRmPrivModuleID_Pl310, 0), &pa, &len);
-
-    if (NvRmPhysicalMemMap(pa, len, NVOS_MEM_READ_WRITE,
-            NvOsMemAttribute_Uncached,
-            (void**)&g_pPL310)!=NvSuccess)
-    {
-        printk(KERN_INFO "failed to map pl310; DVFS will not function"
                " correctly as a result\n");
         return;
     }

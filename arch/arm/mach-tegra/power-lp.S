@@ -151,6 +151,7 @@ ArmCortexA9Saved:
 	ldr	r3, [r3]	//R3 = g_pPMC
 	str	r1, [r3, #APBDEV_PMC_SCRATCH39_0]
 
+#if (defined(CONFIG_CACHE_PL310) || defined(CONFIG_CACHE_L2X0))
 	//Flush L2 rams for LP0
 	ldr	r1, =g_pPL310
 	ldr	r1, [r1]
@@ -205,6 +206,7 @@ unlock_all_ways:
 
 	cmp	r10, r2
 	bne	unlock_all_ways
+#endif
 
 copy_to_iram:
 	//Copy the low power core to IRAM using 8x4 block moves.
