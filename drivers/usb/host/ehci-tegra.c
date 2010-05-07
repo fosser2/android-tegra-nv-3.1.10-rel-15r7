@@ -358,6 +358,7 @@ static int tegra_ehci_bus_suspend(struct usb_hcd *hcd)
 {
 	struct ehci_hcd *ehci = hcd_to_ehci(hcd);
 	struct tegra_hcd_platform_data *pdata;
+	int error_status = 0;
 
 	/* initialize the platform data pointer */
 	pdata = hcd->self.controller->platform_data;
@@ -384,7 +385,13 @@ static int tegra_ehci_bus_suspend(struct usb_hcd *hcd)
 		}
 	}
 
-	return ehci_bus_suspend(hcd);
+	if (ehci->host_resumed) {
+		error_status = ehci_bus_suspend(hcd);
+		if (!error_status)
+			tegra_ehci_power_down(hcd);
+	}
+
+	return error_status;
 }
 
 static int tegra_ehci_bus_resume(struct usb_hcd *hcd)
@@ -415,6 +422,10 @@ static int tegra_ehci_bus_resume(struct usb_hcd *hcd)
 		if (status & TEGRA_USB_ID_PIN_STATUS) {
 			return 0;
 		}
+	}
+
+	if (!ehci->host_resumed) {
+		tegra_ehci_power_up(hcd);
 	}
 
 	return ehci_bus_resume(hcd);
