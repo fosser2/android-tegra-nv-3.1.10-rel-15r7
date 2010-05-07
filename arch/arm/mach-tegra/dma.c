@@ -620,11 +620,12 @@ static void tegra_dma_init_hw(struct tegra_dma_channel *ch)
 
 static void handle_oneshot_dma(struct tegra_dma_channel *ch)
 {
-	static struct tegra_dma_req *req;
+	struct tegra_dma_req *req;
+	unsigned int irq_flags;
 
-	spin_lock(&ch->lock);
+	spin_lock_irqsave(&ch->lock, irq_flags);
 	if (list_empty(&ch->list)) {
-		spin_unlock(&ch->lock);
+		spin_unlock_irqrestore(&ch->lock, irq_flags);
 		return;
 	}
 
@@ -643,22 +644,23 @@ static void handle_oneshot_dma(struct tegra_dma_channel *ch)
 		req->status = TEGRA_DMA_REQ_SUCCESS;
 		req->req_state = TEGRA_DMA_REQ_STATE_COMPLETE;
 
-		spin_unlock(&ch->lock);
+		spin_unlock_irqrestore(&ch->lock, irq_flags);
 		/* Callback should be called without any lock */
 		req->complete(req, TEGRA_DMA_REQ_SUCCESS);
-		spin_lock(&ch->lock);
+		spin_lock_irqsave(&ch->lock, irq_flags);
 	}
 
 	if (!list_empty(&ch->list)) {
 		req = list_entry(ch->list.next, typeof(*req), list);
-		tegra_dma_update_hw(ch, req);
+		if (req->req_state == TEGRA_DMA_REQ_STATE_QUEUED)
+			tegra_dma_update_hw(ch, req);
 	}
-	spin_unlock(&ch->lock);
+	spin_unlock_irqrestore(&ch->lock, irq_flags);
 }
 
 static void handle_continuous_dma(struct tegra_dma_channel *ch)
 {
-	static struct tegra_dma_req *req;
+	struct tegra_dma_req *req;
 	struct tegra_dma_req *next_req;
 
 	spin_lock(&ch->lock);
