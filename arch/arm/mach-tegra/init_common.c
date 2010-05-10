@@ -55,7 +55,7 @@ char *tegra_boot_device = NULL;
 NvRmGpioHandle s_hGpioGlobal = NULL;
 
 #ifdef CONFIG_PM
-#ifdef MACH_TEGRA_GENERIC_DEBUG
+#ifdef CONFIG_MACH_TEGRA_GENERIC_DEBUG
 extern int console_suspend_enabled;
 #endif
 extern void tegra_set_suspend_ops(void);
@@ -1042,7 +1042,7 @@ void __init tegra_common_init(void)
     tegra_wake_init();
     arm_pm_restart = tegra_machine_restart;
 #ifdef CONFIG_PM
-#ifdef MACH_TEGRA_GENERIC_DEBUG
+#ifdef CONFIG_MACH_TEGRA_GENERIC_DEBUG
     /* This is needed to get prints on UART
      * during suspend/resume */
     console_suspend_enabled = 0;
