@@ -880,6 +880,7 @@ NvOdmQueryDapPortGetProperty(
     switch (NV_DRF_VAL(TEGRA_DEVKIT, BCT_CUSTOPT, RIL, CustOpt))
     {
     case TEGRA_DEVKIT_BCT_CUSTOPT_0_RIL_EMP_RAINBOW:
+    case TEGRA_DEVKIT_BCT_CUSTOPT_0_RIL_IFX:
         if (DapPortId && DapPortId<NV_ARRAY_SIZE(s_Property_Ril_Emp_Rainbow))
             return &s_Property_Ril_Emp_Rainbow[DapPortId];
         break;
@@ -925,6 +926,7 @@ NvOdmQueryDapPortGetConnectionTable(
     switch (NV_DRF_VAL(TEGRA_DEVKIT, BCT_CUSTOPT, RIL, CustOpt))
     {
     case TEGRA_DEVKIT_BCT_CUSTOPT_0_RIL_EMP_RAINBOW:
+    case TEGRA_DEVKIT_BCT_CUSTOPT_0_RIL_IFX:
         {
             for( TableIndex = 0;
                  TableIndex < NV_ARRAY_SIZE(s_Property_Ril_Emp_Rainbow); TableIndex++)
@@ -1029,11 +1031,26 @@ NvU32 NvOdmQueryGetOscillatorDriveStrength(void)
 
 const NvOdmWakeupPadInfo *NvOdmQueryGetWakeupPadTable(NvU32 *pSize)
 {
+    NvU32 CustOpt;
     if (pSize)
         *pSize = NV_ARRAY_SIZE(s_NvOdmWakeupPadInfo);
 
+    CustOpt = GetBctKeyValue();
+    switch (NV_DRF_VAL(TEGRA_DEVKIT, BCT_CUSTOPT, RIL, CustOpt))
+    {
+    case TEGRA_DEVKIT_BCT_CUSTOPT_0_RIL_EMP_RAINBOW:
+        s_NvOdmWakeupPadInfo[24].enable = NV_TRUE;
+        break;
+    case TEGRA_DEVKIT_BCT_CUSTOPT_0_RIL_IFX:
+        s_NvOdmWakeupPadInfo[13].enable = NV_TRUE;
+        break;
+    default:
+        break;
+    }
+
     return (const NvOdmWakeupPadInfo *) s_NvOdmWakeupPadInfo;
 }
+
 
 const NvU8* NvOdmQueryManufacturer(void)
 {
