@@ -2834,7 +2834,7 @@ static int nvmap_split_carveout_heap(struct nvmap_carveout *co, size_t size,
 		spin_unlock(&co->lock);
 
 		if (_nvmap_init_carveout(&n->carveout,name, blkbase, blksize)) {
-			nvmap_carveout_free(&i->carveout, idx);
+			nvmap_carveout_free(co, idx);
 			idx = -1;
 		} else {
 			spin_lock(&co->lock);
