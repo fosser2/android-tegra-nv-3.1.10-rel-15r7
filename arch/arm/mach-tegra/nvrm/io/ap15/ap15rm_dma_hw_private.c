@@ -57,6 +57,31 @@
         NV_WRITE32(((pVirtBaseAdd) + ((APBDMACHAN_CHANNEL_0_##reg##_0)/4)), (val)); \
     } while(0)
 
+static const NvU32 s_I2s_Trigger[] = {
+        APBDMACHAN_CHANNEL_0_CSR_0_REQ_SEL_I2S_1,
+        APBDMACHAN_CHANNEL_0_CSR_0_REQ_SEL_I2S2_1,
+};
+
+static const NvU32 s_Uart_Trigger[] = {
+        APBDMACHAN_CHANNEL_0_CSR_0_REQ_SEL_UART_A,
+        APBDMACHAN_CHANNEL_0_CSR_0_REQ_SEL_UART_B,
+        APBDMACHAN_CHANNEL_0_CSR_0_REQ_SEL_UART_C,
+        APBDMACHAN_CHANNEL_0_CSR_0_REQ_SEL_UART_D,
+        APBDMACHAN_CHANNEL_0_CSR_0_REQ_SEL_UART_E
+};
+
+static const NvU32 s_Slink_Trigger[] = {
+        APBDMACHAN_CHANNEL_0_CSR_0_REQ_SEL_SL2B1,
+        APBDMACHAN_CHANNEL_0_CSR_0_REQ_SEL_SL2B2,
+        APBDMACHAN_CHANNEL_0_CSR_0_REQ_SEL_SL2B3,
+        APBDMACHAN_CHANNEL_0_CSR_0_REQ_SEL_SL2B4,
+};
+
+static const NvU32 s_I2c_Trigger[] = {
+        APBDMACHAN_CHANNEL_0_CSR_0_REQ_SEL_I2C,
+        APBDMACHAN_CHANNEL_0_CSR_0_REQ_SEL_I2C2,
+        APBDMACHAN_CHANNEL_0_CSR_0_REQ_SEL_I2C3,
+};
 
 static void
 ConfigureDmaRequestor(
@@ -77,47 +102,23 @@ ConfigureDmaRequestor(
 
         case NvRmDmaModuleID_I2s:
             // Dma requestor is the I2s controller.
-            NV_ASSERT(DmaReqInstId < 2);
-            if (DmaReqInstId == 0)
-                pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
-                                            CSR, REQ_SEL, I2S_1, pDmaChRegs->ControlReg);
-            else 
-                pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
-                                            CSR, REQ_SEL, I2S2_1, pDmaChRegs->ControlReg);
-            pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
+            NV_ASSERT(DmaReqInstId < NV_ARRAY_SIZE(s_I2s_Trigger));
+            pDmaChRegs->ControlReg = NV_FLD_SET_DRF_NUM(APBDMACHAN_CHANNEL_0,
+                                     CSR, REQ_SEL, s_I2s_Trigger[DmaReqInstId],
+                                     pDmaChRegs->ControlReg);
+            pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0,
                                             CSR, FLOW, ENABLE, pDmaChRegs->ControlReg);
-            pDmaChRegs->ApbSequenceReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
-                                            APB_SEQ, APB_BUS_WIDTH, BUS_WIDTH_32, 
+            pDmaChRegs->ApbSequenceReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0,
+                                            APB_SEQ, APB_BUS_WIDTH, BUS_WIDTH_32,
                                             pDmaChRegs->ApbSequenceReg);
             break;
 
         case NvRmDmaModuleID_Uart:
             // Dma requestor is the uart.
-            NV_ASSERT(DmaReqInstId < 5);
-            switch (DmaReqInstId)
-            {
-                default:
-                case 0:
-                    pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
-                            CSR, REQ_SEL, UART_A, pDmaChRegs->ControlReg);
-                    break;
-                case 1:
-                    pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
-                            CSR, REQ_SEL, UART_B, pDmaChRegs->ControlReg);
-                    break;
-                case 2:
-                    pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
-                            CSR, REQ_SEL, UART_C, pDmaChRegs->ControlReg);
-                    break;
-                case 3:
-                    pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
-                            CSR, REQ_SEL, UART_D, pDmaChRegs->ControlReg);
-                    break;
-                case 4:
-                    pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
-                            CSR, REQ_SEL, UART_E, pDmaChRegs->ControlReg);
-                    break;
-            }
+            NV_ASSERT(DmaReqInstId < NV_ARRAY_SIZE(s_Uart_Trigger));
+            pDmaChRegs->ControlReg = NV_FLD_SET_DRF_NUM(APBDMACHAN_CHANNEL_0,
+                                     CSR, REQ_SEL, s_Uart_Trigger[DmaReqInstId],
+                                     pDmaChRegs->ControlReg);
             pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
                                         CSR, FLOW, ENABLE, pDmaChRegs->ControlReg);
             pDmaChRegs->ApbSequenceReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
@@ -128,8 +129,7 @@ ConfigureDmaRequestor(
         case NvRmDmaModuleID_Vfir:
             // Dma requestor is the vfir.
             NV_ASSERT(DmaReqInstId < 1);
-            if (DmaReqInstId == 1)
-                pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
+            pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0,
                                             CSR, REQ_SEL, UART_B, pDmaChRegs->ControlReg);
             pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
                                             CSR, FLOW, ENABLE, pDmaChRegs->ControlReg);
@@ -166,16 +166,10 @@ ConfigureDmaRequestor(
 
         case NvRmDmaModuleID_Slink:
             // Dma requestor is the Slink controller.
-            NV_ASSERT(DmaReqInstId < 3);
-            if (DmaReqInstId == 0)
-                pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
-                                            CSR, REQ_SEL, SL2B1, pDmaChRegs->ControlReg);
-            else if (DmaReqInstId == 1)
-                pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
-                                            CSR, REQ_SEL, SL2B2, pDmaChRegs->ControlReg);
-            else
-                pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
-                                            CSR, REQ_SEL, SL2B3, pDmaChRegs->ControlReg);
+            NV_ASSERT(DmaReqInstId < NV_ARRAY_SIZE(s_Slink_Trigger));
+            pDmaChRegs->ControlReg = NV_FLD_SET_DRF_NUM(APBDMACHAN_CHANNEL_0,
+                                     CSR, REQ_SEL, s_Slink_Trigger[DmaReqInstId],
+                                     pDmaChRegs->ControlReg);
             
             pDmaChRegs->ControlReg = NV_FLD_SET_DRF_NUM(APBDMACHAN_CHANNEL_0, 
                                             CSR, TRIG_SEL, 0, pDmaChRegs->ControlReg);
@@ -200,27 +194,11 @@ ConfigureDmaRequestor(
 
         case NvRmDmaModuleID_I2c:
             // Dma requestor is the I2c controller.
-            NV_ASSERT(DmaReqInstId < 3);
-            switch (DmaReqInstId)
-            {
-                default:
-                case 0:
-                    pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
-                                                CSR, REQ_SEL, I2C, 
-                                                    pDmaChRegs->ControlReg);
-                    break;
-                case 1:
-                    pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
-                                                CSR, REQ_SEL, I2C2, 
-                                                    pDmaChRegs->ControlReg);
-                    break;
-                case 2:
-                    pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
-                                                CSR, REQ_SEL, I2C3, 
-                                                    pDmaChRegs->ControlReg);
-                    break;
-            }
-        
+            NV_ASSERT(DmaReqInstId < NV_ARRAY_SIZE(s_I2c_Trigger));
+            pDmaChRegs->ControlReg = NV_FLD_SET_DRF_NUM(APBDMACHAN_CHANNEL_0,
+                                     CSR, REQ_SEL, s_I2c_Trigger[DmaReqInstId],
+                                     pDmaChRegs->ControlReg);
+
             pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
                                             CSR, FLOW, ENABLE, pDmaChRegs->ControlReg);
             pDmaChRegs->ApbSequenceReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
@@ -231,7 +209,6 @@ ConfigureDmaRequestor(
         case NvRmDmaModuleID_Dvc:
             // Dma requestor is the I2c controller.
             NV_ASSERT(DmaReqInstId < 1);
-        
             pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
                                             CSR, REQ_SEL, DVC_I2C, pDmaChRegs->ControlReg);
             pDmaChRegs->ControlReg = NV_FLD_SET_DRF_DEF(APBDMACHAN_CHANNEL_0, 
