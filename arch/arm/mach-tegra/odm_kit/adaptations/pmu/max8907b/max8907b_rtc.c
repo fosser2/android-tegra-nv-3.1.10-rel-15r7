@@ -163,7 +163,9 @@ Max8907bRtcCountWrite(
     NvU8 BcdDD, BcdMM, BcdYY1, BcdYY2;
     NvU16 YYYY;
     struct rtc_time tm;
+#if NV_DEBUG
     NvU32 data1;
+#endif
 
     NVODMPMU_PRINTF(("\n Rtc write count=0x%x ", Count));
     // convert seconds since reference time into date
@@ -224,6 +226,8 @@ Max8907bRtcCountWrite(
         NVODMPMU_PRINTF(("\n Max8907bRtcCountWrite() error. "));
         return NV_FALSE;
     }
+
+    return NV_TRUE;
 }
 
 NvBool

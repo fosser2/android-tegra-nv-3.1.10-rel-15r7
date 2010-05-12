@@ -174,7 +174,7 @@ static unsigned long measure_input_freq(unsigned int *m, unsigned int *n)
 static void __init tegra_timer_init(void)
 {
 	void __iomem *tmr;
-	unsigned int m, n;
+	unsigned int m = 0, n = 0;
 	unsigned long val;
 
 	tmr = IO_ADDRESS(TEGRA_TMR1_BASE + TIMERUS_OFFS);

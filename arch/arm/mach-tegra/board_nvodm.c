@@ -495,8 +495,6 @@ static struct spi_board_info tegra_spi_ipc_devices[] __initdata =
 
 static void __init register_spi_ipc_devices(void)
 {
-    NvError err;
-    NvU32 irq;
     NvU32 instance = 0xFFFF;
     NvU32 cs = 0xFFFF;
     const NvOdmPeripheralConnectivity *pConnectivity = NULL;

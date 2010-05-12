@@ -534,7 +534,7 @@ int tegra_iovmm_client_lock(struct tegra_iovmm_client *client)
 {
 	int ret;
 
-	if (!client) return;
+	if (!client) return -EINVAL;
 
 	ret = wait_event_interruptible(client->domain->delay_lock,
 		_iovmm_client_lock(client)!=-EAGAIN);

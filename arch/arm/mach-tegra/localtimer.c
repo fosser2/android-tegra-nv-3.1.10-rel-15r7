@@ -62,7 +62,7 @@ void local_timer_rescale(unsigned long cpu_freq_khz)
 	if (cpu_freq_scale_mult == 0) {
 		cpu_freq_scale_mult = ((timer_prescaler + 1) <<
 			CPU_FREQ_SCALE_SHIFT) / cpu_freq_khz;
-		printk("Local timer scaling factor %d, shift %d\n",
+		printk("Local timer scaling factor %lu, shift %d\n",
 			cpu_freq_scale_mult, CPU_FREQ_SCALE_SHIFT);
 		return;
 	}

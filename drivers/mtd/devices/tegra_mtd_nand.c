@@ -289,8 +289,8 @@ static int tegra_nand_erase(struct mtd_info *mtd, struct erase_info *instr)
 	for (i=0;i<NDFLASH_CS_MAX;i++)
 		pageNumbers[i] = -1;
 
-	pr_debug("tegra_nand_erase: addr=0x%08x len=%d\n", instr->addr,
-		   instr->len);
+	pr_debug("tegra_nand_erase: addr=0x%08x len=%d\n", (unsigned int)instr->addr,
+		   (int)instr->len);
 
 	if ((instr->addr + instr->len) > mtd->size) {
 		pr_err("tegra_nand_erase: Can't erase past end of device\n");
@@ -667,10 +667,8 @@ static int tegra_nand_write_oob(struct mtd_info *mtd, loff_t to,
 	return do_write_oob(mtd, to, ops);
 }
 
-static int tegra_nand_suspend(struct platform_device *dev,
-	pm_message_t state)
+static int tegra_nand_suspend(struct mtd_info *mtd)
 {
-	struct mtd_info *mtd = platform_get_drvdata(dev);
 	NvError Err;
 
 	/* Call ddk suspend API */
@@ -686,9 +684,8 @@ static int tegra_nand_suspend(struct platform_device *dev,
 	return 0;
 }
 
-static int tegra_nand_resume(struct platform_device *dev)
+static int tegra_nand_resume(struct mtd_info *mtd)
 {
-	struct mtd_info *mtd = platform_get_drvdata(dev);
 	NvError Err;
 
 	/* call Ddk resume code */

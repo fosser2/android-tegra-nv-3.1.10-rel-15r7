@@ -212,7 +212,7 @@ static void tegra_kbc_report_keys(struct tegra_kbc *kbc, int *fifo)
 	u32 kp_ent_val[(KBC_MAX_KPENT + 3) / 4];
 	u32 *kp_ents = kp_ent_val;
 	u32 kp_ent;
-	unsigned long flags;
+	unsigned long flags = 0;
 	int i, j, valid=0;
 
 	local_irq_save(flags);
@@ -261,7 +261,7 @@ static void tegra_kbc_report_keys(struct tegra_kbc *kbc, int *fifo)
 static void tegra_kbc_key_repeat(struct work_struct *work)
 {
 	struct tegra_kbc *kbc;
-	unsigned long flags;
+	unsigned long flags = 0;
 	u32 val;
 	int fifo[KBC_MAX_KPENT];
 	int i;
@@ -294,7 +294,7 @@ static void tegra_kbc_key_repeat(struct work_struct *work)
 static void tegra_kbc_close(struct input_dev *dev)
 {
 	struct tegra_kbc *kbc = input_get_drvdata(dev);
-	unsigned long flags;
+	unsigned long flags = 0;
 	u32 val;
 
 	spin_lock_irqsave(&kbc->lock, flags);
@@ -366,7 +366,7 @@ static void tegra_kbc_config_pins(struct tegra_kbc *kbc)
 static int tegra_kbc_open(struct input_dev *dev)
 {
 	struct tegra_kbc *kbc = input_get_drvdata(dev);
-	unsigned long flags;
+	unsigned long flags = 0;
 	u32 val = 0;
 
 	enable_power(kbc);

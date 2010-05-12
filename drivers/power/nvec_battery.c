@@ -176,7 +176,7 @@ static struct device_attribute tegra_battery_attr = {
 	.store = tegra_battery_store_property,
 };
 
-void NvBatteryEventHandlerThread(void)
+void NvBatteryEventHandlerThread(void *args)
 {
 	NvU8	BatteryState = 0, BatteryEvent = 0;
 
@@ -588,7 +588,7 @@ Cleanup:
 	return -1;
 }
 
-static int nvec_battery_remove(struct nvec_device *pdev)
+static void nvec_battery_remove(struct nvec_device *pdev)
 {
 	unsigned int i = 0;
 
@@ -621,8 +621,6 @@ static int nvec_battery_remove(struct nvec_device *pdev)
 		batt_dev = NULL;
 
 	}
-
-	return 0;
 }
 
 static int nvec_battery_suspend(struct nvec_device *dev,
