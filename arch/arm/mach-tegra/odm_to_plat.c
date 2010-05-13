@@ -71,9 +71,8 @@ struct tegra_kbc_plat *tegra_kbc_odm_to_plat(void)
 
 	NvOdmKbcGetParameter(NvOdmKbcParameter_DebounceTime, 1, &temp);
 
-	/* debounce time is reported from ODM in milliseconds,
-	 * but needs to be specified in 32KHz ticks */
-	pdata->debounce_cnt = temp *32;
+	/* debounce time is reported from ODM in terms of clock ticks. */
+	pdata->debounce_cnt = temp;
 
 	/* repeat cycle is reported from ODM in milliseconds,
 	 * but needs to be specified in 32KHz ticks */
