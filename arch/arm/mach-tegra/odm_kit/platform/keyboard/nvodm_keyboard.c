@@ -262,6 +262,10 @@ fail:
 
 void NvOdmKeyboardDeInit(void)
 {
+    NvError NvStatus = NvError_Success;
+    NvEcRequest Request = {0};
+    NvEcResponse Response = {0};
+
 #if WAKE_FROM_KEYBOARD
 	NvRmGpioInterruptUnregister(s_hGpioGlobal, s_hRmGlobal, hOdm->GpioIntrHandle);
 	hOdm->GpioIntrHandle = NULL;
@@ -270,6 +274,24 @@ void NvOdmKeyboardDeInit(void)
 	NvOdmOsFree(hOdm);
 	hOdm = NULL;
 #endif
+
+    /* stop the keyboard scanning */
+    Request.PacketType = NvEcPacketType_Request;
+    Request.RequestType = NvEcRequestResponseType_Keyboard;
+    Request.RequestSubtype = (NvEcRequestResponseSubtype) NvEcKeyboardSubtype_Disable;
+    Request.NumPayloadBytes = 0;
+
+    NvStatus = NvEcSendRequest(s_NvEcHandle, &Request, &Response, sizeof(Request), sizeof(Response));
+    if (NvStatus != NvError_Success)
+    {
+        NvOdmOsDebugPrintf("EC keyboard scanning disable fail\n");
+    }
+
+    /* check if command passed */
+    if (Response.Status != NvEcStatus_Success)
+    {
+        NvOdmOsDebugPrintf("EC keyboard scanning disable command fail\n");;
+    }
 
     (void)NvEcUnregisterForEvents(s_hEcEventRegistration);
     s_hEcEventRegistration = NULL;
