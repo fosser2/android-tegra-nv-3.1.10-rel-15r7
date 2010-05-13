@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.29
-# Fri Apr 30 17:38:10 2010
+# Fri May 14 11:15:28 2010
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -805,7 +805,7 @@ CONFIG_DEVMEM=y
 # CONFIG_DEVKMEM is not set
 CONFIG_DEVNVMAP=y
 # CONFIG_DEVNVMAP_PARANOID is not set
-# CONFIG_DEVNVMAP_RECLAIM_UNPINNED_VM is not set
+CONFIG_DEVNVMAP_RECLAIM_UNPINNED_VM=y
 # CONFIG_SERIAL_NONSTANDARD is not set
 
 #
