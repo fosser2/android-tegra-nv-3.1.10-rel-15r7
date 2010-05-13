@@ -654,7 +654,7 @@ static void tegra_stop_tx(struct uart_port *u)
 			tegra_dma_dequeue_req(t->tx_dma, &t->tx_dma_req);
 			t->tx_dma_req.size = 0;
 		}
-		t->tx_in_progress == 0;
+		t->tx_in_progress = 0;
 	}
 }
 
