@@ -121,6 +121,7 @@ static int play_thread( void *arg)
 			abd.Format.BitsPerSample = runtime->sample_bits;
 			abd.Format.Channels = runtime->channels;
 			abd.Format.ChannelMask = 0;
+			abd.Format.ValidBitsPerSample = 0;
 
 			e = tegra_snd_cx->xrt_fxn.StreamAddBuffer(
 				(NvAudioFxStreamHandle)prtd->stdoutpath->Stream,
@@ -211,6 +212,7 @@ static int rec_thread( void *arg )
 			pin_format.Format.BitsPerSample = runtime->sample_bits;
 			pin_format.Format.Channels = runtime->channels;
 			pin_format.Format.ChannelMask = 0;
+			pin_format.Format.ValidBitsPerSample = 0;
 			pin_format.Pin = NvAudioFxSourcePin;
 
 			e = tegra_snd_cx->xrt_fxn.SetProperty(

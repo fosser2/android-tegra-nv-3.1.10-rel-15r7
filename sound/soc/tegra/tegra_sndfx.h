@@ -186,6 +186,7 @@ typedef struct NvAudioFxFormatRec
     NvU32 Channels;
     NvU32 BitsPerSample;
     NvU32 ChannelMask;
+    NvU32 ValidBitsPerSample;
 } NvAudioFxFormat;
 
 // Description of the NvAudioFxProperty_Method property.
@@ -225,6 +226,7 @@ typedef NvS32 NvAudioFxState;
 #define NvAudioFxState_Pause (0x1040)
 #define NvAudioFxState_Disable (0x1050)
 #define NvAudioFxState_EndOfStream (0x1060)
+#define NvAudioFxState_Locked (0x1070)
 
 // Audio DRC information.
 
@@ -240,6 +242,10 @@ typedef struct NvAudioFxDrcDescriptorRec
 // Audio EQ information.
 #define NvAudioFxEqNumFilters (5)
 #define NvAudioFxEqNumChannels (2)
+
+// AudioFx Default Volume Settings
+#define NVAUDIOFX_DEFAULT_VOLUME (256)
+#define NVAUDIOFX_DEFAULT_MAX_VOLUME (1024)
 
 typedef struct NvAudioFxEqDescriptorRec
 {
