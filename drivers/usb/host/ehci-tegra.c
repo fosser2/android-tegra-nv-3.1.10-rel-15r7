@@ -190,13 +190,14 @@ static void tegra_ehci_restart (struct usb_hcd *hcd)
 
 static void tegra_ehci_shutdown (struct usb_hcd *hcd)
 {
-	/* ehci_shutdown touches the USB controller registers, make sure
-	 * controller has clocks to it */
-	tegra_ehci_power_up(hcd);
-	/* call ehci shut down */
-	ehci_shutdown(hcd);
-	/* we are ready to shut down, powerdown the phy */
-	tegra_ehci_power_down(hcd);
+	struct ehci_hcd *ehci = hcd_to_ehci(hcd);
+
+	if (ehci->host_resumed) {
+		/* call ehci shut down */
+		ehci_shutdown(hcd);
+		/* we are ready to shut down, powerdown the phy */
+		tegra_ehci_power_down(hcd);
+	}
 }
 
 /*
