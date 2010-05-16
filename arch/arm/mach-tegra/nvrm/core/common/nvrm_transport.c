@@ -1688,4 +1688,3 @@ NvRmTransportGetPortName(
 
     NvOsStrncpy((char *)PortName, hPort->PortName, PortNameSize);
 }
-
