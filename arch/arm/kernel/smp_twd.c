@@ -49,9 +49,6 @@ void __iomem *twd_base;
 #ifdef CONFIG_USE_ARM_TWD_PRESCALER
 /* dynamically updated by the platform code */
 unsigned long timer_prescaler = 0;
-
-static spinlock_t timer_control_lock = SPIN_LOCK_UNLOCKED;
-static unsigned long flags;
 #endif
 
 static unsigned long twd_timer_rate;
@@ -60,6 +57,9 @@ static void twd_set_mode(enum clock_event_mode mode,
 			struct clock_event_device *clk)
 {
 	unsigned long ctrl;
+#ifdef CONFIG_USE_ARM_TWD_PRESCALER
+	unsigned long flags;
+#endif
 
 	switch(mode) {
 	case CLOCK_EVT_MODE_PERIODIC:
@@ -77,12 +77,12 @@ static void twd_set_mode(enum clock_event_mode mode,
 		ctrl = 0;
 	}
 #ifdef CONFIG_USE_ARM_TWD_PRESCALER
-	spin_lock_irqsave(&timer_control_lock, flags);
+	local_irq_save(flags);
 
 	ctrl |= (timer_prescaler << TWD_TIMER_CONTROL_PRESCALER_LSB);
 	__raw_writel(ctrl, twd_base + TWD_TIMER_CONTROL);
 
-	spin_unlock_irqrestore(&timer_control_lock, flags);
+	local_irq_restore(flags);
 #else
 	__raw_writel(ctrl, twd_base + TWD_TIMER_CONTROL);
 #endif
@@ -92,9 +92,9 @@ static int twd_set_next_event(unsigned long evt,
 			struct clock_event_device *unused)
 {
 #ifdef CONFIG_USE_ARM_TWD_PRESCALER
-	unsigned long ctrl;
+	unsigned long ctrl, flags;
 
-	spin_lock_irqsave(&timer_control_lock, flags);
+	local_irq_save(flags);
 
 	ctrl = __raw_readl(twd_base + TWD_TIMER_CONTROL);
 	ctrl &= (~TWD_TIMER_CONTROL_PRESCALER_FIELD);
@@ -104,7 +104,7 @@ static int twd_set_next_event(unsigned long evt,
 	__raw_writel(evt, twd_base + TWD_TIMER_COUNTER);
 	__raw_writel(ctrl, twd_base + TWD_TIMER_CONTROL);
 
-	spin_unlock_irqrestore(&timer_control_lock, flags);
+	local_irq_restore(flags);
 #else
 	unsigned long ctrl = __raw_readl(twd_base + TWD_TIMER_CONTROL);
 
@@ -121,16 +121,16 @@ static int twd_set_next_event(unsigned long evt,
  */
 void twd_set_prescaler(void* unused)
 {
-	unsigned long ctrl;
+	unsigned long ctrl, flags;
 
-	spin_lock_irqsave(&timer_control_lock, flags);
+	local_irq_save(flags);
 
 	ctrl = __raw_readl(twd_base + TWD_TIMER_CONTROL);
 	ctrl &= (~TWD_TIMER_CONTROL_PRESCALER_FIELD);
 	ctrl |= (timer_prescaler << TWD_TIMER_CONTROL_PRESCALER_LSB);
 	__raw_writel(ctrl, twd_base + TWD_TIMER_CONTROL);
 
-	spin_unlock_irqrestore(&timer_control_lock, flags);
+	local_irq_restore(flags);
 }
 #endif
 

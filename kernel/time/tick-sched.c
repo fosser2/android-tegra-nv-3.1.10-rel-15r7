@@ -639,9 +639,15 @@ static enum hrtimer_restart tick_sched_timer(struct hrtimer *timer)
 	 * into a long sleep. If two cpus happen to assign themself to
 	 * this duty, then the jiffies update is still serialized by
 	 * xtime_lock.
+	 *
+	 * Also check if the do_timer duty is stuck with off-line cpu.
+	 * Then, use the same remedy as for dropped duty: re-assign it
+	 * to the cpu servicing this tick.
 	 */
-	if (unlikely(tick_do_timer_cpu == TICK_DO_TIMER_NONE))
+	if ((unlikely(tick_do_timer_cpu == TICK_DO_TIMER_NONE)) ||
+	    (!cpu_online(tick_do_timer_cpu))) {
 		tick_do_timer_cpu = cpu;
+	}
 #endif
 
 	/* Check, if the jiffies need an update */
