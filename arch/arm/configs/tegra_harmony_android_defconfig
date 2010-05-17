@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.29
-# Thu May 13 11:37:42 2010
+# Mon May 17 20:18:35 2010
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -1519,7 +1519,7 @@ CONFIG_UDC_FSL_NR_ENDPOINTS=32
 CONFIG_MMC=y
 CONFIG_EMBEDDED_MMC_START_OFFSET=y
 # CONFIG_MMC_DEBUG is not set
-# CONFIG_MMC_UNSAFE_RESUME is not set
+CONFIG_MMC_UNSAFE_RESUME=y
 # CONFIG_MMC_EMBEDDED_SDIO is not set
 # CONFIG_MMC_PARANOID_SD_INIT is not set
 
