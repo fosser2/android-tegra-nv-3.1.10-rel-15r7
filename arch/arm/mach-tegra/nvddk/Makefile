@@ -16,6 +16,8 @@ obj-y				+= nvddk_usbphy_ap16.o
 obj-y				+= nvddk_usbphy_ap20.o
 endif
 
+obj-y				+= nvddk_fuse_ap20.o
+
 obj-$(CONFIG_MTD_NAND_TEGRA)	+= nvddk_nand.o
 
 obj-$(CONFIG_TEGRA_SNOR)	+= nvsnor_controller.o

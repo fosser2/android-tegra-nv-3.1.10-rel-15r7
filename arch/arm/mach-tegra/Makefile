@@ -8,7 +8,6 @@ ccflags-y += -DNV_DEBUG=0
 endif
 ccflags-y += -Iarch/arm/mach-tegra/nvrm/core/common
 
-
 # Mandatory components
 obj-y					+= clock.o
 obj-y					+= io.o
@@ -18,6 +17,7 @@ obj-y					+= pinmux-t2-tables.o
 obj-y					+= pinmux.o
 obj-y					+= timer.o
 obj-y					+= tegra_sysmap.o
+obj-y					+= sysfs-fuse.o
 
 # IOVMM support
 obj-$(CONFIG_TEGRA_IOVMM_GART)		+= iovmm-gart.o
