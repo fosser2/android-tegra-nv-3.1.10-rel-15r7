@@ -73,6 +73,7 @@
 //  TODO: check MPE voltage control calls before enabling
 #define NV_POWER_GATE_MPE   (0)
 
+#define NV_TD_PWRGATE_WORKAROUND_688639 1
 // Power Group -to- Power Gating Ids mapping
 static const NvU32* s_PowerGroupIds = NULL;
 static NvBool s_UngateOnResume[NV_POWERGROUP_MAX] = {0};
@@ -225,6 +226,14 @@ PowerGroupPowerControl(
     if (Enable == (Status != 0x0))
         return;
 
+#if NV_TD_PWRGATE_WORKAROUND_688639
+    //Don't turn off the TD partition.
+    //Turning it on is ok.
+    if (PowerGroup == NV_POWERGROUP_TD && !Enable)
+    {
+        return;
+    }
+#endif
     /*
      * Gating procedure:
      * - assert resets to all modules in power group
