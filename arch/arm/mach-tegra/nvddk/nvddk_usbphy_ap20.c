@@ -276,6 +276,57 @@ static const NvU8 s_UtmipElasticLimit     = 16;
 //UTMIP High Speed Sync Start Delay
 static const NvU8 s_UtmipHsSyncStartDelay = 0;
 
+static void
+Ap20UsbPhyConfigUsbClockOverOn(
+    NvDdkUsbPhy *pUsbPhy,
+    NvBool EnableOverOn)
+{
+    NvU32 RegVal = 0x0;
+
+    RegVal = NV_REGR(pUsbPhy->hRmDevice, NvRmPrivModuleID_ClockAndReset, 0,
+                 CLK_RST_CONTROLLER_LVL2_CLK_GATE_OVRB_0);
+    switch (pUsbPhy->Instance)
+    {
+        case 0:
+            RegVal = NV_FLD_SET_DRF_NUM(CLK_RST_CONTROLLER, LVL2_CLK_GATE_OVRB,
+                USB1_CLK_OVR_ON, EnableOverOn, RegVal);
+        break;
+        case 1:
+            RegVal = NV_FLD_SET_DRF_NUM(CLK_RST_CONTROLLER, LVL2_CLK_GATE_OVRB,
+                USB2_CLK_OVR_ON, EnableOverOn, RegVal);
+        break;
+        case 2:
+            RegVal = NV_FLD_SET_DRF_NUM(CLK_RST_CONTROLLER, LVL2_CLK_GATE_OVRB,
+                USB3_CLK_OVR_ON, EnableOverOn, RegVal);
+        break;
+        default:
+            NV_ASSERT(!"Unable to enable/disable USB Clock Over On");
+            return;
+    }
+    NV_REGW(pUsbPhy->hRmDevice, NvRmPrivModuleID_ClockAndReset, 0,
+                 CLK_RST_CONTROLLER_LVL2_CLK_GATE_OVRB_0, RegVal);
+
+}
+
+static NvError
+Ap20UsbPhyWaitForInValidPhyClock(
+    NvDdkUsbPhy *pUsbPhy)
+{
+    NvU32 TimeOut = USB_PHY_HW_TIMEOUT_US;
+
+    // Wait for the phy clock to become in valid or hardware timeout
+    do {
+        if (!USB_IF_REG_READ_VAL(SUSP_CTRL, USB_PHY_CLK_VALID))
+            return NvSuccess;
+        NvOsWaitUS(1);
+        TimeOut--;
+    } while (TimeOut);
+
+    NvOsDebugPrintf("Phy Clock is not stopped and timed out\n");
+
+    return NvError_Timeout;
+}
+
 
 static void
 Ap20UsbPhyUlpiViewPortProgramData(
@@ -350,16 +401,6 @@ Ap20UsbPhyUtmiConfigure(
         USB1_IF_REG_WR(USB1_LEGACY_CTRL, RegVal);
     }
 
-    if (pUsbPhy->Instance == 2)
-    {
-        RegVal = NV_REGR(pUsbPhy->hRmDevice, NvRmPrivModuleID_ClockAndReset, 0,
-                     CLK_RST_CONTROLLER_LVL2_CLK_GATE_OVRB_0);
-        RegVal = NV_FLD_SET_DRF_NUM(CLK_RST_CONTROLLER, LVL2_CLK_GATE_OVRB,
-                     USB3_CLK_OVR_ON, 1, RegVal);
-        NV_REGW(pUsbPhy->hRmDevice, NvRmPrivModuleID_ClockAndReset, 0,
-                     CLK_RST_CONTROLLER_LVL2_CLK_GATE_OVRB_0, RegVal);
-    }
-
     // Configure the UTMIP_IDLE_WAIT and UTMIP_ELASTIC_LIMIT
     // Setting these fields, together with default values of the other
     // fields, results in programming the registers below as follows:
@@ -419,9 +460,11 @@ Ap20UsbPhyUtmiPowerControl(
 
     if (Enable)
     {
-        // Disable the automatic phy enable on wakeup event
-        USB1_IF_REG_UPDATE_DEF(USB_SUSP_CTRL, USB_WAKE_ON_DISCON_EN_DEV, DISABLE);
-        USB1_IF_REG_UPDATE_DEF(USB_SUSP_CTRL, USB_WAKE_ON_CNNT_EN_DEV, DISABLE);
+        if (pUsbPhy->pProperty->UsbMode == NvOdmUsbModeType_Device)
+        {
+            // Disable the automatic phy enable on wakeup event
+            USB1_IF_REG_UPDATE_DEF(USB_SUSP_CTRL, USB_WAKE_ON_CNNT_EN_DEV, DISABLE);
+        }
 
         // USB Power Up sequence
         if (!pUsbPhy->pUtmiPadConfig->PadOnRefCount)
@@ -525,18 +568,16 @@ Ap20UsbPhyUtmiPowerControl(
             USB_REG_WR(PORTSC1, RegVal);
         }
 
-        //NvOsDebugPrintf("Waiting for Phy Clock to stop \n");
-        // check for phy in suspend..
-        do {
-            NvOsWaitUS(1);
-        } while (USB_IF_REG_READ_VAL(SUSP_CTRL, USB_PHY_CLK_VALID));
-        //NvOsDebugPrintf("Phy Clock stopped successfully \n");
+        // wait untill phy in suspend..
+        Ap20UsbPhyWaitForInValidPhyClock(pUsbPhy);
 
-        // Setup debounce time for wakeup event 5 HCLK cycles
-        USB_IF_REG_UPDATE_NUM(SUSP_CTRL, USB_WAKEUP_DEBOUNCE_COUNT, 5);
-        // ENABLE the automatic phy enable on wakeup event
-        USB1_IF_REG_UPDATE_DEF(USB_SUSP_CTRL, USB_WAKE_ON_CNNT_EN_DEV, ENABLE);
-        USB1_IF_REG_UPDATE_DEF(USB_SUSP_CTRL, USB_WAKE_ON_DISCON_EN_DEV, ENABLE);
+        if (pUsbPhy->pProperty->UsbMode == NvOdmUsbModeType_Device)
+        {
+            // Setup debounce time for wakeup event 5 HCLK cycles
+            USB_IF_REG_UPDATE_NUM(SUSP_CTRL, USB_WAKEUP_DEBOUNCE_COUNT, 5);
+            // ENABLE the automatic phy enable on wakeup event
+            USB1_IF_REG_UPDATE_DEF(USB_SUSP_CTRL, USB_WAKE_ON_CNNT_EN_DEV, ENABLE);
+        }
         // Hold UTMIP in reset
         RegVal =USB_IF_REG_RD(SUSP_CTRL);
         RegVal = USB3_IF_FLD_SET_DRF_DEF(SUSP_CTRL, UTMIP_RESET, ENABLE, RegVal);
@@ -711,15 +752,10 @@ Ap20UsbPhyUlpiLinkModeConfigure(
     NvDdkUsbPhy *pUsbPhy, NvBool Enable)
 {
     NvU32 RegVal;
+    NvU32 TimeOut = USB_PHY_HW_TIMEOUT_US;
+
     if (Enable)
     {
-        RegVal = NV_REGR(pUsbPhy->hRmDevice, NvRmPrivModuleID_ClockAndReset, 0,
-                     CLK_RST_CONTROLLER_LVL2_CLK_GATE_OVRB_0);
-        RegVal = NV_FLD_SET_DRF_NUM(CLK_RST_CONTROLLER, LVL2_CLK_GATE_OVRB,
-                     USB2_CLK_OVR_ON, 1, RegVal);
-        NV_REGW(pUsbPhy->hRmDevice, NvRmPrivModuleID_ClockAndReset, 0,
-                     CLK_RST_CONTROLLER_LVL2_CLK_GATE_OVRB_0, RegVal);
-
         // Put the UHSIC in the reset
         USB_IF_REG_UPDATE_DEF(SUSP_CTRL, UHSIC_RESET, ENABLE);
 
@@ -762,8 +798,16 @@ Ap20UsbPhyUlpiLinkModeConfigure(
         RegVal = USB_FLD_SET_DRF_NUM(ULPI_VIEWPORT, ULPI_PORT, 0, RegVal);
         USB_REG_WR(ULPI_VIEWPORT, RegVal);
 
+        // wait for ULPI wake up is cleared
         do {
             RegVal = USB_REG_RD(ULPI_VIEWPORT);
+            if (!TimeOut)
+            {
+                NvOsDebugPrintf("Error accessing ULPI view port\n");
+                break;
+            }
+            NvOsWaitUS(1);
+            TimeOut--;
         } while (USB_DRF_VAL(ULPI_VIEWPORT, ULPI_WAKEUP, RegVal));
 
         // fix VbusValid for Harmony due to floating VBUS
@@ -835,9 +879,7 @@ Ap20UsbPhyUlpiPowerControl(
             RegVal = USB_FLD_SET_DRF_DEF(PORTSC1, PHCD, ENABLE, RegVal); 
             USB_REG_WR(PORTSC1, RegVal);
             // Wait for phy clock to go down
-            do {
-                NvOsWaitUS(1);
-            } while (USB_IF_REG_READ_VAL(SUSP_CTRL, USB_PHY_CLK_VALID));
+            Ap20UsbPhyWaitForInValidPhyClock(pUsbPhy);
         }
     }
 }
@@ -1233,6 +1275,8 @@ Ap20UsbPhyPowerUp(
 {
     NvError ErrVal = NvSuccess;
 
+    Ap20UsbPhyConfigUsbClockOverOn(pUsbPhy, NV_TRUE);
+
     switch (pUsbPhy->pProperty->UsbInterfaceType)
     {
         case NvOdmUsbInterfaceType_UlpiNullPhy:
@@ -1290,6 +1334,8 @@ Ap20UsbPhyPowerDown(
             break;
     }
 
+    Ap20UsbPhyConfigUsbClockOverOn(pUsbPhy, NV_FALSE);
+
     return NvSuccess;
 }
 
@@ -1330,11 +1376,8 @@ Ap20PhyRemoveTristate(
     RegVal = NV_FLD_SET_DRF_DEF(APB_MISC_PP, TRISTATE_REG_B, Z_UAB, NORMAL, RegVal);
     RegVal = NV_FLD_SET_DRF_DEF(APB_MISC_PP, TRISTATE_REG_B, Z_UAC, NORMAL, RegVal);
     USB_MISC_REGW(pUsbPhy, APB_MISC_PP_TRISTATE_REG_B_0, RegVal);
-    do
-    {
-        RegVal = USB_IF_REG_RD(SUSP_CTRL);
-        RegVal = NV_DRF_VAL(USB2_IF_USB,SUSP_CTRL, USB_PHY_CLK_VALID, RegVal);
-    } while (RegVal != USB2_IF_USB_SUSP_CTRL_0_USB_PHY_CLK_VALID_SET);
+
+    Ap20UsbPhyWaitForStableClock(pUsbPhy);
 }
 
 static void
