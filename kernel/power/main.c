@@ -448,6 +448,7 @@ static int enter_state(suspend_state_t state)
  Finish:
 	pr_debug("PM: Finishing wakeup.\n");
 	suspend_finish();
+	msleep(100);
  Unlock:
 	mutex_unlock(&pm_mutex);
 	return error;
