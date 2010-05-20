@@ -1431,7 +1431,7 @@ Ap20PhyRestoreContext(
     NvDdkUsbPhy *pUsbPhy)
 {
     NvU32 RegVal = 0;
-
+    NvU32 TimeOut = USB_PHY_HW_TIMEOUT_US;
     /* If any saved context is present, restore it */
     // In case of no valid context just return
     if (!pUsbPhy->Context.IsValid)
@@ -1467,33 +1467,48 @@ Ap20PhyRestoreContext(
 
     // Disable test mode by setting PTC field to NORMAL_OP
     USB_REG_UPDATE_DEF(PORTSC1, PTC, NORMAL_OP);
-
     // Poll until CCS is enabled
     do
     {
-         RegVal = USB_REG_RD(PORTSC1);
-     } while (!USB_DRF_VAL(PORTSC1, CCS, RegVal));
-
+        RegVal = USB_REG_RD(PORTSC1);
+        if (USB_DRF_VAL(PORTSC1, CCS, RegVal))
+            break;
+        NvOsWaitUS(1);
+        TimeOut--;
+    } while (TimeOut);
     // Poll until PE is enabled
+    TimeOut = USB_PHY_HW_TIMEOUT_US;
     do
     {
         RegVal = USB_REG_RD(PORTSC1);
-    } while (!USB_DRF_VAL(PORTSC1, PE, RegVal));
-
+        if (USB_DRF_VAL(PORTSC1, PE, RegVal))
+            break;
+        NvOsWaitUS(1);
+        TimeOut--;
+    } while (TimeOut);
     // Clear the PCI status, to avoid an interrupt taken upon resume
     USB_REG_UPDATE_DEF(USBSTS, PCI, PORT_CHANGE);
+    TimeOut = USB_PHY_HW_TIMEOUT_US;
     do
     {
         RegVal = USB_REG_RD(USBSTS);
-    } while (USB_DRF_VAL(USBSTS, PCI, RegVal));
-
+        if (!(USB_DRF_VAL(USBSTS, PCI, RegVal)))
+            break;
+        NvOsWaitUS(1);
+        TimeOut--;
+    } while (TimeOut);
+    TimeOut = USB_PHY_HW_TIMEOUT_US;
     // Put controller in suspend mode by writing 1 to SUSP bit of PORTSC
     USB_REG_UPDATE_DEF(PORTSC1, SUSP, SUSPEND);
     // Wait until port suspend completes
-    while (!USB_REG_READ_VAL(PORTSC1, SUSP))
+    do
     {
+        if (USB_REG_READ_VAL(PORTSC1, SUSP))
+            break;
         NvOsWaitUS(1);
-    };
+        TimeOut--;
+    } while (TimeOut);
+
     if (pUsbPhy->pProperty->UsbInterfaceType == NvOdmUsbInterfaceType_UlpiExternalPhy)
     {
         Ap20PhyRemoveTristate(pUsbPhy);
