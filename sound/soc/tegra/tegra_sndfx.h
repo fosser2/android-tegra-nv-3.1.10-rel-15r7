@@ -104,15 +104,20 @@ typedef NvS32 NvObjectId;
 #define NvAudioFxSpdifPlaybackMixId (0x11300004)
 #define NvAudioFxSpdifRecordSplitId (0x11300005)
 #define NvAudioFxSpdifLoopbackSplitId (0x11300006)
+#define NvAudioFxSpdifVolumeId (0x1130000c)
 #define NvAudioFxMusicMixId (0x11300007)
 #define NvAudioFxMusicSplitId (0x11300008)
 #define NvAudioFxRingtoneMixId (0x11300009)
+#define NvAudioFxMusicVolumeId (0x1130000a)
+#define NvAudioFxRingtoneVolumeId (0x1130000b)
 #define NvAudioFxI2s1PlaybackMixId (0x11310000)
 #define NvAudioFxI2s1RecordSplitId (0x11310001)
 #define NvAudioFxI2s1LoopbackSplitId (0x11310002)
+#define NvAudioFxI2s1VolumeId (0x11310003)
 #define NvAudioFxI2s2PlaybackMixId (0x11311000)
 #define NvAudioFxI2s2RecordSplitId (0x11311001)
 #define NvAudioFxI2s2LoopbackSplitId (0x11311002)
+#define NvAudioFxI2s2VolumeId (0x11311003)
 
 //
 //                  Mixer
@@ -149,13 +154,25 @@ typedef NvS32 NvAudioFxProperty;
 #define NvAudioFxPinProperty_Format (0x2000)
 #define NvAudioFxDrcProperty_Drc (0x3000)
 #define NvAudioFxEqProperty_Eq (0x4000)
-#define NvAudioFxI2sProperty_InputSelect (0x4a00)
 #define NvAudioFxI2sProperty_AllocChannel (0x4a01)
+#define NvAudioFxI2sProperty_InputAvailable (0x4a02)
+#define NvAudioFxI2sProperty_InputDisable (0x4a04)
+#define NvAudioFxI2sProperty_InputEnable (0x4a03)
+#define NvAudioFxI2sProperty_InputSelect (0x4a05)
+#define NvAudioFxI2sProperty_OutputAvailable (0x4a06)
+#define NvAudioFxI2sProperty_OutputDisable (0x4a08)
+#define NvAudioFxI2sProperty_OutputEnable (0x4a07)
+#define NvAudioFxI2sProperty_OutputSelect (0x4a09)
+#define NvAudioFxI2sProperty_IoDeviceVolume (0x4a0a)
 #define NvAudioFxIoProperty_AddEvent (0x5000)
 #define NvAudioFxIoProperty_Position (0x5010)
 #define NvAudioFxIoProperty_RemoveEvent (0x5020)
 #define NvAudioFxIoProperty_SetMappedPositionBuffer (0x5030)
 #define NvAudioFxMixerProperty_ProcessBufferSize (0x6000)
+#define NvAudioFxMixerProperty_ModeAvailable (0x6001)
+#define NvAudioFxMixerProperty_ModeDisable (0x6002)
+#define NvAudioFxMixerProperty_ModeEnable (0x6003)
+#define NvAudioFxMixerProperty_ModeSelect (0x6004)
 #define NvAudioFxMixProperty_Headroom (0x7000)
 #define NvAudioFxNotifierProperty_Connect (0x8000)
 #define NvAudioFxNotifierProperty_Disconnect (0x8010)
@@ -189,11 +206,15 @@ typedef struct NvAudioFxFormatRec
     NvU32 ValidBitsPerSample;
 } NvAudioFxFormat;
 
-// Description of the NvAudioFxProperty_Method property.
+// Description of the Mode property.
 
-typedef NvS32 NvAudioFxMethod;
-#define NvAudioFxMethod_Sliced (0x1000)
-#define NvAudioFxMethod_Unsliced (0x1010)
+typedef NvS32 NvAudioFxMode;
+#define NvAudioFxMode_Normal (0x0)
+#define NvAudioFxMode_Bluetooth (0x1)
+#define NvAudioFxMode_Ringtone (0x2)
+#define NvAudioFxMode_InCall (0x4)
+#define NvAudioFxMode_Radio (0x8)
+#define NvAudioFxMode_All (0xffffffff)
 
 // Description of the position property.
 
@@ -244,8 +265,8 @@ typedef struct NvAudioFxDrcDescriptorRec
 #define NvAudioFxEqNumChannels (2)
 
 // AudioFx Default Volume Settings
-#define NVAUDIOFX_DEFAULT_VOLUME (256)
-#define NVAUDIOFX_DEFAULT_MAX_VOLUME (1024)
+#define NvAudioFxVolumeDefault (256)
+#define NvAudioFxVolumeMax (1024)
 
 typedef struct NvAudioFxEqDescriptorRec
 {
@@ -260,29 +281,6 @@ typedef struct NvAudioFxSpreaderDescriptorRec
     NvU32 SpeakerWidth;
 } NvAudioFxSpreaderDescriptor;
 
-// I2S inputs.
-
-typedef NvS32 NvAudioFxI2sInputSelect;
-
-// Default is configurable based on the device.
-#define NvAudioFxI2sInputSelect_Default (0x0)
-#define NvAudioFxI2sInputSelect_Bluetooth (0x1)
-#define NvAudioFxI2sInputSelect_BuiltinMic (0x2)
-#define NvAudioFxI2sInputSelect_LineIn (0x3)
-#define NvAudioFxI2sInputSelect_Mic (0x4)
-#define NvAudioFxI2sInputSelect_Phone (0x5)
-#define NvAudioFxI2sInputSelect_Radio (0x6)
-
-// Description of the NvAudioFxI2sProperty_AllocChannel property.
-
-typedef struct NvAudioFxI2sChannelDescriptorRec
-{
-    NvAudioFxPin Pin;
-    NvU32 Id;
-} NvAudioFxI2sChannelDescriptor;
-
-// Parameteric EQ Filter types.
-
 typedef enum
 {
     NvAudioFxIirFilter_Undefined,
@@ -292,6 +290,31 @@ typedef enum
     NvAudioFxIirFilter_Num,
     NvAudioFxIirFilter_Force32 = 0x7FFFFFFF
 } NvAudioFxIirFilter;
+
+// IO Devices
+
+typedef NvS32 NvAudioFxIoDevice;
+
+// Default is configurable based on the device.
+#define NvAudioFxIoDevice_Default (0x0)
+#define NvAudioFxIoDevice_All (0xffffffff)
+
+// Inputs
+#define NvAudioFxIoDevice_BuiltInMic (0x1)
+#define NvAudioFxIoDevice_Mic (0x2)
+#define NvAudioFxIoDevice_LineIn (0x4)
+
+// Outputs
+#define NvAudioFxIoDevice_BuiltInSpeaker (0x100)
+#define NvAudioFxIoDevice_EarSpeaker (0x200)
+#define NvAudioFxIoDevice_LineOut (0x400)
+#define NvAudioFxIoDevice_HeadphoneOut (0x800)
+
+// Both
+#define NvAudioFxIoDevice_Aux (0x10000)
+#define NvAudioFxIoDevice_Phone (0x20000)
+#define NvAudioFxIoDevice_Radio (0x40000)
+#define NvAudioFxIoDevice_Bluetooth (0x80000)
 
 typedef struct NvAudioFxPeqDescriptorRec
 {
@@ -319,6 +342,14 @@ typedef struct NvAudioFxVolumeDescriptorRec
     NvS32 RightVolume;
     NvU32 Mute;
 } NvAudioFxVolumeDescriptor;
+
+// Description of the IoDeviceVolume property.
+
+typedef struct NvAudioFxIoDeviceVolumeDescriptorRec
+{
+    NvAudioFxIoDevice IoDevice;
+    NvAudioFxVolumeDescriptor Volume;
+} NvAudioFxIoDeviceVolumeDescriptor;
 
 // Description of the NvAudioFxVoiceProperty_SetMappedPositionBuffer property.
 
@@ -364,6 +395,14 @@ typedef struct NvAudioFxNotifierConnectionDescriptorRec
     NvU8 PortName[16];
 } NvAudioFxNotifierConnectionDescriptor;
 
+// Description of the NvAudioFxI2sProperty_AllocChannel property.
+
+typedef struct NvAudioFxI2sChannelDescriptorRec
+{
+    NvAudioFxPin Pin;
+    NvU32 Id;
+} NvAudioFxI2sChannelDescriptor;
+
 // Description of the NvAudioFxProperty_AddEvent and
 // NvAudioFxProperty_RemoveEvent properties.
 
@@ -396,11 +435,23 @@ typedef struct NvAudioFxControlChangeMessageRec
     NvAudioFxProperty Property;
 } NvAudioFxControlChangeMessage;
 
-typedef struct NvAudioFxI2sControlChangeMessageRec
+typedef struct NvAudioFxIoDeviceControlChangeMessageRec
 {
     NvAudioFxControlChangeMessage m;
-    NvAudioFxI2sInputSelect InputSelect;
-} NvAudioFxI2sControlChangeMessage;
+    NvAudioFxIoDevice IoDevice;
+} NvAudioFxIoDeviceControlChangeMessage;
+
+typedef struct NvAudioFxIoDeviceVolumeControlChangeMessageRec
+{
+    NvAudioFxControlChangeMessage m;
+    NvAudioFxIoDeviceVolumeDescriptor idv;
+} NvAudioFxIoDeviceVolumeControlChangeMessage;
+
+typedef struct NvAudioFxModeControlChangeMessageRec
+{
+    NvAudioFxControlChangeMessage m;
+    NvAudioFxMode Mode;
+} NvAudioFxModeControlChangeMessage;
 
 typedef struct NvAudioFxStateChangeMessageRec
 {
