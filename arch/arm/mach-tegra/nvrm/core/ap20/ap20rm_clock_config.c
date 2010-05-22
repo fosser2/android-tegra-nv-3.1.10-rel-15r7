@@ -191,8 +191,9 @@ static struct Ap20CpuConfigRec
     // PLLX frequency steps table pointer 
     const NvRmFreqKHz* pPllXStepsKHz;
 
-    // CPU power good delay in microseconds
+    // CPU power good and power off delays in microseconds
     NvU32 CpuPowerGoodUs;
+    NvU32 CpuPowerOffUs;
 
     // Core over CPU voltage dependency parameters:
     // Vcore >= CoreOverCpuSlope * Vcpu + CoreOverCpuOffset
@@ -1174,6 +1175,13 @@ Ap20SetCpuPowerGoodDelay(
     reg = NV_DRF_NUM(APBDEV_PMC, CPUPWRGOOD_TIMER, DATA, reg);
     NV_REGW(hRmDevice, NvRmModuleID_Pmif, 0,
             APBDEV_PMC_CPUPWRGOOD_TIMER_0, reg);
+
+    // AP20 CPU power off delay is counted by h/w in APB clocks (use
+    // 1/1000 ~ 17/16384 with 3% margin)
+    reg = ((ApbKHz * 17) >> 14) * s_Ap20CpuConfig.CpuPowerOffUs;
+    reg = NV_DRF_NUM(APBDEV_PMC, CPUPWROFF_TIMER, DATA, reg);
+    NV_REGW(hRmDevice, NvRmModuleID_Pmif, 0,
+            APBDEV_PMC_CPUPWROFF_TIMER_0, reg);
 }
 
 /*****************************************************************************/
@@ -1196,12 +1204,14 @@ static void Ap20CpuConfigInit(NvRmDeviceHandle hRmDevice)
     // parameters based on PMU property.
     if (!NvOdmQueryGetPmuProperty(&PmuProperty))
     {
+        PmuProperty.CpuPowerOffUs = 0;  // No power off delay by default
         PmuProperty.CpuPowerGoodUs = NVRM_DEFAULT_CPU_PWRGOOD_US;
         PmuProperty.AccuracyPercent = NVRM_DEFAULT_PMU_ACCURACY_PCT;
     }
     NV_ASSERT(PmuProperty.CpuPowerGoodUs && PmuProperty.AccuracyPercent);
     NV_ASSERT(PmuProperty.AccuracyPercent < 5);  // 5% is a must for PMU
 
+    s_Ap20CpuConfig.CpuPowerOffUs = PmuProperty.CpuPowerOffUs;
     s_Ap20CpuConfig.CpuPowerGoodUs = PmuProperty.CpuPowerGoodUs;
     s_Ap20CpuConfig.CoreOverCpuOffset = (NV_AP20_CORE_OVER_CPU_MV * 100) /
                                         (100 - PmuProperty.AccuracyPercent);

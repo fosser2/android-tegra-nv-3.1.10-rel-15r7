@@ -55,6 +55,7 @@ NvU32 g_wakeupCcbp = 0, g_ArmPerif = 0;
 NvU32 g_enterLP2PA = 0;
 NvU32 g_coreSightClock, g_currentCcbp, g_currentCcdiv;
 NvU32 g_lp1CpuPwrGoodCnt, g_currentCpuPwrGoodCnt;
+NvU32 g_lp1CpuPwrOffCnt, g_currentCpuPwrOffCnt;
 volatile void *g_pPMC, *g_pAHB, *g_pCLK_RST_CONTROLLER;
 volatile void *g_pEMC, *g_pMC, *g_pAPB_MISC, *g_pTimerus;
 volatile void *g_pIRAM, *g_pRtc, *g_pPL310;
@@ -176,11 +177,16 @@ void cpu_ap20_do_lp1(void)
 		disable_irq(INT_SYS_STATS_MON);
 		do_suspend_prep();
 
-		// Set/save CPU power good count
+		// Set/save CPU power good and power off counts
 		g_currentCpuPwrGoodCnt = NV_REGR(s_hRmGlobal,
 			NvRmModuleID_Pmif, 0, APBDEV_PMC_CPUPWRGOOD_TIMER_0);
 		NV_REGW(s_hRmGlobal, NvRmModuleID_Pmif, 0,
 			APBDEV_PMC_CPUPWRGOOD_TIMER_0, g_lp1CpuPwrGoodCnt);
+
+		g_currentCpuPwrOffCnt = NV_REGR(s_hRmGlobal,
+			NvRmModuleID_Pmif, 0, APBDEV_PMC_CPUPWROFF_TIMER_0);
+		NV_REGW(s_hRmGlobal, NvRmModuleID_Pmif, 0,
+			APBDEV_PMC_CPUPWROFF_TIMER_0, g_lp1CpuPwrOffCnt);
 	}
 
 	printk("entering lp1\n");
@@ -206,9 +212,11 @@ void cpu_ap20_do_lp1(void)
 		NV_REGW(s_hRmGlobal, NvRmPrivModuleID_ClockAndReset, 0,
 				CLK_RST_CONTROLLER_CLK_SOURCE_CSITE_0, g_coreSightClock);
 
-		// Restore CPU power good count
+		// Restore CPU power good and power Off counts
 		NV_REGW(s_hRmGlobal, NvRmModuleID_Pmif, 0,
 			APBDEV_PMC_CPUPWRGOOD_TIMER_0, g_currentCpuPwrGoodCnt);
+		NV_REGW(s_hRmGlobal, NvRmModuleID_Pmif, 0,
+			APBDEV_PMC_CPUPWROFF_TIMER_0, g_currentCpuPwrOffCnt);
 	}
 
 	NvOsMemcpy((void*)g_pIRAM, (void*)g_iramContextSaveVA,
@@ -338,8 +346,9 @@ void power_lp0_init(void)
 			}
 		}
 
-		//Program the core power good timer
+		//Program the core power good and power off timers
 		NV_PMC_REGW(g_pPMC,PWRGOOD_TIMER,PmuProperty.PowerGoodCount);
+		NV_PMC_REGW(g_pPMC,WAKE_DELAY,PmuProperty.PowerOffCount);
 	}
 
 	// Get ready CPU power good count in 32.768 kHz clocks (don't set timer
@@ -351,6 +360,11 @@ void power_lp0_init(void)
 	g_lp1CpuPwrGoodCnt =
 		(4096 * g_lp1CpuPwrGoodCnt + 124999) / 125000;
 
+	// Similarly get ready CPU power off count in 32.768 kHz clocks
+	g_lp1CpuPwrOffCnt = HasPmuProperty ?
+		PmuProperty.CpuPowerOffUs : 0;		// No delay by default
+	g_lp1CpuPwrOffCnt =
+		(4096 * g_lp1CpuPwrOffCnt + 124999) / 125000;
 }
 
 //Generate definitions of local variables to hold scratch register values.
