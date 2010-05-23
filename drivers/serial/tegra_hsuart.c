@@ -46,6 +46,7 @@
 #include "ap15/aruart.h"
 #include "nvrm_interrupt.h"
 #include "nvrm_power.h"
+#include "mach/tegra_serial.h"
 
 #if 0
 #define function_trace(i) printk(KERN_ERR "%s()%s \n",__func__, (i)?"++":"--")
@@ -65,6 +66,11 @@ static int rx_force_pio = 0;
 #define TEGRA_TX_RUN 1
 #define TEGRA_TX_PIO 2
 #define TEGRA_TX_DMA 3
+
+#define TEGRA_UART_CLOSED    0
+#define TEGRA_UART_OPENED    1
+#define TEGRA_UART_CLOCK_OFF 2
+#define TEGRA_UART_SUSPEND   3
 
 struct tegra_uart_port {
 	struct uart_port	uport;
@@ -126,6 +132,9 @@ struct tegra_uart_port {
 
 	int tx_in_progress;
 	int rx_in_progress;
+
+	int uart_state;
+
 };
 
 static void tegra_set_baudrate(struct tegra_uart_port *t, unsigned int baud);
@@ -790,6 +799,7 @@ static void tegra_uart_hw_deinit(struct tegra_uart_port *t)
 
 	NvRmSetModuleTristate(s_hRmGlobal, t->modid, NV_TRUE);
 	t->baud = 0;
+	t->uart_state = TEGRA_UART_CLOSED;
 }
 
 static int tegra_uart_hw_init(struct tegra_uart_port *t)
@@ -932,9 +942,9 @@ static int tegra_uart_hw_init(struct tegra_uart_port *t)
 		ier = NV_FLD_SET_DRF_DEF(UART, IER_DLAB_0, IE_RHR, ENABLE, ier);
 	t->ier_shadow = ier;
 	writeb(ier, t->regs + UART_IER_DLAB_0_0);
-
 	spin_unlock(&t->reg_access_lock);
 
+	t->uart_state = TEGRA_UART_OPENED;
 	dev_vdbg(t->uport.dev, "-tegra_uart_hw_init\n");
 	return 0;
 
@@ -1437,7 +1447,15 @@ static int tegra_uart_suspend(struct platform_device *pdev, pm_message_t state)
 
 	u = &t->uport;
 	dev_info(t->uport.dev, "tegra_uart_suspend called \n");
+
+	/* Enable clock before calling suspend so that controller
+	   register can be accessible */
+	if (t->uart_state == TEGRA_UART_CLOCK_OFF) {
+		clk_enable(t->clk);
+		t->uart_state = TEGRA_UART_OPENED;
+	}
 	uart_suspend_port(&tegra_uart_driver, u);
+	t->uart_state = TEGRA_UART_SUSPEND;
 	return 0;
 }
 
@@ -1452,11 +1470,12 @@ static int tegra_uart_resume(struct platform_device *pdev)
 
 	u = &t->uport;
 	dev_info(t->uport.dev, "tegra_uart_resume called \n");
-	uart_resume_port(&tegra_uart_driver, u);
+	if (t->uart_state == TEGRA_UART_SUSPEND) {
+		uart_resume_port(&tegra_uart_driver, u);
+		t->uart_state = TEGRA_UART_OPENED;
+	}
 	return 0;
 }
-
-
 
 static int __devexit tegra_uart_remove(struct platform_device *pdev)
 {
@@ -1557,6 +1576,7 @@ static int __init tegra_uart_probe(struct platform_device *pdev)
 	dev_info(u->dev, "Registered UART port %s%d\n",
 					tegra_uart_driver.dev_name, u->line);
 
+	t->uart_state = TEGRA_UART_CLOSED;
 	return ret;
 
 rx_workq_fail:
@@ -1566,6 +1586,89 @@ tx_workq_fail:
 clk_fail:
 	kfree(t);
 	platform_set_drvdata(pdev, NULL);
+	return ret;
+}
+
+/* Switch off the clock of the uart controller. */
+void tegra_uart_request_clock_off(struct uart_port *uport)
+{
+	unsigned long flags;
+	struct tegra_uart_port *t;
+
+	t = container_of(uport, struct tegra_uart_port, uport);
+	spin_lock_irqsave(&uport->lock, flags);
+	if (t->uart_state == TEGRA_UART_OPENED) {
+		clk_disable(t->clk);
+		t->uart_state = TEGRA_UART_CLOCK_OFF;
+	}
+	spin_unlock_irqrestore(&uport->lock, flags);
+	return;
+}
+
+/* Switch on the clock of the uart controller */
+void tegra_uart_request_clock_on(struct uart_port *uport)
+{
+	unsigned long flags;
+	struct tegra_uart_port *t;
+
+	t = container_of(uport, struct tegra_uart_port, uport);
+	spin_lock_irqsave(&uport->lock, flags);
+	if (t->uart_state == TEGRA_UART_CLOCK_OFF) {
+		clk_enable(t->clk);
+		t->uart_state = TEGRA_UART_OPENED;
+	}
+	spin_unlock_irqrestore(&uport->lock, flags);
+	return;
+}
+
+/* Set the modem control signals state of uart controller. */
+void tegra_uart_set_mctrl(struct uart_port *uport, unsigned int mctrl)
+{
+	unsigned long flags;
+	unsigned char mcr;
+	struct tegra_uart_port *t;
+
+	t = container_of(uport, struct tegra_uart_port, uport);
+	spin_lock_irqsave(&uport->lock, flags);
+	mcr = t->mcr_shadow;
+	if (mctrl & TIOCM_RTS) {
+		t->rts_active = true;
+		set_rts(t, true);
+	} else {
+		t->rts_active = false;
+		set_rts(t, false);
+	}
+
+	if (mctrl & TIOCM_DTR)
+		set_dtr(t, true);
+	else
+		set_dtr(t, false);
+	spin_unlock_irqrestore(&uport->lock, flags);
+	return;
+}
+
+/* Return the status of the transmit fifo whether empty or not.
+ * Return 0 if tx fifo is not empty.
+ * Return TIOCSER_TEMT if tx fifo is empty.
+ */
+int tegra_uart_is_tx_empty(struct uart_port *uport)
+{
+	struct tegra_uart_port *t;
+	unsigned long flags;
+	unsigned char lsr;
+	unsigned int ret = 0;
+
+	t = container_of(uport, struct tegra_uart_port, uport);
+	spin_lock_irqsave(&uport->lock, flags);
+	if (t->tx_in_progress) {
+		goto end;
+	}
+
+	lsr = readb(t->regs + UART_LSR_0);
+	if ((lsr & TX_EMPTY_STATUS) == TX_EMPTY_STATUS)
+		ret = TIOCSER_TEMT;
+end:
+	spin_unlock_irqrestore(&uport->lock, flags);
 	return ret;
 }
 
