@@ -69,6 +69,8 @@ enum {NUM_OF_LEDS = 3};
 /* Scan Code Set 1 break mask */
 #define SC1_BREAK_MASK (0x80)
 
+#define EEPROM_ID_E1206      0x0C06
+
 static NvEcHandle s_NvEcHandle = NULL;  // nvec handle
 NvEcEventType EventTypes[] = {NvEcEventType_Keyboard};  // get only keyboard events from EC
 NvEcEvent KbdEvent = {0};
@@ -108,6 +110,13 @@ NvBool NvOdmKeyboardInit(void)
     NvError NvStatus = NvError_Success;
     NvEcRequest Request = {0};
     NvEcResponse Response = {0};
+    NvOdmBoardInfo BoardInfo;
+
+    /* Ec based keyboard will not be supported for the E1206 based platform*/
+    if (NvOdmPeripheralGetBoardInfo(EEPROM_ID_E1206, &BoardInfo))
+    {
+        goto fail;
+    }
 
     /* get nvec handle */
     NvStatus = NvEcOpen(&s_NvEcHandle, 0 /* instance */);

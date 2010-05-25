@@ -32,6 +32,7 @@
 #include "nvodm_mouse.h"
 #include "nvodm_mouse_int.h"
 #include "nvrm_drf.h"
+#include "nvodm_query_discovery.h"
 
 // Module debug: 0=disable, 1=enable
 #define NVODM_ENABLE_PRINTF      0
@@ -63,6 +64,7 @@
 #define MOUSE_PS2_PORT_ID_0 NVEC_SUBTYPE_0_AUX_PORT_ID_0
 #define MOUSE_PS2_PORT_ID_1 NVEC_SUBTYPE_0_AUX_PORT_ID_1
 
+#define EEPROM_ID_E1206      0x0C06
 /** Implementation for the NvOdm Mouse */
 
 NvBool
@@ -77,6 +79,15 @@ NvOdmMouseDeviceOpen(
     NvEcRequest Request = {0};
     NvEcResponse Response = {0};
 #endif
+    NvOdmBoardInfo BoardInfo;
+
+    // Mouse driver will not be supported for E1206 based platform.
+    if (NvOdmPeripheralGetBoardInfo(EEPROM_ID_E1206, &BoardInfo))
+    {
+        ret = NV_FALSE;
+        NVODMMOUSE_PRINTF(("Mouse is not available on this platform\n"));
+        goto fail_safe;
+    }
 
     // Allocate memory for request type structure
     hMouseDev = (NvOdmMouseDevice *)NvOdmOsAlloc(sizeof(NvOdmMouseDevice));
