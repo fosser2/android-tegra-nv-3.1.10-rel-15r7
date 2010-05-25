@@ -30,6 +30,7 @@
  *
  */
 
+#include <linux/module.h>
 #include "nvodm_touch_panjit.h"
 #include "nvodm_query_discovery.h"
 #include "nvos.h"
@@ -54,7 +55,8 @@
 #define TP_TOUCH_STATE_BYTE                         0
 #define TP_FINGER_ONE_MASK                          0x01
 #define TP_FINGER_TWO_MASK                          0x02
-#define TP_SPECIAL_FUNCTION_BYTE                    9
+#define TP_SPECIAL_FUNCTION_BYTE                    (TP_DATA_LENGTH-1)
+#define TP_FINGER_POSITION                          (TP_SPECIAL_FUNCTION_BYTE-1)
 
 static const
 NvOdmTouchCapabilities PANJIT_Capabilities =
@@ -62,12 +64,12 @@ NvOdmTouchCapabilities PANJIT_Capabilities =
     1,      // IsMultiTouchSupported
     2,      // MaxNumberOfFingerCoordReported;
     0,      // IsRelativeDataSupported
-    0,      // MaxNumberOfRelativeCoordReported
-    0,      // MaxNumberOfWidthReported
-    0,      // MaxNumberOfPressureReported
+    1,      // MaxNumberOfRelativeCoordReported
+    15,      // MaxNumberOfWidthReported
+    255,      // MaxNumberOfPressureReported
     (NvU32)NvOdmTouchGesture_Not_Supported, // Gesture
-    0,      // IsWidthSupported
-    0,      // IsPressureSupported
+    1,      // IsWidthSupported
+    1,      // IsPressureSupported
     1,      // IsFingersSupported
     X_MIN,   // XMinPosition
     Y_MIN,   // YMinPosition
@@ -195,7 +197,7 @@ PANJIT_GetSample(
         TouchData[10], TouchData[11]));
 
     /* Ignore No finger */
-    coord->fingerstate = (TouchData[10] & (TP_FINGER_ONE_MASK | TP_FINGER_TWO_MASK)) ?
+    coord->fingerstate = (TouchData[TP_FINGER_POSITION] & (TP_FINGER_ONE_MASK | TP_FINGER_TWO_MASK)) ?
         NvOdmTouchSampleValidFlag : NvOdmTouchSampleIgnore;
 
     if (coord->fingerstate == NvOdmTouchSampleIgnore)
@@ -209,7 +211,7 @@ PANJIT_GetSample(
     }
 
     // get the finger count
-    coord->additionalInfo.Fingers = TouchData[10];
+    coord->additionalInfo.Fingers = TouchData[TP_FINGER_POSITION];
     if (coord->additionalInfo.Fingers > hTouch->Caps.MaxNumberOfFingerCoordReported)
         coord->additionalInfo.Fingers = hTouch->Caps.MaxNumberOfFingerCoordReported;
 
