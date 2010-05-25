@@ -1206,6 +1206,8 @@ static NvError LogApbDmaTransferRequest(NvRmDmaHandle hDma, void *pCurrRequest)
 
     if (IsSourceAddPerip)
         pCurrReq->TransferMode |= RmDmaTransferMode_SourcePeripheral;
+    else
+        NvOsFlushWriteCombineBuffer();
 
     // Configure for address wrapping of the dma register as per source and
     // destination address wrapping of this transfer request.
