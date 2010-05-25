@@ -621,7 +621,7 @@ static void tegra_dma_init_hw(struct tegra_dma_channel *ch)
 static void handle_oneshot_dma(struct tegra_dma_channel *ch)
 {
 	struct tegra_dma_req *req;
-	unsigned int irq_flags;
+	unsigned long irq_flags;
 
 	spin_lock_irqsave(&ch->lock, irq_flags);
 	if (list_empty(&ch->list)) {
@@ -807,7 +807,7 @@ int __init tegra_dma_init(void)
 			goto fail;
 
 		modid = NVRM_MODULE_ID(NvRmPrivModuleID_ApbDmaChannel, i);
-		NvRmModuleGetBaseAddress(s_hRmGlobal, modid, &ch->phys_addr,
+		NvRmModuleGetBaseAddress(s_hRmGlobal, modid, (NvRmPhysAddr *)&ch->phys_addr,
 						&size);
 		ch->addr = IO_ADDRESS(ch->phys_addr);
 		if (!ch->addr) {

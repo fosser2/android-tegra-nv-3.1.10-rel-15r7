@@ -393,7 +393,7 @@ fail:
 	return error;
 }
 
-static int nvec_keyboard_remove(struct nvec_device *dev)
+static void nvec_keyboard_remove(struct nvec_device *dev)
 {
 	struct input_dev *input_dev = nvec_get_drvdata(dev);
 	struct nvec_keyboard *keyboard = input_get_drvdata(input_dev);
@@ -405,8 +405,6 @@ static int nvec_keyboard_remove(struct nvec_device *dev)
 	keyboard->shutdown = 1;
 	input_free_device(input_dev);
 	kfree(keyboard);
-
-	return 0;
 }
 
 static int nvec_keyboard_suspend(struct nvec_device *pdev, pm_message_t state)

@@ -28,7 +28,7 @@
 #include <linux/i2c.h>
 #include <linux/pm.h>
 #include <linux/spi/spi.h>
-#if CONFIG_KEYBOARD_GPIO
+#if defined(CONFIG_KEYBOARD_GPIO)
 #include <linux/gpio_keys.h>
 #include <linux/input.h>
 #include "include/mach/gpio-names.h"
@@ -138,7 +138,7 @@ static struct platform_device tegra_nand_device =
 #endif
 
 
-#if CONFIG_KEYBOARD_GPIO
+#if defined(CONFIG_KEYBOARD_GPIO)
 static struct gpio_keys_button tegra_buttons[] = {
 	{
 		.gpio		= TEGRA_GPIO_PU5,
@@ -615,7 +615,7 @@ static void __init tegra_machine_init(void)
 	tegra_set_voltage( NV_VDD_PEX_CLK_ODM_ID, 0);
 #endif
 
-#if CONFIG_KEYBOARD_GPIO
+#if defined(CONFIG_KEYBOARD_GPIO)
 	platform_device_register(&tegra_button_device);
 #endif
 

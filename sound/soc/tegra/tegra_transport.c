@@ -649,8 +649,8 @@ void tegra_audiofx_destroyfx(struct tegra_audio_data *audio_context)
 		snd_printk(KERN_ERR "audiofx_create_object failed!");     \
 	}
 
-#define audiofx_path_connect(path_object, sink_object)                         \
-	connection.hSource = path_object,                                      \
+#define audiofx_path_connect(path_object, sink_object)                     \
+	connection.hSource = (NvAudioFxHandle)path_object,                     \
 	connection.SourcePin = NvAudioFxSourcePin;                             \
 	connection.SinkPin = NvAudioFxSinkPin;                                 \
 	connection.hSink = (NvAudioFxHandle)sink_object;                       \
@@ -769,7 +769,7 @@ NvError tegra_audiofx_create_input(NvRmDeviceHandle hRmDevice,
 	audiofx_create_object(pInput->Convert,NvAudioFxConvertId);
 
 	/* Wire 1 */
-	connection.hSource = pInput->Stream;
+	connection.hSource = (NvAudioFxHandle)(pInput->Stream);
 	connection.SourcePin = NvAudioFxSourcePin;
 	connection.hSink = (NvAudioFxHandle)pInput->Resize;
 	connection.SinkPin = NvAudioFxCopySinkPin;
