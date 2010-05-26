@@ -269,6 +269,7 @@ void cpu_ap20_do_lp2(void)
         //Restore burst policy
         NV_REGW(s_hRmGlobal, NvRmPrivModuleID_ClockAndReset, 0,
                 CLK_RST_CONTROLLER_CCLK_BURST_POLICY_0, g_currentCcbp);
+        NvOsWaitUS(2);
 
         //Restore the CoreSight clock source.
         NV_REGW(s_hRmGlobal, NvRmPrivModuleID_ClockAndReset, 0,

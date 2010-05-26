@@ -305,9 +305,13 @@ ENTRY(enter_lp2)
 	bic	r2, r2, #(1<<14)	//Unset the SIDE_EFFECT bit
 	str	r2, [r5, #APBDEV_PMC_CNTRL_0]
 
-	//Powergate the cpu by setting the ENABLE bit
+	// Get ready to powergate the cpu by setting the ENABLE bit and
+	// configuring Wait-for-WFE mechanism
 	ldr	r2, [r6, #FLOW_CTLR_CPU_CSR_0]
 	orr	r2, r2, #(1<<0)
+	orr	r2, r2, #(1<<4)		// Set CPU0 WFE bit mask
+	bic	r2, r2, #(1<<5)		// Clear CPU1 WFE bit mask
+	orr	r2, r2, #(1<<14)	// Clear Event Flag (WC)
 	str	r2, [r6, #FLOW_CTLR_CPU_CSR_0]
 
 	//Put the CPU on the desired clock source for wakeup,
@@ -329,17 +333,17 @@ cclk_delay:
 	ldr	r2, [r7]
 	str	r2, [r5, #APBDEV_PMC_SCRATCH38_0]
 
-	//Finally, halt the CPU
+	// Enable wake events and halt the CPU (no real halt if Wait-for-WFE)
 	mov	r2, #0
 	orr	r2, r2, #(4<<29)  //STOP_UNTIL_IRQ
 	orr	r2, r2, #(1<<10)  //IRQ_0 event
 	orr	r2, r2, #(1<<8)	//FIQ_0 event
 	str	r2, [r6, #FLOW_CTLR_HALT_CPU_EVENTS_0]
 
-DoWFI:
+DoWFloop:
 	dsb
-	wfi
-	b	DoWFI
+	wfe	// CPU halted and power gated here
+	b	DoWFloop
 ENDPROC(enter_lp2)
 
 ENTRY(exit_lp2)
@@ -402,9 +406,13 @@ reset_poll:
 	str	r0, [r10, r1]		//Unlock CPU0
 	str	r0, [r10, r2]		//Unlock CPU1
 
-	//Make sure we no longer powergate the CPU island when halting.
+	//Make sure we no longer powergate the CPU island when halting,
+	// and disable Wait-for-WFE mechanism
 	ldr	r1, [r6, #FLOW_CTLR_CPU_CSR_0]
 	bic	r1, r1, #(1<<0)
+	bic	r1, r1, #(1<<4)		// Clear CPU0 WFE bit mask
+	bic	r1, r1, #(1<<5)		// Clear CPU1 WFE bit mask
+	orr	r1, r1, #(1<<14)	// Clear Event Flag (WC)
 	str	r1, [r6, #FLOW_CTLR_CPU_CSR_0]
 
 	//Restore the input parameters passed to enter_lp2
