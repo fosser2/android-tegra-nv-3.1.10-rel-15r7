@@ -1578,11 +1578,18 @@ static int _nvmap_do_pin(struct nvmap_file_priv *priv,
 	spin_lock(&priv->ref_lock);
 	for (i=0; i<nr && !ret; i++) {
 		r = _nvmap_ref_lookup_locked(priv, refs[i]);
-		if (likely(r)) atomic_inc(&r->pin);
+		if (r) atomic_inc(&r->pin);
 		else {
-			pr_err("%s: %s pinning invalid handle\n", __func__,
-				current->group_leader->comm);
-			ret = -EPERM;
+			if ((h[i]->poison != NVDA_POISON) ||
+			    (!(priv->su || h[i]->global ||
+			    current->group_leader == h[i]->owner)))
+				ret = -EPERM;
+			else {
+				pr_err("%s: %s pinning %s's %uB handle without "
+					"local context\n", __func__,
+					current->group_leader->comm,
+					h[i]->owner->comm, h[i]->orig_size);
+			}
 		}
 	}
 
