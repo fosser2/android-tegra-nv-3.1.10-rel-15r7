@@ -39,6 +39,8 @@
 #include "nvodm_query_discovery.h"
 #include "nvos.h"
 
+#define EEPROM_ID_E1206 0x0C06
+
 #define NVODMACCELEROMETER_ENABLE_PRINTF 0
 
 #if NVODMACCELEROMETER_ENABLE_PRINTF
@@ -331,6 +333,13 @@ NvBool NvOdmAccelOpen(NvOdmAccelHandle* hDevice)
     NvOdmIoModule IoModule = NvOdmIoModule_I2c;
     const NvOdmPeripheralConnectivity *pConnectivity;
     NvBool FoundGpio = NV_FALSE, FoundI2cModule = NV_FALSE;
+    NvOdmBoardInfo BoardInfo;
+    // Accelerometer is supported only on E1206.
+    if (!NvOdmPeripheralGetBoardInfo(EEPROM_ID_E1206, &BoardInfo))
+    {
+        NVODMACCELEROMETER_PRINTF(("\n Accelerometer is not supported \n"));
+        return NV_FALSE;
+    }
 
     hAccel = NvOdmOsAlloc(sizeof(NvOdmAccel));
     if (hAccel == NULL)

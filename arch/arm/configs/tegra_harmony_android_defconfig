@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.29
-# Tue May 25 15:27:54 2010
+# Wed May 26 13:21:56 2010
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -918,7 +918,7 @@ CONFIG_INPUT_MISC=y
 CONFIG_INPUT_UINPUT=y
 # CONFIG_INPUT_GPIO is not set
 # CONFIG_INPUT_KEYCHORD is not set
-# CONFIG_INPUT_TEGRA_ODM_ACCEL is not set
+CONFIG_INPUT_TEGRA_ODM_ACCEL=y
 # CONFIG_INPUT_TEGRA_ODM_SCROLL is not set
 
 #
