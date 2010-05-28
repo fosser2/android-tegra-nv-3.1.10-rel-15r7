@@ -30,6 +30,12 @@
 #include "nvodm_query_kbc.h"
 #include "nvodm_kbc_keymapping.h"
 
+#ifdef CONFIG_KEYBOARD_GPIO
+#include "nvodm_query_gpio.h"
+#include <linux/gpio_keys.h>
+#include <linux/input.h>
+#endif
+
 #ifdef CONFIG_KEYBOARD_TEGRA
 struct tegra_kbc_plat *tegra_kbc_odm_to_plat(void)
 {
@@ -126,5 +132,61 @@ struct tegra_kbc_plat *tegra_kbc_odm_to_plat(void)
 	}
 
 	return pdata;
+}
+#endif
+
+#ifdef CONFIG_KEYBOARD_GPIO
+static struct gpio_keys_platform_data tegra_button_data;
+static struct platform_device tegra_button_device = {
+	.name   = "gpio-keys",
+	.id     = 3,
+	.dev    = {
+		.platform_data  = &tegra_button_data,
+	}
+};
+static char *gpio_key_names = "gpio_keys";
+struct platform_device *get_gpio_key_platform_data(void)
+{
+	struct gpio_keys_button *tegra_buttons = NULL;
+	int ngpiokeys = 0;
+	const NvOdmGpioPinInfo *gpio_key_info;
+	int i;
+	NvOdmGpioPinKeyInfo *gpio_pin_info = NULL;
+
+	gpio_key_info = NvOdmQueryGpioPinMap(NvOdmGpioPinGroup_keypadMisc, 0, &ngpiokeys);
+
+	if (!ngpiokeys) {
+		pr_info("No gpio is configured as buttons\n");
+		goto end;
+	}
+	tegra_buttons = kzalloc(ngpiokeys * sizeof(struct gpio_keys_button), GFP_KERNEL);
+	if (!tegra_buttons) {
+		pr_err("Memory allocation failed for tegra_buttons\n");
+		return NULL;
+	}
+
+	for (i = 0; i < ngpiokeys; ++i) {
+		tegra_buttons[i].gpio =
+			(int)(gpio_key_info[i].Port*8 +	gpio_key_info[i].Pin);
+
+		gpio_pin_info = gpio_key_info[i].GpioPinSpecificData;
+		tegra_buttons[i].code = (int)gpio_pin_info->Code;
+		tegra_buttons[i].desc = gpio_key_names;
+
+		if (gpio_key_info[i].activeState == NvOdmGpioPinActiveState_Low)
+			tegra_buttons[i].active_low = 1;
+		else
+			tegra_buttons[i].active_low = 0;
+
+		tegra_buttons[i].type = EV_KEY;
+		tegra_buttons[i].wakeup = (gpio_pin_info->Wakeup)? 1: 0;
+		tegra_buttons[i].debounce_interval =
+				gpio_pin_info->DebounceTimeMs;
+	}
+
+end:
+	tegra_button_data.buttons = tegra_buttons;
+	tegra_button_data.nbuttons = ngpiokeys;
+	return &tegra_button_device;
 }
 #endif

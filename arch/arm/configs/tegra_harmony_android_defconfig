@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.29
-# Wed May 26 13:21:56 2010
+# Fri May 28 14:52:38 2010
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -866,7 +866,7 @@ CONFIG_KEYBOARD_ATKBD=y
 # CONFIG_KEYBOARD_XTKBD is not set
 # CONFIG_KEYBOARD_NEWTON is not set
 # CONFIG_KEYBOARD_STOWAWAY is not set
-# CONFIG_KEYBOARD_GPIO is not set
+CONFIG_KEYBOARD_GPIO=y
 # CONFIG_KEYBOARD_TEGRA is not set
 # CONFIG_KEYBOARD_TEGRA_GPIO is not set
 CONFIG_KEYBOARD_TEGRA_NVEC=y
