@@ -382,12 +382,12 @@ static int tegra_sdhci_suspend(struct platform_device *pdev, pm_message_t state)
 
 	t_sdhci = platform_get_drvdata(pdev);
 
-	if (t_sdhci->sdhost->card_type != MMC_TYPE_SDIO) {
-		ret = sdhci_suspend_host(t_sdhci->sdhost,state);
-		if (ret)
-			pr_err("sdhci_suspend_host failed with error %d\n", ret);
-		NvOdmSdioSuspend(t_sdhci->hSdioHandle);
-	}
+	ret = sdhci_suspend_host(t_sdhci->sdhost,state);
+
+	if (ret)
+		pr_err("sdhci_suspend_host failed with error %d\n", ret);
+
+	NvOdmSdioSuspend(t_sdhci->hSdioHandle);
 
 	return ret;
 }
@@ -398,16 +398,18 @@ static int tegra_sdhci_resume(struct platform_device *pdev)
 	struct tegra_sdhci *t_sdhci;
 
 	t_sdhci = platform_get_drvdata(pdev);
-	if (t_sdhci->sdhost->card_type != MMC_TYPE_SDIO) {
-		/* enable clock to sdio controller */
-		ret = tegra_sdhci_set_controller_clk(t_sdhci, NV_TRUE);
-		if (ret)
-			pr_err("tegra_sdhci_resume:tegra_sdhci_set_clock failed with error %d\n", ret);
-		NvOdmSdioResume(t_sdhci->hSdioHandle);
-		ret = sdhci_resume_host(t_sdhci->sdhost);
-		if (ret)
-			pr_err("sdhci_resume_host failed with error %d\n", ret);
-	}
+
+	/* enable clock to sdio controller */
+	ret = tegra_sdhci_set_controller_clk(t_sdhci, NV_TRUE);
+
+	if (ret)
+		pr_err("tegra_sdhci_resume:tegra_sdhci_set_clock failed with error %d\n", ret);
+
+	NvOdmSdioResume(t_sdhci->hSdioHandle);
+
+	ret = sdhci_resume_host(t_sdhci->sdhost);
+	if (ret)
+		pr_err("sdhci_resume_host failed with error %d\n", ret);
 
 	return ret;
 }
