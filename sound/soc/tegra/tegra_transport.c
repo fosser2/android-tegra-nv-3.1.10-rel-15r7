@@ -40,7 +40,7 @@
 static AlsaTransport* atrans = 0;
 
 
-static NvAudioFxMixerHandle tegra_transport_mixer_open()
+static NvAudioFxMixerHandle tegra_transport_mixer_open(void)
 {
 	NvError status = NvSuccess;
 	NvAudioFxMixerHandle hMixer = 0;
@@ -687,7 +687,7 @@ NvError tegra_audiofx_create_output(NvRmDeviceHandle hRmDevice,
 	audiofx_path_connect(pPath->Convert, pPath->Resize);
 	audiofx_path_connect(pPath->Resize, pPath->Volume);
 
-	connection.hSource = pPath->Volume;
+	connection.hSource = (NvAudioFxHandle)(pPath->Volume);
 	connection.SourcePin = NvAudioFxSourcePin;
 	connection.hSink = 0;
 	connection.SinkPin = NvAudioFxSinkPin;

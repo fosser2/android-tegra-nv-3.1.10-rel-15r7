@@ -667,7 +667,7 @@ static int tegra_nand_write_oob(struct mtd_info *mtd, loff_t to,
 	return do_write_oob(mtd, to, ops);
 }
 
-static int tegra_nand_suspend(struct mtd_info *mtd)
+static int tegra_nand_suspend(struct platform_device *platDev, pm_message_t state)
 {
 	NvError Err;
 
@@ -684,7 +684,7 @@ static int tegra_nand_suspend(struct mtd_info *mtd)
 	return 0;
 }
 
-static int tegra_nand_resume(struct mtd_info *mtd)
+static int tegra_nand_resume(struct platform_device *platDev)
 {
 	NvError Err;
 
@@ -699,6 +699,39 @@ static int tegra_nand_resume(struct mtd_info *mtd)
 		return -1;
 	}
 	return 0;
+}
+
+static int tegra_mtd_suspend(struct mtd_info *mtd)
+{
+	NvError Err;
+
+	/* Call ddk suspend API */
+	if (!s_hNand) {
+		NvOsDebugPrintf("\n Nand: Ddk handle NULL in suspend ");
+		return -1;
+	}
+	Err = NvDdkNandSuspend(s_hNand);
+	if (Err != NvSuccess) {
+		NvOsDebugPrintf("\n Nand Ddk Suspend error=0x%x ", Err);
+		return -1;
+	}
+	return 0;
+}
+
+static void tegra_mtd_resume(struct mtd_info *mtd)
+{
+	NvError Err;
+
+	/* call Ddk resume code */
+	if (!s_hNand) {
+		NvOsDebugPrintf("\n Nand: Ddk handle NULL in resume ");
+	}
+	else {
+		Err = NvDdkNandResume(s_hNand);
+		if (Err != NvSuccess) {
+			NvOsDebugPrintf("\n Nand Ddk Resume error=0x%x ", Err);
+		}
+	}
 }
 
 static int scan_bad_blocks(struct tegra_nand_info *info)
@@ -821,8 +854,8 @@ static int tegra_nand_scan(struct mtd_info *mtd)
 	mtd->read_oob = tegra_nand_read_oob;
 	mtd->write_oob = tegra_nand_write_oob;
 
-	mtd->resume = tegra_nand_resume;
-	mtd->suspend = tegra_nand_suspend;
+	mtd->resume = tegra_mtd_resume;
+	mtd->suspend = tegra_mtd_suspend;
 	mtd->block_isbad = tegra_nand_block_isbad;
 	mtd->block_markbad = tegra_nand_block_markbad;
 	NvDdkNandSuspendClocks(s_hNand);

@@ -176,7 +176,7 @@ static NvBool tegra_fb_power_register( void )
 		return NV_TRUE;
 	}
 
-	if( NvRmPowerRegister( s_hRmGlobal, 0, &s_power_id ) != NvSuccess )
+	if( NvRmPowerRegister( s_hRmGlobal, 0, (NvU32 *)&s_power_id ) != NvSuccess )
 	{
 		printk( "nvtegrafb: unable to load power manager\n" );
 		return NV_FALSE;
