@@ -55,7 +55,39 @@
 #define NV_BMA150_MAX_FORCE_IN_REG 512 // It indicates force register length.
 #define NV_DEBOUNCE_TIME_MS 0
 
-#define ENABLE_XYZ_POLLING 0
+#define ENABLE_XYZ_POLLING 1
+static NvU32 PollingTime = 300; // (1000 * 225)/2*375(ms)
+#define NV_BMA150_MAX_SAMPLE_RATE   12000 //Hz
+#define NV_BMA150_MIN_SAMPLE_RATE   50 //Hz
+// sw polling time is slower than hw sample rate 225 time
+#define NV_BMA150_POLLING_FACTOR    225
+static NvU32 CurrSampleRate = 2*375; // Current Sample Rate
+
+typedef struct BmaSampleRateRec
+{
+    // Range register value
+    NvU8 RangeReg;
+    // Bandwidth register value
+    NvU8 BandWidthReg;
+    // SampleRate(Hz) = Full scale acceleration range * BandWidth(in Hz)
+    NvU32 SampleRate;
+} BmaSampleRate;
+
+BmaSampleRate OutputRate[] = {
+    {0, 0, 2*25},
+    {0, 1, 2*50},
+    {0, 2, 2*100},
+    {0, 3, 2*190},
+    {1, 2, 4*100},
+    {0, 4, 2*375},
+    {1, 3, 4*190},
+    {2, 2, 8*100},
+    {0, 5, 2*750},
+    {2, 3, 8*190},
+    {0, 6, 2*1500},
+    {1, 6, 4*1500},
+    {2, 6, 8*1500}
+};
 
 //FIXME: protect this variable using spinlock.
 static volatile int g_WaitCounter = 0;
@@ -253,12 +285,15 @@ static NvBool BMA150_Init(NvOdmAccelHandle hAccel)
     if (!WriteReg(hAccel, RANGE_BWIDTH_REG, &TestVal, 1))
         goto error;
 
+#if !(ENABLE_XYZ_POLLING)
     if (!ReadReg(hAccel, SMB150_CONF2_REG, &TestVal, 1))
         goto error;
     // Enable Advanced interrupt(6), latch int(4)
     TestVal |= (0 << 3) | (1 << 6) | (1 << 4);
     if (!WriteReg(hAccel, SMB150_CONF2_REG, &TestVal, 1))
         goto error;
+#endif
+
     // Init Hw end
     // Set mode
     if (!ReadReg(hAccel, SMB150_CTRL_REG, &TestVal, 1))
@@ -518,7 +553,7 @@ NvOdmAccelWaitInt(
 
     if ((g_WaitCounter > 0) || ENABLE_XYZ_POLLING)
     {
-        NvOdmOsSemaphoreWaitTimeout( hDevice->SemaphoreForINT, 300);
+        NvOdmOsSemaphoreWaitTimeout( hDevice->SemaphoreForINT, PollingTime);
         g_WaitCounter--;
     }
     else
@@ -613,11 +648,54 @@ NvOdmAccelerometerCaps NvOdmAccelGetCaps(NvOdmAccelHandle hDevice)
 
 NvBool NvOdmAccelSetSampleRate(NvOdmAccelHandle hDevice, NvU32 SampleRate)
 {
-    return NV_TRUE;
+    NvU8 BandWidthReg, RangeReg, Val;
+    NvU32 i;
+    NvS32 index;
+
+    if (!ReadReg(hDevice, RANGE_BWIDTH_REG, &Val, 1))
+        goto error;
+
+    index = -1;
+    if (SampleRate <= NV_BMA150_MIN_SAMPLE_RATE)
+    {
+        index = 0;
+    }
+    else if (SampleRate >= NV_BMA150_MAX_SAMPLE_RATE)
+    {
+        index = NV_ARRAY_SIZE(OutputRate)-1;
+    }
+    else
+    {
+        for (i = 0; i < NV_ARRAY_SIZE(OutputRate); i++)
+        {
+            if ((SampleRate >= OutputRate[i].SampleRate) &&
+                (SampleRate < OutputRate[i+1].SampleRate))
+            {
+                index = i;
+                break;
+            }
+        }
+    }
+
+    if (index != -1)
+    {
+        BandWidthReg = OutputRate[index].BandWidthReg;
+        RangeReg = OutputRate[index].RangeReg;
+        Val = Val & 0xE0;
+        Val = Val | BandWidthReg | (RangeReg << 3);
+        if (!WriteReg(hDevice, RANGE_BWIDTH_REG, &Val, 1))
+            goto error;
+        CurrSampleRate = OutputRate[index].SampleRate;
+        PollingTime = (1000 * NV_BMA150_POLLING_FACTOR)/CurrSampleRate; //ms
+        return NV_TRUE;
+    }
+error:
+    return NV_FALSE;
 }
 
 NvBool NvOdmAccelGetSampleRate(NvOdmAccelHandle hDevice, NvU32 *pSampleRate)
 {
+    *pSampleRate = CurrSampleRate;
     return NV_TRUE;
 }
 
