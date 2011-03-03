@@ -84,6 +84,7 @@ struct tegra_dc {
 	int				emc_clk_rate;
 	int				new_emc_clk_rate;
 
+	bool				connected;
 	bool				enabled;
 	bool				suspended;
 

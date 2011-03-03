@@ -753,6 +753,7 @@ static bool tegra_dc_hdmi_detect(struct tegra_dc *dc)
 	switch_set_state(&hdmi->hpd_switch, 1);
 	dev_info(&dc->ndev->dev, "display detected\n");
 
+	dc->connected = true;
 	tegra_dc_ext_process_hotplug(dc->ndev->id);
 
 	return true;
@@ -777,6 +778,7 @@ static void tegra_dc_hdmi_detect_worker(struct work_struct *work)
 		tegra_dc_disable(dc);
 		tegra_fb_update_monspecs(dc->fb, NULL, NULL);
 
+		dc->connected = false;
 		tegra_dc_ext_process_hotplug(dc->ndev->id);
 	}
 }
