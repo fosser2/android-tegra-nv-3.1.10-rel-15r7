@@ -533,8 +533,7 @@ u32 spdif_get_fifo_scr(int ifc);
 
 u32 spdif_get_fifo_full_empty_count(int ifc, int mode);
 int spdif_initialize(unsigned long base, int mode);
-void spdif_get_all_regs(unsigned long base, struct spdif_regs_cache* regs);
-void spdif_set_all_regs(unsigned long base, struct spdif_regs_cache* regs);
+void spdif_dump_registers(unsigned long base);
 
 int spdif_init(unsigned long base, phys_addr_t phy_base, int mode,
 			struct tegra_spdif_property* pspdifprop);

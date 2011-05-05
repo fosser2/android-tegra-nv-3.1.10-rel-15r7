@@ -540,6 +540,36 @@ int spdif_set_fifo_attention(int ifc, int fifo_mode, int buffersize)
 	return 0;
 }
 
+void spdif_dump_registers(unsigned long base)
+{
+	struct spdif_regs_cache *regs =
+		(struct spdif_regs_cache *) spinfo->reg_cache;
+
+	spdif_save_regs(base);
+
+	pr_info("CTRL   %08x\n", regs->spdif_ctrl_0);
+	pr_info("STATUS   %08x\n", regs->spdif_status_0);
+	pr_info("STROBE_CTRL   %08x\n", regs->spdif_strobe_ctrl_0);
+	pr_info("FIFO_CSR   %08x\n", regs->spdif_data_fifo_scr_0);
+	pr_info("CH_STA_RX_A   %08x\n", regs->spdif_ch_sta_rx_a_0);
+	pr_info("CH_STA_RX_B   %08x\n", regs->spdif_ch_sta_rx_b_0);
+	pr_info("CH_STA_RX_C   %08x\n", regs->spdif_ch_sta_rx_c_0);
+	pr_info("CH_STA_RX_D   %08x\n", regs->spdif_ch_sta_rx_d_0);
+	pr_info("CH_STA_RX_E   %08x\n", regs->spdif_ch_sta_rx_e_0);
+	pr_info("CH_STA_RX_F   %08x\n", regs->spdif_ch_sta_rx_f_0);
+	pr_info("CH_STA_TX_A   %08x\n", regs->spdif_ch_sta_tx_a_0);
+	pr_info("CH_STA_TX_B   %08x\n", regs->spdif_ch_sta_tx_b_0);
+	pr_info("CH_STA_TX_C   %08x\n", regs->spdif_ch_sta_tx_c_0);
+	pr_info("CH_STA_TX_D   %08x\n", regs->spdif_ch_sta_tx_d_0);
+	pr_info("CH_STA_TX_E   %08x\n", regs->spdif_ch_sta_tx_e_0);
+	pr_info("CH_STA_TX_F   %08x\n", regs->spdif_ch_sta_tx_f_0);
+	pr_info("USR_STA_RX_A   %08x\n", regs->spdif_usr_sta_rx_a_0);
+	pr_info("USR_DAT_TX_A   %08x\n", regs->spdif_usr_dat_tx_a_0);
+
+	pr_info("%s: End.\n", __func__);
+
+}
+
 void spdif_save_regs(unsigned long base)
 {
 	struct spdif_regs_cache *regs =
