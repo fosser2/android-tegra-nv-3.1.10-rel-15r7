@@ -404,6 +404,8 @@ static int __devinit tegra_sdhci_probe(struct platform_device *pdev)
 			plat->funcs,
 			plat->num_funcs);
 #endif
+	if (host->card_always_on)
+		sdhci->mmc->pm_flags |= MMC_PM_IGNORE_PM_NOTIFY;
 
 	platform_set_drvdata(pdev, host);
 
