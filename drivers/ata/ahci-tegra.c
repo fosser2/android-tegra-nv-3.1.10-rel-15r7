@@ -1286,7 +1286,7 @@ static bool tegra_ahci_power_gate(struct ata_host *host)
 	clk_disable(tegra_hpriv->clk_cml1);
 
 	/* power off the sata */
-	status = tegra_powergate_power_off(TEGRA_POWERGATE_SATA);
+	status = tegra_powergate_partition_with_clk_off(TEGRA_POWERGATE_SATA);
 	if (status)
 		dev_printk(KERN_ERR, host->dev,
 				     "** failed to turn-off SATA (0x%x) **\n",
@@ -1346,8 +1346,7 @@ static bool tegra_ahci_power_un_gate(struct ata_host *host)
 	val |= SWR_SATACOLD_RST_DISABLE;
 	clk_writel(val, CLK_RST_CONTROLLER_RST_DEVICES_W_REG);
 
-	status = tegra_powergate_sequence_power_up(TEGRA_POWERGATE_SATA,
-						   tegra_hpriv->clk_sata);
+	status = tegra_unpowergate_partition_with_clk_on(TEGRA_POWERGATE_SATA);
 	if (status)
 		dev_printk(KERN_ERR, host->dev,
 				     "** failed to turn-on SATA (0x%x) **\n",

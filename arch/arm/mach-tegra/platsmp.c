@@ -383,7 +383,7 @@ static int power_up_cpu(unsigned int cpu)
 	   power gates. Bail out if direct power on also failed */
 	if (!is_cpu_powered(cpu))
 	{
-		ret = tegra_powergate_power_on(TEGRA_CPU_POWERGATE_ID(cpu));
+		ret = tegra_unpowergate_partition(TEGRA_CPU_POWERGATE_ID(cpu));
 		if (ret)
 			goto fail;
 
