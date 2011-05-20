@@ -593,6 +593,7 @@ static void __init tegra_enterprise_init(void)
 	audio_wired_jack_init();
 	enterprise_emc_init();
 	enterprise_sensors_init();
+	enterprise_suspend_init();
 }
 
 static void __init tegra_enterprise_reserve(void)
