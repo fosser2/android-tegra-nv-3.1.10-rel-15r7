@@ -122,11 +122,12 @@ u32 apbif_fifo_read(int ifc, int fifo_mode);
 void audio_switch_set_acif(int addr, struct audio_cif *cifInfo);
 int  audio_switch_get_rx_port(int rxport);
 void audio_switch_set_rx_port(int rxport, int txport);
+void audio_switch_clear_rx_port(int rxport);
 
-int audio_switch_close(void);
-int audio_switch_open(void);
 int audio_apbif_free_channel(int ifc, int fifo_mode);
 int audio_apbif_set_acif(int ifc, int fifo_mode, struct audio_cif *cifInfo);
+int audio_switch_close(void);
+int audio_switch_open(void);
 int audio_switch_suspend(void);
 int audio_switch_resume(void);
 int audio_switch_enable_clock(void);
@@ -147,15 +148,8 @@ int dam_set_clock_rate(int rate);
 int dam_set_clock_parent(int ifc, int parent);
 int dam_enable_clock(int ifc);
 void dam_disable_clock(int ifc);
-
-#if defined(CONFIG_ARCH_TEGRA_2x_SOC)
- /* dummy calls */
-int audio_switch_open(void) { return 0; }
-int audio_switch_close(void) { return 0; }
-int audio_switch_suspend(void) { return 0; }
-int audio_switch_resume(void) { return 0; }
-int audio_switch_enable_clock(void) { return 0; }
-void audio_switch_disable_clock(void) {}
-#endif
+int dam_free_dma_requestor(int ifc, int chtype, int fifo_mode);
+int dam_get_dma_requestor(int ifc, int chtype, int fifo_mode);
+int dam_set_gain(int ifc, int chtype, int gain);
 
 #endif /* __ARCH_ARM_MACH_AUDIO_SWITCH_H */
