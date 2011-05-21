@@ -35,9 +35,19 @@
 #include <mach/pinmux.h>
 #include <mach/tegra_das.h>
 #include <mach/tegra_i2s.h>
+#include <mach/tegra3_i2s.h>
 #include <mach/spdif.h>
 #include <mach/audio_manager.h>
 
+#define  ENABLE_AM_DEBUG_PRINT	0
+
+#if ENABLE_AM_DEBUG_PRINT
+#define AM_DEBUG_PRINT(fmt, arg...) printk(fmt, ## arg)
+#else
+#define AM_DEBUG_PRINT(fmt, arg...) do {} while (0)
+#endif
+
+#define LINEAR_UNITY_GAIN 0x1000
 
 static struct am_dev_fns init_am_dev_fns[] = {
 [AUDIO_I2S_DEVICE] = {
@@ -75,6 +85,14 @@ static struct am_dev_fns init_am_dev_fns[] = {
 };
 
 #ifdef CONFIG_ARCH_TEGRA_2x_SOC
+
+/* dummy calls */
+int audio_switch_open(void) { return 0; }
+int audio_switch_close(void) { return 0; }
+int audio_switch_suspend(void) { return 0; }
+int audio_switch_resume(void) { return 0; }
+int audio_switch_enable_clock(void) { return 0; }
+void audio_switch_disable_clock(void) {}
 
 int am_suspend(aud_dev_info* devinfo)
 {
@@ -180,21 +198,23 @@ int am_device_deinit(aud_dev_info* devinfo)
 
 int am_set_stream_format(aud_dev_info* devinfo, am_stream_format_info *format)
 {
+	int dev_id = devinfo->dev_id;
+
 	if (devinfo->dev_type == AUDIO_I2S_DEVICE) {
-		i2s_set_bit_size(devinfo->dev_id, format->bitsize);
-		i2s_set_samplerate(devinfo->dev_id, format->samplerate);
-		i2s_set_channels(devinfo->dev_id, format->channels);
-		i2s_set_fifo_attention(devinfo->dev_id,
+		i2s_set_bit_size(dev_id, format->bitsize);
+		i2s_set_samplerate(dev_id, format->samplerate);
+		i2s_set_channels(dev_id, format->channels);
+		i2s_set_fifo_attention(dev_id,
 			devinfo->fifo_mode, format->buffersize);
 
 	} else if (devinfo->dev_type == AUDIO_SPDIF_DEVICE) {
-		spdif_set_bit_mode(devinfo->dev_id, format->bitsize);
+		spdif_set_bit_mode(dev_id, format->bitsize);
 		/* fixme - move to appropriate locn later */
-		spdif_set_fifo_packed(devinfo->dev_id, 1);
+		spdif_set_fifo_packed(dev_id, 1);
 
-		spdif_set_sample_rate(devinfo->dev_id,
+		spdif_set_sample_rate(dev_id,
 			devinfo->fifo_mode, format->samplerate);
-		spdif_set_fifo_attention(devinfo->dev_id,
+		spdif_set_fifo_attention(dev_id,
 			devinfo->fifo_mode, format->buffersize);
 	}
 	return 0;
@@ -261,15 +281,96 @@ int am_device_init(aud_dev_info* devinfo, void *dev_fmt, void  *strm_fmt)
 
 #else
 
+struct am_ch_info {
+	bool inuse;
+	int outsample;
+	int ahubrx_index;
+	int ahubtx_index;
+	int damch[AUDIO_FIFO_CNT];
+	int dmach[AUDIO_FIFO_CNT];
+	int dmach_refcnt[AUDIO_FIFO_CNT];
+	am_stream_format_info sfmt;
+	struct audio_cif inacif;
+	struct audio_cif outcif;
+};
+
 struct audio_manager_context {
 	struct clk *mclk;
 	struct clk *pmc_clk;
 	int mclk_refcnt;
 	int mclk_rate;
 	int mclk_parent;
+	struct am_ch_info i2s_ch[NR_I2S_IFC];
+	struct am_ch_info spdif_ch;
 };
 
+
 struct audio_manager_context *aud_manager;
+
+int default_music_connection(struct am_ch_info *ch, int ifc, int fifo_mode)
+{
+	/* get unused dam channel first */
+	ch->damch[fifo_mode] = dam_get_controller();
+
+	if (ch->damch[fifo_mode] == -ENOENT) {
+		pr_err("unable to get the dam channel\n");
+		return -ENOENT;
+	}
+
+	if (fifo_mode == AUDIO_TX_MODE)
+		ch->ahubtx_index = ahubtx_dam0 + ch->damch[fifo_mode];
+	else if (fifo_mode == AUDIO_RX_MODE)
+		ch->ahubrx_index = ahubrx1_dam0 + (ch->damch[fifo_mode] << 1);
+
+	/* Enable the clock if needed */
+
+	/* FIXME: Take the property from the destination device
+	 - it shoule the stream format also*/
+	dam_set_samplerate(ch->damch[fifo_mode],
+			 dam_ch_out, ch->sfmt.samplerate);
+
+	/*ch 0 expecting as 8Khz */
+	dam_set_samplerate(ch->damch[fifo_mode],
+			 dam_ch_in0, AUDIO_SAMPLERATE_8000);
+
+	/*Apbif dma going through DAM */
+	ch->dmach[fifo_mode] = dam_get_dma_requestor(ch->damch[fifo_mode],
+				dam_ch_in1, fifo_mode);
+
+	if (ch->dmach[fifo_mode] == -ENOENT)
+		goto conn_fail;
+
+	audio_switch_set_rx_port(ch->ahubrx_index, ch->ahubtx_index);
+
+	ch->inacif.audio_channels = ch->sfmt.channels;
+	ch->inacif.client_channels = ch->sfmt.channels;
+	ch->inacif.audio_bits = ch->sfmt.bitsize;
+	ch->inacif.client_bits = ch->sfmt.bitsize;
+
+	dam_set_acif(ch->damch[fifo_mode], dam_ch_out, &ch->inacif);
+	dam_set_acif(ch->damch[fifo_mode], dam_ch_in1, &ch->inacif);
+
+	/* set unity gain to damch1 */
+	dam_set_gain(ch->damch[fifo_mode], dam_ch_in1, LINEAR_UNITY_GAIN);
+	return 0;
+
+conn_fail:
+
+	dam_free_controller(ch->damch[fifo_mode]);
+	return -ENOENT;
+}
+
+int test_free_dam_connection(struct am_ch_info *ch, int ifc, int fifo_mode)
+{
+	dam_free_dma_requestor(ch->damch[fifo_mode], dam_ch_in1, fifo_mode);
+
+	audio_switch_clear_rx_port(ch->ahubrx_index);
+
+	dam_free_controller(ch->damch[fifo_mode]);
+
+	ch->damch[fifo_mode] = -1;
+	return 0;
+}
 
 int am_suspend(aud_dev_info* devinfo)
 {
@@ -285,27 +386,108 @@ int am_resume(aud_dev_info* devinfo)
 
 int am_set_stream_state(aud_dev_info* devinfo, bool enable)
 {
+	struct am_ch_info *ch = NULL;
 	struct am_dev_fns* am_fn = &init_am_dev_fns[devinfo->dev_type];
-	return am_fn->aud_dev_set_stream_state(
-				devinfo->dev_id,
-				devinfo->fifo_mode,
-				((enable)? 1 : 0));
+	int dev_id = devinfo->dev_id;
+	int fifo_mode = devinfo->fifo_mode;
+	int on_off = (enable) ? 1 : 0;
+
+	if (devinfo->dev_type == AUDIO_I2S_DEVICE)
+		ch = &aud_manager->i2s_ch[dev_id];
+	else if (devinfo->dev_type == AUDIO_SPDIF_DEVICE)
+		ch = &aud_manager->spdif_ch;
+
+	if (ch->damch[fifo_mode] != -1)
+		dam_enable(ch->damch[fifo_mode], on_off, dam_ch_in1);
+
+	return am_fn->aud_dev_set_stream_state(dev_id, fifo_mode, on_off);
 }
 
 int am_get_dma_requestor(aud_dev_info* devinfo)
 {
-	struct am_dev_fns* am_fn = &init_am_dev_fns[devinfo->dev_type];
-	return am_fn->aud_dev_get_dma_requestor(
-				devinfo->dev_id,
-				devinfo->fifo_mode);
+	int err = 0;
+	struct am_ch_info *ch = NULL;
+	int ahubindex = 0;
+	int dev_id = devinfo->dev_id;
+	int fifo_mode = devinfo->fifo_mode;
+
+	if (devinfo->dev_type == AUDIO_I2S_DEVICE) {
+		ch = &aud_manager->i2s_ch[dev_id];
+		ahubindex  = dev_id + ahubrx_i2s0;
+
+		if (fifo_mode == AUDIO_RX_MODE)
+			ahubindex = dev_id + ahubtx_i2s0;
+
+	} else if (devinfo->dev_type == AUDIO_SPDIF_DEVICE) {
+		ch = &aud_manager->spdif_ch;
+		ahubindex = ahubrx0_spdif;
+
+		if (fifo_mode == AUDIO_RX_MODE)
+			ahubindex = ahubtx0_spdif;
+	}
+
+	if (ch->inuse == false) {
+
+		ch->ahubrx_index = ahubindex;
+
+		if (fifo_mode == AUDIO_RX_MODE)
+			ch->ahubtx_index = ahubindex;
+
+		err = default_music_connection(ch, dev_id, fifo_mode);
+		if (err)
+			goto fail_conn;
+
+		if (devinfo->dev_type == AUDIO_I2S_DEVICE) {
+			i2s_set_dma_channel(dev_id,
+				fifo_mode, (ch->dmach[fifo_mode] - 1));
+			i2s_set_acif(dev_id, fifo_mode, &ch->inacif);
+		} else if (devinfo->dev_type == AUDIO_SPDIF_DEVICE) {
+			spdif_set_dma_channel(dev_id,
+				fifo_mode, (ch->dmach[fifo_mode] - 1));
+			spdif_set_acif(dev_id, fifo_mode, (void *)&ch->inacif);
+		}
+	}
+
+	if (!err) {
+		ch->inuse = true;
+		ch->dmach_refcnt[fifo_mode]++;
+		return ch->dmach[fifo_mode];
+	}
+
+	return err;
+
+fail_conn:
+	/*free connection */
+	return err;
 }
 
 int am_free_dma_requestor(aud_dev_info* devinfo)
 {
-	struct am_dev_fns* am_fn = &init_am_dev_fns[devinfo->dev_type];
-	return am_fn->aud_dev_free_dma_requestor(
-				devinfo->dev_id,
-				devinfo->fifo_mode);
+	struct am_ch_info *ch = NULL;
+	int dev_id = devinfo->dev_id;
+	int fifo_mode = devinfo->fifo_mode;
+
+	if (devinfo->dev_type == AUDIO_I2S_DEVICE)
+		ch = &aud_manager->i2s_ch[dev_id];
+	else if (devinfo->dev_type == AUDIO_SPDIF_DEVICE)
+		ch = &aud_manager->spdif_ch;
+
+	AM_DEBUG_PRINT("%s++ %d  refcnt %d\n", __func__,
+			ch->dmach[fifo_mode],
+			ch->dmach_refcnt[fifo_mode]);
+
+	if (ch->dmach_refcnt[fifo_mode] > 0)
+		ch->dmach_refcnt[fifo_mode]--;
+
+	if (ch->dmach_refcnt[devinfo->fifo_mode] == 0) {
+		test_free_dam_connection(ch, dev_id, fifo_mode);
+		ch->inuse = false;
+	}
+	AM_DEBUG_PRINT("%s++ %d  refcnt %d\n", __func__,
+			ch->dmach[fifo_mode],
+			ch->dmach_refcnt[fifo_mode]);
+	return 0;
+
 }
 
 phys_addr_t am_get_fifo_phy_base(aud_dev_info* devinfo)
@@ -375,21 +557,41 @@ int am_device_deinit(aud_dev_info* devinfo)
 
 int am_set_stream_format(aud_dev_info* devinfo, am_stream_format_info *format)
 {
+	int dev_id = devinfo->dev_id;
+	struct am_ch_info *ch = NULL;
+
 	if (devinfo->dev_type == AUDIO_I2S_DEVICE) {
-		i2s_set_bit_size(devinfo->dev_id, format->bitsize);
-		i2s_set_samplerate(devinfo->dev_id, format->samplerate);
-		i2s_set_channels(devinfo->dev_id, format->channels);
-		i2s_set_fifo_attention(devinfo->dev_id,
+		ch = &aud_manager->i2s_ch[dev_id];
+		i2s_set_bit_size(dev_id, format->bitsize);
+		i2s_set_samplerate(dev_id, format->samplerate);
+		i2s_set_channels(dev_id, format->channels);
+		i2s_set_fifo_attention(dev_id,
 			devinfo->fifo_mode, format->buffersize);
 
 	} else if (devinfo->dev_type == AUDIO_SPDIF_DEVICE) {
-		spdif_set_bit_mode(devinfo->dev_id, format->bitsize);
-		spdif_set_sample_rate(
-			devinfo->dev_id,
+		ch = &aud_manager->spdif_ch;
+		spdif_set_bit_mode(dev_id, format->bitsize);
+		spdif_set_sample_rate(dev_id,
 			devinfo->fifo_mode,
 			format->samplerate);
-		spdif_set_fifo_attention(devinfo->dev_id,
+		spdif_set_fifo_attention(dev_id,
 			devinfo->fifo_mode, format->buffersize);
+	}
+
+	memcpy(&ch->sfmt, format, sizeof(am_stream_format_info));
+
+	if (devinfo->dev_type == AUDIO_SPDIF_DEVICE) {
+		switch (format->bitsize) {
+		case SPDIF_BIT_MODE_MODE24BIT:
+			ch->sfmt.bitsize = AUDIO_BIT_SIZE_24;
+			break;
+		case SPDIF_BIT_MODE_MODERAW:
+			ch->sfmt.bitsize = AUDIO_BIT_SIZE_32;
+			break;
+		default:
+			ch->sfmt.bitsize = AUDIO_BIT_SIZE_16;
+			break;
+		}
 	}
 	return 0;
 }

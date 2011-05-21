@@ -321,6 +321,7 @@ int  i2s_set_bit_mask(int ifc, int tx, int maskbit);
 int  i2s_set_flow_control(int ifc, int enable, int filtertype, int stepsize);
 
 int i2s_set_acif(int ifc, int fifo_mode, struct audio_cif *cifInfo);
+int i2s_set_dma_channel(int ifc, int fifo_mode, int dma_ch);
 
 #endif /* __ARCH_ARM_MACH_TEGRA3_I2S_H */
 
