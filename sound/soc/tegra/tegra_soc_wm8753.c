@@ -323,12 +323,33 @@ static int tegra_voice_hw_params(struct snd_pcm_substream *substream,
 	int dai_flag = 0, sys_clk;
 	int err;
 
-	if (tegra_das_is_port_master(tegra_audio_codec_type_bluetooth))
-		dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
-	else
-		dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
+	if (!strcmp(rtd->dai->stream_name, "Tegra BT Voice Call")) {
+		if (tegra_das_is_port_master(tegra_audio_codec_type_bluetooth))
+			dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
+		else
+			dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
 
-	data_fmt = tegra_das_get_codec_data_fmt(tegra_audio_codec_type_bluetooth);
+		data_fmt = tegra_das_get_codec_data_fmt
+			(tegra_audio_codec_type_bluetooth);
+	}
+	else if (!strcmp(rtd->dai->stream_name, "Tegra Voice Call")) {
+		if (tegra_das_is_port_master(tegra_audio_codec_type_voice))
+			dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
+		else
+			dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
+
+		data_fmt = tegra_das_get_codec_data_fmt
+			(tegra_audio_codec_type_baseband);
+	}
+	else {/* Tegra BT-SCO Voice */
+		if (tegra_das_is_port_master(tegra_audio_codec_type_bluetooth))
+			dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
+		else
+			dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
+
+		data_fmt = tegra_das_get_codec_data_fmt
+			(tegra_audio_codec_type_bluetooth);
+	}
 
 	/* We are supporting DSP and I2s format for now */
 	if (data_fmt & dac_dap_data_format_dsp)
@@ -703,10 +724,10 @@ static struct snd_soc_dai_link tegra_soc_dai[] = {
 		.ops = &tegra_hifi_ops,
 	},
 	{
-		.name = "Tegra-generic",
-		.stream_name = "Tegra Generic Voice",
+		.name = "Tegra-Voice",
+		.stream_name = "Tegra BT-SCO Voice",
 		.cpu_dai = &tegra_i2s_dai[1],
-		.codec_dai = &tegra_generic_codec_dai[0],
+		.codec_dai = &tegra_generic_codec_dai[TEGRA_BT_CODEC_ID],
 		.init = tegra_codec_init,
 		.ops = &tegra_voice_ops,
 	},
@@ -714,9 +735,25 @@ static struct snd_soc_dai_link tegra_soc_dai[] = {
 		.name = "Tegra-spdif",
 		.stream_name = "Tegra Spdif",
 		.cpu_dai = &tegra_spdif_dai,
-		.codec_dai = &tegra_generic_codec_dai[1],
+		.codec_dai = &tegra_generic_codec_dai[TEGRA_SPDIF_CODEC_ID],
 		.init = tegra_codec_init,
 		.ops = &tegra_spdif_ops,
+	},
+	{
+		.name = "Tegra-voice-call",
+		.stream_name = "Tegra Voice Call",
+		.cpu_dai = &tegra_generic_codec_dai[TEGRA_BB_CODEC_ID],
+		.codec_dai = &wm8753_dai[WM8753_DAI_VOICE],
+		.init = tegra_codec_init,
+		.ops = &tegra_voice_ops,
+	},
+	{
+		.name = "Tegra-bt-voice-call",
+		.stream_name = "Tegra BT Voice Call",
+		.cpu_dai = &tegra_generic_codec_dai[TEGRA_BB_CODEC_ID],
+		.codec_dai = &tegra_generic_codec_dai[TEGRA_BT_CODEC_ID],
+		.init = tegra_codec_init,
+		.ops = &tegra_voice_ops,
 	},
 };
 

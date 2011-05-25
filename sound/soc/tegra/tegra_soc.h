@@ -91,6 +91,10 @@
 #define TEGRA_HEADSET_OUT	0x80
 #define TEGRA_HEADSET_IN	0x100
 
+#define TEGRA_BT_CODEC_ID	0
+#define TEGRA_BB_CODEC_ID	1
+#define TEGRA_SPDIF_CODEC_ID	2
+
 struct tegra_dma_channel;
 
 struct tegra_runtime_data {

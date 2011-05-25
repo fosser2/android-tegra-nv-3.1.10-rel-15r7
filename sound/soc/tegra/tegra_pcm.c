@@ -29,7 +29,7 @@ static void tegra_pcm_play(struct tegra_runtime_data *prtd)
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct snd_dma_buffer *buf = &substream->dma_buffer;
 
-	if (runtime->dma_addr) {
+	if (runtime->dma_addr && prtd->dma_chan) {
 		prtd->size = frames_to_bytes(runtime, runtime->period_size);
 		if (prtd->dma_state != STATE_ABORT) {
 			prtd->dma_reqid_tail = (prtd->dma_reqid_tail + 1) % DMA_REQ_QCOUNT;
@@ -54,7 +54,7 @@ static void tegra_pcm_capture(struct tegra_runtime_data *prtd)
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct snd_dma_buffer *buf = &substream->dma_buffer;
 
-	if (runtime->dma_addr) {
+	if (runtime->dma_addr && prtd->dma_chan) {
 		prtd->size = frames_to_bytes(runtime, runtime->period_size);
 		if (prtd->dma_state != STATE_ABORT) {
 			prtd->dma_reqid_tail = (prtd->dma_reqid_tail + 1) % DMA_REQ_QCOUNT;
@@ -191,11 +191,11 @@ static snd_pcm_uframes_t tegra_pcm_pointer(struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct tegra_runtime_data *prtd = runtime->private_data;
-	int size;
+	int size = prtd->period_index * runtime->period_size;
 
-	size = (prtd->period_index * runtime->period_size) +
-		 bytes_to_frames(runtime,
-				tegra_dma_get_transfer_count(
+	if (prtd->dma_chan)
+		size += bytes_to_frames(runtime,
+					tegra_dma_get_transfer_count(
 					prtd->dma_chan,
 					&prtd->dma_req[prtd->dma_reqid_head],
 					false));
@@ -238,7 +238,7 @@ static int tegra_pcm_open(struct snd_pcm_substream *substream)
 
 	prtd->state = STATE_INVALID;
 
-	if (strcmp(cpu_dai->name, "tegra-spdif") == 0)
+	if (!strcmp(cpu_dai->name, "tegra-spdif"))
 	{
 		for (i = 0; i < DMA_REQ_QCOUNT; i++) {
 			setup_spdif_dma_request(substream,
@@ -247,7 +247,8 @@ static int tegra_pcm_open(struct snd_pcm_substream *substream)
 					prtd);
 		}
 	}
-	else
+	else if (!strcmp(cpu_dai->name, "tegra-i2s-1") ||
+			!strcmp(cpu_dai->name, "tegra-i2s-2"))
 	{
 		for (i = 0; i < DMA_REQ_QCOUNT; i++) {
 			setup_i2s_dma_request(substream,
@@ -257,12 +258,17 @@ static int tegra_pcm_open(struct snd_pcm_substream *substream)
 		}
 	}
 
-	prtd->dma_chan = tegra_dma_allocate_channel(TEGRA_DMA_MODE_CONTINUOUS_DOUBLE);
-	if (IS_ERR(prtd->dma_chan)) {
-		pr_err("%s: could not allocate DMA channel for I2S: %ld\n",
-		       __func__, PTR_ERR(prtd->dma_chan));
-		ret = PTR_ERR(prtd->dma_chan);
-		goto fail;
+	if (!strcmp(cpu_dai->name, "tegra-spdif") ||
+		!strcmp(cpu_dai->name, "tegra-i2s-1") ||
+		!strcmp(cpu_dai->name, "tegra-i2s-2")) {
+		prtd->dma_chan = tegra_dma_allocate_channel(
+			TEGRA_DMA_MODE_CONTINUOUS_DOUBLE);
+		if (IS_ERR(prtd->dma_chan)) {
+			pr_err("%s: could not allocate DMA channel: %ld\n",
+				__func__, PTR_ERR(prtd->dma_chan));
+			ret = PTR_ERR(prtd->dma_chan);
+			goto fail;
+		}
 	}
 
 	/* Set HW params now that initialization is complete */

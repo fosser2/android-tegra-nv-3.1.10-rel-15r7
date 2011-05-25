@@ -75,9 +75,9 @@ static struct snd_soc_dai_ops tegra_generic_codec_stub_ops = {
 };
 
 struct snd_soc_dai tegra_generic_codec_dai[] = {
-	{
-		.name = "tegra_generic_voice_codec",
-		.id = 0,
+	[TEGRA_BT_CODEC_ID] = {
+		.name = "tegra_generic_bt_voice_codec",
+		.id = TEGRA_BT_CODEC_ID,
 		.playback = {
 			.stream_name    = "Playback",
 			.channels_min   = 1,
@@ -94,9 +94,28 @@ struct snd_soc_dai tegra_generic_codec_dai[] = {
 		},
 		.ops = &tegra_generic_codec_stub_ops,
 	},
-	{
+	[TEGRA_BB_CODEC_ID] = {
+		.name = "tegra_generic_bb_voice_codec",
+		.id = TEGRA_BB_CODEC_ID,
+		.playback = {
+			.stream_name    = "Playback",
+			.channels_min   = 1,
+			.channels_max   = 1,
+			.rates          = TEGRA_VOICE_SAMPLE_RATES,
+			.formats        = SNDRV_PCM_FMTBIT_S16_LE,
+		},
+		.capture = {
+			.stream_name    = "Capture",
+			.channels_min   = 1,
+			.channels_max   = 1,
+			.rates          = TEGRA_VOICE_SAMPLE_RATES,
+			.formats        = SNDRV_PCM_FMTBIT_S16_LE,
+		},
+		.ops = &tegra_generic_codec_stub_ops,
+	},
+	[TEGRA_SPDIF_CODEC_ID] = {
 		.name = "tegra_generic_spdif_codec",
-		.id = 1,
+		.id = TEGRA_SPDIF_CODEC_ID,
 		.playback = {
 			.stream_name    = "Playback",
 			.channels_min   = 2,
