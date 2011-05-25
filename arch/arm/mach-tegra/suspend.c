@@ -61,6 +61,7 @@
 #include "clock.h"
 #include "power.h"
 #include "reset.h"
+#include "fuse.h"
 
 #ifdef CONFIG_TRUSTED_FOUNDATIONS
 void callGenericSMC(u32 param0, u32 param1, u32 param2)
@@ -124,7 +125,7 @@ unsigned long tegra_wfi_fail_count[CONFIG_NR_CPUS];
 #define PMC_WAKE_LEVEL		0x10
 #define PMC_DPAD_ORIDE		0x1C
 #define PMC_WAKE_DELAY		0xe0
-#define PMC_DPD_SAMPLE  	0x20
+#define PMC_DPD_SAMPLE		0x20
 
 #define PMC_WAKE_STATUS		0x14
 #define PMC_SW_WAKE_STATUS	0x18
@@ -192,8 +193,7 @@ static const char *tegra_suspend_name[TEGRA_MAX_SUSPEND_MODE] = {
 };
 
 #if INSTRUMENT_CLUSTER_SWITCH
-enum tegra_cluster_switch_time_id
-{
+enum tegra_cluster_switch_time_id {
 	tegra_cluster_switch_time_id_start = 0,
 	tegra_cluster_switch_time_id_prolog,
 	tegra_cluster_switch_time_id_switch,
@@ -201,14 +201,17 @@ enum tegra_cluster_switch_time_id
 	tegra_cluster_switch_time_id_max
 };
 
-static unsigned long tegra_cluster_switch_times[tegra_cluster_switch_time_id_max];
+static unsigned long
+		tegra_cluster_switch_times[tegra_cluster_switch_time_id_max];
 #define tegra_cluster_switch_time(flags, id) \
 	do { \
 		barrier(); \
 		if (flags & TEGRA_POWER_CLUSTER_MASK) { \
-			void __iomem *timer_us = IO_ADDRESS(TEGRA_TMRUS_BASE); \
+			void __iomem *timer_us = \
+						IO_ADDRESS(TEGRA_TMRUS_BASE); \
 			if (id < tegra_cluster_switch_time_id_max) \
-				tegra_cluster_switch_times[id] = readl(timer_us); \
+				tegra_cluster_switch_times[id] = \
+							readl(timer_us); \
 				wmb(); \
 		} \
 		barrier(); \
@@ -330,7 +333,7 @@ static int create_suspend_pgtable(void)
 	if (!tegra_pgd)
 		return -ENOMEM;
 
-	for (i=0; i<ARRAY_SIZE(addr_p); i++) {
+	for (i = 0; i < ARRAY_SIZE(addr_p); i++) {
 		unsigned long v = addr_v[i];
 		pmd = pmd_offset(tegra_pgd + pgd_index(v), v);
 		*pmd = __pmd((addr_p[i] & PGDIR_MASK) | flags);
@@ -446,13 +449,13 @@ static noinline void suspend_cpu_complex(void)
 #endif
 
 	reg = readl(FLOW_CTRL_CPUx_CSR(0));
-	reg |= (1<<15)|(1<<14);	/* write to clear: INTR_FLAG|EVENT_FLAG */
+	reg |= (1 << 15) | (1 << 14);	/* write to clear: INTR_FLAG|EVENT_FLAG */
 	reg &= ~FLOW_CTRL_BITMAP_MASK;	/* WFE/WFI bit maps*/
 	/* Set the flow controller bitmap to specify just CPU0. */
 	reg |= FLOW_CTRL_BITMAP_CPU0 | 1; /* CPU0 bitmap | power-gate enable */
 	flowctrl_writel(reg, FLOW_CTRL_CPUx_CSR(0));
 
-	for (i=1; i<num_present_cpus(); i++) {
+	for (i = 1; i < num_present_cpus(); i++) {
 		reg = readl(FLOW_CTRL_CPUx_CSR(i));
 		/* write to clear: EVENT_FLAG | INTR_FLAG*/
 		reg |= (1<<15) | (1<<14);
@@ -513,12 +516,12 @@ unsigned int tegra_suspend_lp2(unsigned int us, unsigned int flags)
 	flush_cache_all();
 	/* structure is read by reset code, so the L2 lines
 	 * must be invalidated */
-	outer_flush_range(__pa(&tegra_sctx),__pa(&tegra_sctx+1));
+	outer_flush_range(__pa(&tegra_sctx), __pa(&tegra_sctx+1));
 	tegra_cpu_reset_handler_flush(false);
 	barrier();
 
 #ifdef CONFIG_TRUSTED_FOUNDATIONS
-// TRUSTED LOGIC SMC_STOP/Save State
+/* TRUSTED LOGIC SMC_STOP/Save State */
 	callGenericSMC(0xFFFFFFFC, 0xFFFFFFE4, virt_to_phys(buffer_rdv));
 #endif
 
@@ -551,7 +554,7 @@ unsigned int tegra_suspend_lp2(unsigned int us, unsigned int flags)
 
 #if INSTRUMENT_CLUSTER_SWITCH
 	if (flags & TEGRA_POWER_CLUSTER_MASK) {
-		printk("%s: prolog %lu us, switch %lu us, epilog %lu us, total %lu us\n",
+		pr_err("%s: prolog %lu us, switch %lu us, epilog %lu us, total %lu us\n",
 		       is_lp_cluster() ? "G=>LP" : "LP=>G",
 		       tegra_cluster_switch_times[tegra_cluster_switch_time_id_prolog] -
 		       tegra_cluster_switch_times[tegra_cluster_switch_time_id_start],
@@ -602,7 +605,7 @@ static void tegra_suspend_check_pwr_stats(void)
 		if ((1 << partid) & pwrgate_partid_mask)
 			if (tegra_powergate_is_powered(partid))
 				pr_warning("partition %s is left on before suspend\n",
-							tegra_powergate_get_name(partid));
+					tegra_powergate_get_name(partid));
 
 	return;
 }
@@ -682,7 +685,7 @@ void tegra_suspend_dram(bool do_lp0)
 #endif
 
 #ifdef CONFIG_TRUSTED_FOUNDATIONS
-// TRUSTED LOGIC SMC_STOP/Save State
+/* TRUSTED LOGIC SMC_STOP/Save State */
 	callGenericSMC(0xFFFFFFFC, 0xFFFFFFE3, virt_to_phys(buffer_rdv));
 #endif
 	__cortex_a9_save(mode);
@@ -716,9 +719,11 @@ void tegra_suspend_dram(bool do_lp0)
 		 */
 		if (!pdata->separate_req) {
 			reg = readl(pmc + PMC_CTRL);
-			reg |= (TEGRA_POWER_CPU_PWRREQ_OE << TEGRA_POWER_PMC_SHIFT);
+			reg |= (TEGRA_POWER_CPU_PWRREQ_OE <<
+							TEGRA_POWER_PMC_SHIFT);
 			pmc_32kwritel(reg, PMC_CTRL);
-			reg &= ~(TEGRA_POWER_PWRREQ_OE << TEGRA_POWER_PMC_SHIFT);
+			reg &= ~(TEGRA_POWER_PWRREQ_OE <<
+							TEGRA_POWER_PMC_SHIFT);
 			writel(reg, pmc + PMC_CTRL);
 		}
 	}
@@ -996,6 +1001,16 @@ void __init tegra_init_suspend(struct tegra_suspend_platform_data *plat)
 	preset_lpj = loops_per_jiffy;
 
 #ifdef CONFIG_PM
+
+	if ((tegra_get_chipid() == TEGRA_CHIPID_TEGRA3) &&
+	    (tegra_get_revision() == TEGRA_REVISION_A01) &&
+	    (plat->suspend_mode == TEGRA_SUSPEND_LP0)) {
+		/* Tegra 3 A01 supports only LP1 */
+		pr_warning("Suspend mode LP0 is not supported on A01\n");
+		pr_warning("Disabling LP0\n");
+		plat->suspend_mode = TEGRA_SUSPEND_LP1;
+	}
+
 	if (plat->suspend_mode == TEGRA_SUSPEND_LP0) {
 		if (tegra_lp0_vec_size)
 			wb0_restore = tegra_lp0_vec_start;
@@ -1008,16 +1023,15 @@ void __init tegra_init_suspend(struct tegra_suspend_platform_data *plat)
 #else
 	if ((plat->suspend_mode == TEGRA_SUSPEND_LP0) ||
 	    (plat->suspend_mode == TEGRA_SUSPEND_LP1)) {
-		pr_warning("Suspend mode LP0 or LP2 requested, CONFIG_PM not set\n");
+		pr_warning("Suspend mode LP0 or LP1 requested, CONFIG_PM not set\n");
 		pr_warning("Limiting to LP2\n");
 		plat->suspend_mode = TEGRA_SUSPEND_LP2;
 	}
 #endif
 
 #ifdef CONFIG_CPU_IDLE
-	if (plat->suspend_mode == TEGRA_SUSPEND_NONE) {
+	if (plat->suspend_mode == TEGRA_SUSPEND_NONE)
 		tegra_lp2_in_idle(false);
-	}
 #endif
 
 	tegra_context_area = kzalloc(CONTEXT_SIZE_BYTES * NR_CPUS, GFP_KERNEL);
@@ -1042,7 +1056,8 @@ void __init tegra_init_suspend(struct tegra_suspend_platform_data *plat)
 
 	/* Always enable CPU power request; just normal polarity is supported */
 	reg = readl(pmc + PMC_CTRL);
-	BUG_ON(reg & (TEGRA_POWER_CPU_PWRREQ_POLARITY << TEGRA_POWER_PMC_SHIFT));
+	BUG_ON(reg & (TEGRA_POWER_CPU_PWRREQ_POLARITY <<
+						TEGRA_POWER_PMC_SHIFT));
 	reg |= (TEGRA_POWER_CPU_PWRREQ_OE << TEGRA_POWER_PMC_SHIFT);
 	pmc_32kwritel(reg, PMC_CTRL);
 
