@@ -74,12 +74,17 @@ void tegra_flow_wfi(struct cpuidle_device *dev)
 	u32 csr = FLOW_CTRL_CSR_INTR_FLAG | FLOW_CTRL_CSR_EVENT_FLAG;
 
 	stop_critical_timings();
+
+	__raw_writel(csr, FLOW_CTRL_CPUx_CSR(dev->cpu));
+	__raw_writel(halt, FLOW_CTRL_HALT_CPUx_EVENTS(dev->cpu));
 	dsb();
-	flowctrl_writel(csr, FLOW_CTRL_CPUx_CSR(dev->cpu));
-	flowctrl_writel(halt, FLOW_CTRL_HALT_CPUx_EVENTS(dev->cpu));
+
 	__asm__ volatile ("wfi");
-	flowctrl_writel(0, FLOW_CTRL_HALT_CPUx_EVENTS(dev->cpu));
-	flowctrl_writel(csr, FLOW_CTRL_CPUx_CSR(dev->cpu));
+
+	__raw_writel(0, FLOW_CTRL_HALT_CPUx_EVENTS(dev->cpu));
+	__raw_writel(csr, FLOW_CTRL_CPUx_CSR(dev->cpu));
+	dsb();
+
 	start_critical_timings();
 }
 
