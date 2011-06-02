@@ -307,12 +307,14 @@ static int __devinit tegra_sdhci_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "get slot power rail regulator\n");
 		if (host->reg_vdd_slot == NULL) {
 			host->reg_vdd_slot = regulator_get(NULL, plat->slot_rail_name);
-			if (WARN_ON(IS_ERR_OR_NULL(host->reg_vdd_slot)))
+			if (WARN_ON(IS_ERR_OR_NULL(host->reg_vdd_slot))) {
 				dev_err(&pdev->dev, "couldn't get regulator "
 					"%s: %ld\n", plat->slot_rail_name,
 						PTR_ERR(host->reg_vdd_slot));
-			else
+				host->reg_vdd_slot = NULL;
+			} else {
 				regulator_enable(host->reg_vdd_slot);
+			}
 		}
 	} else
 		host->reg_vdd_slot = NULL;
@@ -322,11 +324,12 @@ static int __devinit tegra_sdhci_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "Getting regulator for rail %s\n", plat->vdd_rail_name);
 		if (host->reg_vddio == NULL) {
 			host->reg_vddio = regulator_get(NULL, plat->vdd_rail_name);
-			if (WARN_ON(IS_ERR_OR_NULL(host->reg_vddio)))
+			if (WARN_ON(IS_ERR_OR_NULL(host->reg_vddio))) {
 				dev_err(&pdev->dev, "couldn't get regulator "
 					"%s: %ld\n", plat->vdd_rail_name,
 					PTR_ERR(host->reg_vddio));
-			else {
+				host->reg_vddio = NULL;
+			} else {
 				rc = regulator_set_voltage(host->reg_vddio,
 						plat->vdd_min_uv, plat->vdd_max_uv);
 				if (rc != 0) {
