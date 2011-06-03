@@ -252,6 +252,7 @@ ENTRY(__tegra_lp1_reset)
 	 * IRAM when this code is executed; immediately switch to CLKM and
 	 * enable PLLP, PLLM, PLLC, PLLA and PLLX. */
 	mov32	r0, TEGRA_CLK_RESET_BASE
+
 	mov	r1, #(1<<28)
 	str	r1, [r0, #CLK_RESET_SCLK_BURST]
 	str	r1, [r0, #CLK_RESET_CCLK_BURST]
@@ -284,9 +285,13 @@ ENTRY(__tegra_lp1_reset)
 #endif
 
 	add	r5, pc, #__lp1_pad_area-(.+8)	@ r5 reserved for pad base
-	ldr	r4, [r5, #0x34]
 
+	ldr	r4, [r5, #0x34]
+	str	r4, [r0, #CLK_RESET_CLK_SOURCE_MSELECT]
+
+	ldr	r4, [r5, #0x3C]
 	str	r4, [r0, #CLK_RESET_SCLK_BURST]
+
 	mov32	r4, ((1<<28) | (8))	@ burst policy is PLLX
 	str	r4, [r0, #CLK_RESET_CCLK_BURST]
 
@@ -485,8 +490,6 @@ emcself:
 	str	r1, [r4, #PMC_IO_DPD_REQ]
 pmc_io_dpd_skip:
 
-	ldr	r1, [r5, #CLK_RESET_SCLK_BURST]
-	str	r1, [r8, #0x4]		@ end of pad list + 4
 	dsb
 	b	__tear_down_master_pll_cpu
 ENDPROC(__tear_down_master_sdram)
@@ -506,8 +509,12 @@ __lp1_pad_area:
 	.word	0x0		@ 0x24
 	.word	TEGRA_PMC_BASE + PMC_IO_DPD_STATUS
 	.word	0x0		@ 0x2C
-	.word	0x0	/* end of pad list */
-	.word	0x0	/* sclk_burst_policy @ 0x34 */
+	.word	TEGRA_CLK_RESET_BASE + CLK_RESET_CLK_SOURCE_MSELECT
+	.word	0x0		@ 0x34
+	.word	TEGRA_CLK_RESET_BASE + CLK_RESET_SCLK_BURST
+	.word	0x0		@ 0x3C
+	.word	0x0		/* end of pad adr */
+	.word	0x0		/* end of pad val */
 	.size	__lp1_pad_area, . - __lp1_pad_area
 
 /*
