@@ -114,37 +114,6 @@ ENTRY(tegra_lp2_startup)
 	bl	__invalidate_cpu_state
 	bl	__enable_coresite_access
 
-#if SANITY_CHECK_ARM_ERRATA_FIXES
-	mrc	p15, 0, r0, c0, c0, 0		@ read main ID register
-	and	r2, r0, #0x00f00000		@ variant
-	and	r4, r0, #0x0000000f		@ revision
-	orr	r4, r4, r2, lsr #20-4		@ combine variant and revision
-	mrc	p15, 0, r9, c15, c0, 1	@ read diagnostic register
-#ifdef CONFIG_ARM_ERRATA_743622
-	teq	r4, #0x20			@ present in r2p0
-	teqne	r4, #0x21			@ present in r2p1
-	teqne	r4, #0x22			@ present in r2p2
-	teqne	r4, #0x27			@ present in r2p7
-	teqne	r4, #0x29			@ present in r2p9
-	tsteq	r9, #(1 << 6)
-lh4:	beq	lh4
-#endif
-#ifdef CONFIG_ARM_ERRATA_751472
-	cmp	r5, #0x30			@ present prior to r3p0
-	bge	end1
-	tst	r9, #(1 << 11)
-lh5:	beq	lh5
-end1:
-#endif
-#ifdef CONFIG_ARM_ERRATA_752520
-	cmp	r4, #0x29			@ present prior to r2p9
-	bge	end2
-	tst	r9, #(1 << 20)
-lh6:	beq	lh6
-end2:
-#endif
-#endif
-
 #if	DEBUG_LP2_STARTUP
 	b	.
 #endif
