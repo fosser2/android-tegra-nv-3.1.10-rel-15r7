@@ -29,6 +29,7 @@
 #include <asm/unaligned.h>
 #include <linux/interrupt.h>
 #include <mach/gpio.h>
+#include <linux/bq27x00.h>
 
 #define DRIVER_VERSION			"1.1.0"
 
@@ -78,16 +79,17 @@ struct bq27x00_access_methods {
 enum bq27x00_chip { BQ27000, BQ27500, BQ27510 };
 
 struct bq27x00_device_info {
-	struct device		*dev;
-	int			id;
+	struct device			*dev;
+	int				id;
 	struct bq27x00_access_methods	*bus;
-	struct power_supply	bat;
-	struct power_supply	ac;
-	struct timer_list	battery_poll_timer;
-	enum bq27x00_chip	chip;
-	int			irq;
-	bool			battery_present;
-	struct i2c_client	*client;
+	struct power_supply		bat;
+	struct power_supply		ac;
+	struct timer_list		battery_poll_timer;
+	enum bq27x00_chip		chip;
+	int				irq;
+	bool				battery_present;
+	struct i2c_client		*client;
+	struct bq27x00_platform_data	*plat_data;
 };
 
 static enum power_supply_property bq27x00_battery_props[] = {
@@ -463,7 +465,15 @@ static int bq27x00_ac_get_property(struct power_supply *psy,
 	struct bq27x00_device_info *di = ac_to_bq27x00_device_info(psy);
 	switch (psp) {
 	case POWER_SUPPLY_PROP_ONLINE:
-		val->intval = gpio_get_value(di->irq);
+		if (di->plat_data)
+			if (gpio_is_valid(di->plat_data->ac_persent_gpio))
+				val->intval = gpio_get_value_cansleep(
+						di->plat_data->ac_persent_gpio);
+			else
+				return -EINVAL;
+		else
+			val->intval = gpio_get_value_cansleep(
+						irq_to_gpio(di->irq));
 		break;
 	default:
 		dev_err(&di->client->dev,
@@ -589,6 +599,19 @@ static int bq27x00_battery_probe(struct i2c_client *client,
 	}
 
 	di->irq = client->irq;
+	if (client->dev.platform_data) {
+		di->plat_data = kzalloc(sizeof(struct bq27x00_platform_data),
+					GFP_KERNEL);
+		if (!di->plat_data) {
+			dev_err(&client->dev,
+				"failed to allocate platform data\n");
+			retval = -ENOMEM;
+			goto batt_failed_3;
+		}
+		memcpy(di->plat_data, client->dev.platform_data,
+			sizeof(struct bq27x00_platform_data));
+	}
+
 	i2c_set_clientdata(client, di);
 	di->dev = &client->dev;
 	bus->read = &bq27x00_read_i2c;
@@ -599,7 +622,7 @@ static int bq27x00_battery_probe(struct i2c_client *client,
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		dev_err(&client->dev, "insufficient functionality!\n");
 		retval = -ENODEV;
-		goto batt_failed_3;
+		goto batt_failed_4;
 	}
 
 	read_data = i2c_smbus_read_word_data(di->client, BQ27x00_REG_FLAGS);
@@ -615,7 +638,7 @@ static int bq27x00_battery_probe(struct i2c_client *client,
 		retval = power_supply_register(&client->dev, &di->bat);
 		if (retval) {
 			dev_err(&client->dev, "failed to register battery\n");
-			goto batt_failed_3;
+			goto batt_failed_4;
 		}
 
 		setup_timer(&di->battery_poll_timer,
@@ -627,7 +650,7 @@ static int bq27x00_battery_probe(struct i2c_client *client,
 	retval = power_supply_register(&client->dev, &di->ac);
 	if (retval) {
 		dev_err(&client->dev, "failed to register ac power supply\n");
-		goto batt_failed_4;
+		goto batt_failed_5;
 	}
 
 	retval = request_threaded_irq(di->irq, NULL,
@@ -637,19 +660,21 @@ static int bq27x00_battery_probe(struct i2c_client *client,
 	if (retval < 0) {
 		dev_err(&di->client->dev,
 			"%s: request_irq failed(%d)\n", __func__, retval);
-		goto batt_failed_5;
+		goto batt_failed_6;
 	}
 
 	dev_info(&client->dev, "support ver. %s enabled\n", DRIVER_VERSION);
 	return 0;
 
-batt_failed_5:
+batt_failed_6:
 	power_supply_unregister(&di->ac);
-batt_failed_4:
+batt_failed_5:
 	if (di->battery_present) {
 		power_supply_unregister(&di->bat);
 		del_timer_sync(&di->battery_poll_timer);
 	}
+batt_failed_4:
+	kfree(di->plat_data);
 batt_failed_3:
 	kfree(bus);
 batt_failed_2:
@@ -678,6 +703,7 @@ static int bq27x00_battery_remove(struct i2c_client *client)
 	idr_remove(&battery_id, di->id);
 	mutex_unlock(&battery_mutex);
 
+	kfree(di->plat_data);
 	kfree(di->bus);
 	kfree(di);
 
