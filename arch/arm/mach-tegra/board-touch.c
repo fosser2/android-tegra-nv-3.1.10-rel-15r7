@@ -108,7 +108,7 @@ Check your _defconfig file and remove all but one touch screen driver instances.
 #endif
 
 
-int generic_touch_init(struct tegra_touchscreen_init *tsdata)
+int __init generic_touch_init(struct tegra_touchscreen_init *tsdata)
 {
 	int ret;
 	if (VERBOSE_DEBUG >= 1)

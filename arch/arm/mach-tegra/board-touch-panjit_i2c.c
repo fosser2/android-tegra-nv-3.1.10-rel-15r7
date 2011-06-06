@@ -47,7 +47,7 @@ static const struct i2c_board_info panjit_i2c_info[] = {
 	 },
 };
 
-struct tegra_touchscreen_init panjit_init_data = {
+struct tegra_touchscreen_init __initdata panjit_init_data = {
 	.irq_gpio = TOUCH_GPIO_IRQ_PANJIT,	/* GPIO1 Value for IRQ */
 	.rst_gpio = TOUCH_GPIO_RST_PANJIT,	/* GPIO2 Value for RST */
 	.sv_gpio1 = {0},			/* Valid, GPIOx, Set value, Delay      */

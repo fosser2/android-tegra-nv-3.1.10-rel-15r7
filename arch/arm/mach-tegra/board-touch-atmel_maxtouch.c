@@ -86,7 +86,7 @@ static struct i2c_board_info __initdata atmxt_i2c_info[] = {
 	 },
 };
 
-struct tegra_touchscreen_init atmel_mxt_init_data = {
+struct tegra_touchscreen_init __initdata atmel_mxt_init_data = {
 	.irq_gpio = TOUCH_GPIO_IRQ_ATMEL_T9,			/* GPIO1 Value for IRQ */
 	.rst_gpio = TOUCH_GPIO_RST_ATMEL_T9,			/* GPIO2 Value for RST */
 	.sv_gpio1 = {1, TOUCH_GPIO_RST_ATMEL_T9, 0, 1},		/* Valid, GPIOx, Set value, Delay      */
