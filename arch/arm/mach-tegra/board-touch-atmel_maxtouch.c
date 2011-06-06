@@ -22,30 +22,186 @@
 #include <linux/i2c.h>
 #include <linux/delay.h>
 #include <linux/gpio.h>
+#include <linux/interrupt.h>
+
+#if defined(CONFIG_TOUCHSCREEN_ATMEL_MXT)
+#include <linux/i2c/atmel_mxt_ts.h>
+#endif
+
+#if defined(CONFIG_TOUCHSCREEN_ATMEL_MT_T9)
 #include <linux/i2c/atmel_maxtouch.h>
+#endif
 
-#if defined (CONFIG_MACH_CARDHU)
+#if defined(CONFIG_MACH_CARDHU)
 #include "board-cardhu.h"
+#define MXT_I2C_ADDRESS	MXT1386_I2C_ADDR3
 #endif
 
-#if defined (CONFIG_MACH_TEGRA_ENTERPRISE)
+#if defined(CONFIG_MACH_TEGRA_ENTERPRISE)
 #include "board-enterprise.h"
+#define MXT_I2C_ADDRESS	MXT224_I2C_ADDR1
 #endif
 
-#if defined (CONFIG_MACH_VENTANA)
+#if defined(CONFIG_MACH_VENTANA)
 #include "board-ventana.h"
+#define MXT_I2C_ADDRESS	MXT1386_I2C_ADDR3
 #endif
 
 #include "gpio-names.h"
 #include "touch.h"
 
+#if defined(CONFIG_TOUCHSCREEN_ATMEL_MXT)
+/* Atmel MaxTouch touchscreen              Driver data */
+/*-----------------------------------------------------*/
+/*
+ * Config converted from memory-mapped cfg-file with
+ * following version information:
+ *
+ *
+ *
+ *	FAMILY_ID=160
+ *	VARIANT=0
+ *	VERSION=16
+ *	BUILD=170
+ *	VENDOR_ID=255
+ *	PRODUCT_ID=TBD
+ *	CHECKSUM=0x144A89
+ *
+ *
+ */
 
+#if defined(CONFIG_MACH_VENTANA) || defined(CONFIG_MACH_CARDHU)
+#define MXT_CONFIG_CRC  0xD62DE8
+static const u8 config[] = {
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0xFF, 0xFF, 0x32, 0x0A, 0x00, 0x14, 0x14, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x8B, 0x00, 0x00,
+	0x1B, 0x2A, 0x00, 0x20, 0x3C, 0x04, 0x05, 0x00,
+	0x02, 0x01, 0x00, 0x0A, 0x0A, 0x0A, 0x0A, 0xFF,
+	0x02, 0x55, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x64, 0x02, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x23,
+	0x00, 0x00, 0x00, 0x05, 0x0A, 0x15, 0x1E, 0x00,
+	0x00, 0x04, 0xFF, 0x03, 0x3F, 0x64, 0x64, 0x01,
+	0x0A, 0x14, 0x28, 0x4B, 0x00, 0x02, 0x00, 0x64,
+	0x00, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x08, 0x10, 0x3C, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+static struct mxt_platform_data atmel_mxt_info = {
+	.x_line         = 27,
+	.y_line         = 42,
+	.x_size         = 768,
+	.y_size         = 1366,
+	.blen           = 0x20,
+	.threshold      = 0x3C,
+	.voltage        = 3300000,              /* 3.3V */
+	.orient         = 5,
+	.config         = config,
+	.config_length  = 157,
+	.config_crc     = MXT_CONFIG_CRC,
+	.irqflags       = IRQF_TRIGGER_FALLING,
+/*	.read_chg       = &read_chg, */
+	.read_chg       = NULL,
+};
+#endif	/* CONFIG_MACH_VENTANA, CONFIG_MACH_CARDHU */
+
+#if defined(CONFIG_MACH_TEGRA_ENTERPRISE)
+#define MXT_CONFIG_CRC 0x62F903
+
+/*
+ * Config converted from memory-mapped cfg-file with
+ * following version information:
+ *
+ *
+ *
+ *      FAMILY_ID=128
+ *      VARIANT=1
+ *      VERSION=32
+ *      BUILD=170
+ *      VENDOR_ID=255
+ *      PRODUCT_ID=TBD
+ *      CHECKSUM=0xC189B6
+ *
+ *
+ */
+
+static const u8 config[] = {
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0xFF, 0xFF, 0x32, 0x0A, 0x00, 0x05, 0x01, 0x00,
+	0x00, 0x1E, 0x0A, 0x8B, 0x00, 0x00, 0x13, 0x0B,
+	0x00, 0x10, 0x32, 0x03, 0x03, 0x00, 0x03, 0x01,
+	0x00, 0x0A, 0x0A, 0x0A, 0x0A, 0xBF, 0x03, 0x1B,
+	0x02, 0x00, 0x00, 0x37, 0x37, 0x00, 0x00, 0x00,
+	0x00, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0xA9, 0x7F, 0x9A, 0x0E, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x03, 0x23, 0x00, 0x00, 0x00, 0x0A,
+	0x0F, 0x14, 0x19, 0x03, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x01, 0x00, 0x03, 0x08, 0x10,
+	0x00
+};
+
+static struct mxt_platform_data atmel_mxt_info = {
+	.x_line         = 19,
+	.y_line         = 11,
+	.x_size         = 960,
+	.y_size         = 540,
+	.blen           = 0x10,
+	.threshold      = 0x32,
+	.voltage        = 3300000,              /* 3.3V */
+	.orient         = 3,
+	.config         = config,
+	.config_length  = 168,
+	.config_crc     = MXT_CONFIG_CRC,
+	.irqflags       = IRQF_TRIGGER_FALLING,
+/*      .read_chg       = &read_chg, */
+	.read_chg       = NULL,
+};
+#endif  /* CONFIG_MACH_TEGRA_ENTERPRISE */
+
+/* Reads the CHANGELINE state; interrupt is valid if the changeline
+ * is low.
+ *
+static u8 read_chg(void)
+{
+	return gpio_get_value(TOUCH_GPIO_IRQ_ATMEL_T9);
+}
+ */
+
+static struct i2c_board_info __initdata atmxt_i2c_info[] = {
+	{
+	 I2C_BOARD_INFO("atmel_mxt_ts", MXT_I2C_ADDRESS),
+	 .irq = TEGRA_GPIO_TO_IRQ(TOUCH_GPIO_IRQ_ATMEL_T9),
+	 .platform_data = &atmel_mxt_info,
+	 },
+};
+#endif
+
+#if defined(CONFIG_TOUCHSCREEN_ATMEL_MT_T9)
 /* Atmel MaxTouch touchscreen              Driver data */
 /*-----------------------------------------------------*/
 /*
  * Reads the CHANGELINE state; interrupt is valid if the changeline
  * is low.
  */
+
 static u8 read_chg(void)
 {
 	return gpio_get_value(TOUCH_GPIO_IRQ_ATMEL_T9);
@@ -60,10 +216,10 @@ static u8 valid_interrupt(void)
 static struct mxt_platform_data atmel_mxt_info = {
 	/* Maximum number of simultaneous touches to report. */
 	.numtouch = 10,
-	// TODO: no need for any hw-specific things at init/exit?
+	/* TODO: no need for any hw-specific things at init/exit? */
 	.init_platform_hw = NULL,
 	.exit_platform_hw = NULL,
-#if defined (CONFIG_MACH_TEGRA_ENTERPRISE)
+#if defined(CONFIG_MACH_TEGRA_ENTERPRISE)
 	.max_x = 540,
 	.max_y = 960,
 #else
@@ -76,20 +232,16 @@ static struct mxt_platform_data atmel_mxt_info = {
 
 static struct i2c_board_info __initdata atmxt_i2c_info[] = {
 	{
-#if defined (CONFIG_MACH_TEGRA_ENTERPRISE)
-	 I2C_BOARD_INFO("maXTouch", MXT224_I2C_ADDR1),
-#else
 	 I2C_BOARD_INFO("maXTouch", MXT_I2C_ADDRESS),
-#endif
 	 .irq = TEGRA_GPIO_TO_IRQ(TOUCH_GPIO_IRQ_ATMEL_T9),
 	 .platform_data = &atmel_mxt_info,
 	 },
 };
+#endif
 
 struct tegra_touchscreen_init __initdata atmel_mxt_init_data = {
 	.irq_gpio = TOUCH_GPIO_IRQ_ATMEL_T9,			/* GPIO1 Value for IRQ */
 	.rst_gpio = TOUCH_GPIO_RST_ATMEL_T9,			/* GPIO2 Value for RST */
-	.sv_gpio1 = {1, TOUCH_GPIO_RST_ATMEL_T9, 0, 1},		/* Valid, GPIOx, Set value, Delay      */
 	.sv_gpio2 = {1, TOUCH_GPIO_RST_ATMEL_T9, 1, 100},	/* Valid, GPIOx, Set value, Delay      */
 	.ts_boardinfo = {TOUCH_BUS_ATMEL_T9, atmxt_i2c_info, 1}	/* BusNum, BoardInfo, Value     */
 };

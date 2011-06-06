@@ -91,8 +91,7 @@ Check your _defconfig file and remove all but one touch screen driver instances.
 #endif
 
 /*** ATMEL Multitouch Support **********************************************/
-#if defined(CONFIG_TOUCHSCREEN_ATMEL_MT_T9)
-#include <linux/i2c/atmel_maxtouch.h>
+#if defined(CONFIG_TOUCHSCREEN_ATMEL_MT_T9) || defined(CONFIG_TOUCHSCREEN_ATMEL_MXT)
 extern struct tegra_touchscreen_init atmel_mxt_init_data;
 #define ATMEL_TOUCHSCREEN_SKU		0x0A00
 #define ATMEL_TOUCHSCREEN_T25		0x0B00
@@ -181,7 +180,7 @@ int __init touch_init(void)
 		pr_info("### sku = %04X\n", sku);
 
 	switch (sku) {
-#if defined(CONFIG_TOUCHSCREEN_ATMEL_MT_T9)
+#if defined(CONFIG_TOUCHSCREEN_ATMEL_MT_T9) || defined(CONFIG_TOUCHSCREEN_ATMEL_MXT)
 	case ATMEL_TOUCHSCREEN_SKU:
 	case ATMEL_TOUCHSCREEN_T25:
 	case ATMEL_TOUCHSCREEN_ENTERPRISE:
