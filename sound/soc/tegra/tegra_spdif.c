@@ -160,38 +160,7 @@ static int tegra_spdif_hw_params(struct snd_pcm_substream *substream,
 		return -EINVAL;
 	}
 
-	fmt.samplerate = val;
-
-	switch (params_channels(params)) {
-	case 1:
-		val = AUDIO_CHANNEL_1;
-		break;
-	case 2:
-		val = AUDIO_CHANNEL_2;
-		break;
-	case 3:
-		val = AUDIO_CHANNEL_3;
-		break;
-	case 4:
-		val = AUDIO_CHANNEL_4;
-		break;
-	case 5:
-		val = AUDIO_CHANNEL_5;
-		break;
-	case 6:
-		val = AUDIO_CHANNEL_6;
-		break;
-	case 7:
-		val = AUDIO_CHANNEL_7;
-		break;
-	case 8:
-		val = AUDIO_CHANNEL_8;
-		break;
-	default:
-		return -EINVAL;
-	}
 	fmt.channels = val;
-
 	fmt.buffersize = params_period_bytes(params);
 
 	am_set_stream_format(&info->spdev_info, &fmt);

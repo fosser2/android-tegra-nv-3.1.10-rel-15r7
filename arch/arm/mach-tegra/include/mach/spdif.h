@@ -513,7 +513,6 @@ int spdif_fifo_enable(int ifc, int mode, int on);
 int spdif_get_dma_requestor(int ifc, int mode);
 int spdif_free_dma_requestor(int ifc, int mode);
 phys_addr_t spdif_get_fifo_phy_base(int ifc, int mode);
-int spdif_set_dma_channel(int ifc, int fifo_mode, int dma_ch);
 int spdif_set_fifo_attention(int ifc, int fifo_mode, int buffersize);
 int spdif_fifo_clear(int ifc, int mode);
 int spdif_fifo_set_attention_level(int ifc, int mode, unsigned int level);
@@ -527,7 +526,6 @@ int spdif_resume(int ifc);
 int spdif_set_bit_mode(int ifc, unsigned mode);
 int spdif_set_fifo_packed(int ifc, unsigned on);
 int spdif_set_sample_rate(int ifc, int fifo_mode, unsigned int sample_rate);
-int spdif_set_acif(int ifc, int fifo_mode, void *cifInfo);
 
 u32 spdif_get_control(int ifc);
 int spdif_ack_status(int ifc);

@@ -158,7 +158,7 @@ u32 spdif_get_control(int ifc)
 
 int spdif_close(int ifc)
 {
-	SPDIF_DEBUG_PRINT(" %s\n", __func__);
+	SPDIF_DEBUG_PRINT(" %s \n", __func__);
 
 	if (!spinfo)
 		return -ENOENT;
@@ -182,7 +182,7 @@ static int spdif_open(void)
 {
 	int err = 0;
 
-	SPDIF_DEBUG_PRINT(" %s ++\n", __func__);
+	SPDIF_DEBUG_PRINT(" %s ++ \n", __func__);
 	if (!spinfo) {
 
 		spinfo =
@@ -229,7 +229,7 @@ static int spdif_open(void)
 
 	spinfo->refcnt++;
 
-	SPDIF_DEBUG_PRINT(" %s --\n", __func__);
+	SPDIF_DEBUG_PRINT(" %s -- \n", __func__);
 	return err;
 
 fail_spdif_open:
@@ -258,7 +258,7 @@ int spdif_init(unsigned long base, phys_addr_t phy_base, int mode,
 {
 	int err = 0;
 
-	SPDIF_DEBUG_PRINT(" %s ++\n", __func__);
+	SPDIF_DEBUG_PRINT(" %s ++ \n", __func__);
 	if (spdif_open())
 		return err;
 
@@ -285,7 +285,7 @@ int spdif_init(unsigned long base, phys_addr_t phy_base, int mode,
 	spdif_initialize(base, mode);
 
 	spdif_clock_disable(0, mode);
-	SPDIF_DEBUG_PRINT(" %s --\n", __func__);
+	SPDIF_DEBUG_PRINT(" %s -- \n", __func__);
 	return 0;
 }
 
@@ -297,7 +297,7 @@ int spdif_clock_enable(int ifc, int mode)
 	if (!spinfo)
 		return -ENOENT;
 
-	SPDIF_DEBUG_PRINT(" %s ++\n", __func__);
+	SPDIF_DEBUG_PRINT(" %s ++ \n", __func__);
 
 	err = audio_switch_enable_clock();
 	if (err)
@@ -333,7 +333,7 @@ int spdif_clock_enable(int ifc, int mode)
 		spinfo->spdev[mode].clk_refs++;
 	}
 
-	SPDIF_DEBUG_PRINT("%s clk cnt 0x%x\n",
+	SPDIF_DEBUG_PRINT("%s clk cnt 0x%x \n",
 			__func__, spinfo->spdev[mode].clk_refs);
 	return err;
 
@@ -345,7 +345,7 @@ spdif_clock_enable_failed:
 
 int spdif_clock_disable(int ifc, int mode)
 {
-	SPDIF_DEBUG_PRINT(" %s ++\n", __func__);
+	SPDIF_DEBUG_PRINT(" %s ++ \n", __func__);
 
 	if (!spinfo)
 		return -ENOENT;
@@ -368,7 +368,7 @@ int spdif_clock_disable(int ifc, int mode)
 
 	audio_switch_disable_clock();
 
-	SPDIF_DEBUG_PRINT("%s clock count 0x%x\n",
+	SPDIF_DEBUG_PRINT("%s clock count 0x%x \n",
 			__func__, spinfo->spdev[mode].clk_refs);
 	return 0;
 }
@@ -394,7 +394,7 @@ int spdif_clock_set_parent(int ifc, int mode, int parent)
 
 int spdif_suspend(int ifc)
 {
-	SPDIF_DEBUG_PRINT(" %s ++\n", __func__);
+	SPDIF_DEBUG_PRINT(" %s ++ \n", __func__);
 
 	/* FIXME : check for Rx mode if needed */
 	if (spinfo->spdev[AUDIO_TX_MODE].clk_refs == 0)
@@ -410,7 +410,7 @@ int spdif_suspend(int ifc)
 
 int spdif_resume(int ifc)
 {
-	SPDIF_DEBUG_PRINT(" %s ++\n", __func__);
+	SPDIF_DEBUG_PRINT(" %s ++ \n", __func__);
 	/* FIXME : check for Rx mode if needed */
 	spdif_clock_enable(0, AUDIO_TX_MODE);
 	audio_switch_resume();
@@ -529,16 +529,6 @@ int spdif_get_dma_requestor(int ifc, int fifo_mode)
 }
 
 int spdif_free_dma_requestor(int ifc, int fifo_mode)
-{
-	return 0;
-}
-
-int spdif_set_dma_channel(int ifc, int fifo_mode, int dma_ch)
-{
-	return 0;
-}
-
-int spdif_set_acif(int ifc, int fifo_mode, void *fmt)
 {
 	return 0;
 }
@@ -686,12 +676,6 @@ u32 spdif_get_fifo_full_empty_count(int ifc, int mode)
 	return 0;
 }
 
-int spdif_set_dma_channel(int ifc, int fifo_mode, int dma_ch)
-{
-	spinfo->spdev[fifo_mode].dma_ch = dma_ch;
-	return 0;
-}
-
 int spdif_free_dma_requestor(int ifc, int fifo_mode)
 {
 	int apbif_ifc = spdif_get_apbif_channel(fifo_mode);
@@ -704,21 +688,30 @@ int spdif_free_dma_requestor(int ifc, int fifo_mode)
 
 static  struct audio_cif  spdif_audiocif;
 
-int spdif_set_acif(int ifc, int fifo_mode, void *fmt)
+int spdif_set_acif(int fifo_mode, struct audio_cif *cifInfo)
 {
-	struct audio_cif *cifInfo = (struct audio_cif *)fmt;
+	struct audio_cif  *tx_audio_cif = &spdif_audiocif;
+
+	/* set spdif audiocif */
+	/* setting base value for acif */
+	memset(tx_audio_cif, 0 , sizeof(struct audio_cif));
+	tx_audio_cif->audio_channels	= AUDIO_CHANNEL_2;
+	tx_audio_cif->client_channels	= AUDIO_CHANNEL_2;
+	tx_audio_cif->audio_bits	= AUDIO_BIT_SIZE_16;
+	tx_audio_cif->client_bits	= AUDIO_BIT_SIZE_16;
+
 	if (fifo_mode == AUDIO_TX_MODE)
 		audio_switch_set_acif(spinfo->base +
-			 SPDIF_AUDIOCIF_TXDATA_CTRL_0, cifInfo);
+			 SPDIF_AUDIOCIF_TXDATA_CTRL_0, tx_audio_cif);
 	else
 		audio_switch_set_acif(spinfo->base +
-			 SPDIF_AUDIOCIF_RXDATA_CTRL_0, cifInfo);
+			 SPDIF_AUDIOCIF_RXDATA_CTRL_0, tx_audio_cif);
 
 	apbif_set_pack_mode(spdif_get_apbif_channel(fifo_mode),
 		fifo_mode, AUDIO_FIFO_PACK_16);
 
 	audio_apbif_set_acif(spdif_get_apbif_channel(fifo_mode),
-		fifo_mode, cifInfo);
+		fifo_mode, tx_audio_cif);
 
 	return 0;
 }
@@ -726,7 +719,6 @@ int spdif_set_acif(int ifc, int fifo_mode, void *fmt)
 int spdif_get_dma_requestor(int ifc, int fifo_mode)
 {
 	int dma_index =	0;
-	struct audio_cif  *tx_audio_cif = &spdif_audiocif;
 	int apbif_ifc = ahubrx0_spdif;
 
 	if (fifo_mode == AUDIO_RX_MODE)
@@ -736,15 +728,9 @@ int spdif_get_dma_requestor(int ifc, int fifo_mode)
 
 	if (dma_index != -ENOENT) {
 		spinfo->spdev[fifo_mode].dma_ch = dma_index - 1;
-
-		/* set spdif audiocif */
-		/* setting base value for acif */
-		memset(tx_audio_cif, 0 , sizeof(struct audio_cif));
-		tx_audio_cif->audio_channels	= AUDIO_CHANNEL_2;
-		tx_audio_cif->client_channels	= AUDIO_CHANNEL_2;
-		tx_audio_cif->audio_bits	= AUDIO_BIT_SIZE_16;
-		tx_audio_cif->client_bits	= AUDIO_BIT_SIZE_16;
-		spdif_set_acif(0, fifo_mode, (void *)tx_audio_cif);
+		/* FIXME : this need to be called on connection request
+		*/
+		spdif_set_acif(fifo_mode, 0);
 	}
 
 	return dma_index;

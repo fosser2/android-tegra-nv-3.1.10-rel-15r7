@@ -262,16 +262,14 @@ static inline u32 audio_switch_readl(u32 reg)
 void audio_switch_dump_registers(int ifc)
 {
 	int i = 0;
-	pr_info("%s:\n", __func__);
+	pr_info("%s: \n",__func__);
 	for (i = 0; i < ahubrx_maxnum; i++)
 		audio_switch_readl(ahub_reginfo[i].regbase);
 }
-void audio_switch_clear_rx_port(int rxport)
-{
-	audio_switch_writel(ahub_reginfo[rxport].regbase, 0);
-}
+
 void audio_switch_set_rx_port(int rxport, int txport)
 {
+	/*Get audioswitch base address*/
 	audio_switch_writel(ahub_reginfo[rxport].regbase, (1 << txport));
 }
 
@@ -426,13 +424,6 @@ int audio_apbif_free_channel(int ifc, int fifo_mode)
 	if (ch->fifo_inuse[fifo_mode] == true) {
 		ch->fifo_refcnt[fifo_mode] -= 1;
 		if (ch->fifo_refcnt[fifo_mode] <= 0) {
-
-			if (fifo_mode == AUDIO_TX_MODE)
-				audio_switch_clear_rx_port(
-						ch->fifo_req[fifo_mode]);
-			else
-				audio_switch_clear_rx_port(ifc);
-
 			ch->fifo_inuse[fifo_mode] = false;
 			ch->fifo_req[fifo_mode]	= 0;
 			ch->fifo_refcnt[fifo_mode] = 0;
@@ -453,7 +444,7 @@ static int get_apbif_channel(int fifo_req, int fifo_mode)
 	struct apbif_channel_info *ch = 0;
 	int i = 0;
 
-	AHUB_DEBUG_PRINT("%s ++ fifo_req 0x%x mode %d\n",
+	AHUB_DEBUG_PRINT(" %s ++ fifo_req 0x%x mode %d \n",
 			__func__, (unsigned int)fifo_req, fifo_mode);
 
 	for (i = 0; i < NR_APBIF_CHANNELS; i++) {
@@ -704,7 +695,7 @@ void audio_switch_disable_clock(void)
 				clk_disable(acinfo->apbif_clk);
 		}
 	}
-	AHUB_DEBUG_PRINT(" %s clk cnt %d\n", __func__,  acinfo->clk_refcnt);
+	AHUB_DEBUG_PRINT(" %s clk cnt %d \n",__func__,  acinfo->clk_refcnt);
 }
 
 
@@ -743,7 +734,7 @@ int audio_switch_enable_clock(void)
 	}
 
 	acinfo->clk_refcnt++;
-	AHUB_DEBUG_PRINT(" %s clk cnt %d\n", __func__,  acinfo->clk_refcnt);
+	AHUB_DEBUG_PRINT(" %s clk cnt %d \n",__func__,  acinfo->clk_refcnt);
 	return err;
 
 fail_audio_clock:
@@ -809,7 +800,7 @@ int audio_switch_open(void)
 {
 	int err = 0, i = 0;
 
-	AHUB_DEBUG_PRINT(" %s 0x%x ++\n", __func__, (unsigned int)acinfo);
+	AHUB_DEBUG_PRINT(" %s 0x%x ++ \n", __func__, (unsigned int)acinfo);
 
 	if (!acinfo) {
 		struct apbif_channel_info *ch;
@@ -854,13 +845,9 @@ int audio_switch_open(void)
 		}
 	}
 
-	err = dam_open();
-	if (err)
-		goto fail_audio_open;
-
 	acinfo->refcnt++;
 
-	AHUB_DEBUG_PRINT("%s-- acinfo 0x%x refcnt %d\n", __func__,
+	AHUB_DEBUG_PRINT(" %s -- acinfo 0x%x refcnt %d \n", __func__,
 			(unsigned int)acinfo, acinfo->refcnt);
 
 	return 0;
@@ -892,7 +879,5 @@ int audio_switch_close(void)
 			acinfo = NULL;
 		}
 	}
-
-	dam_close();
 	return 0;
 }
