@@ -54,6 +54,7 @@
 #define EMC_AUTO_CAL_STATUS	0x2ac
 #define EMC_REQ_CTRL			0x2b0
 #define EMC_EMC_STATUS			0x2b4
+#define EMC_CFG_DIG_DLL		0x2bc
 #define EMC_ZCAL_INTERVAL		0x2e0
 #define EMC_ZQ_CAL				0x2ec
 #define EMC_XM2VTTGENPADCTRL	0x310
@@ -324,6 +325,10 @@ powerup_l2_done:
 	str	r1, [r0, #EMC_XM2VTTGENPADCTRL2]
 	ldr	r1, [r5, #0x14]
 	str	r1, [r0, #EMC_AUTO_CAL_INTERVAL]
+
+	ldr	r1, [r0, #EMC_CFG_DIG_DLL]
+	orr	r1, r1, #(0x1<<30)		@ set DLL_RESET
+	str	r1, [r0, #EMC_CFG_DIG_DLL]
 
 	emc_timing_update r1, r0
 
