@@ -337,8 +337,10 @@ static int __devinit tegra_sdhci_probe(struct platform_device *pdev)
 						"voltage() for rail %s "
 						"failed:i %d\n",
 						plat->vdd_rail_name, rc);
-				} else
+					host->reg_vddio = NULL;
+				} else {
 					regulator_enable(host->reg_vddio);
+				}
 			}
 		}
 
