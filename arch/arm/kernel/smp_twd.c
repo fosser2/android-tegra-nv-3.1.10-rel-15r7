@@ -243,7 +243,6 @@ void __cpuinit twd_timer_setup(struct clock_event_device *clk)
 	__twd_timer_setup(clk, 0, 0);
 }
 
-#ifdef CONFIG_HOTPLUG_CPU
 /*
  * take a local timer down
  */
@@ -251,4 +250,3 @@ void twd_timer_stop(void)
 {
 	__raw_writel(0, twd_base + TWD_TIMER_CONTROL);
 }
-#endif
