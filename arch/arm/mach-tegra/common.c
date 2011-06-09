@@ -214,12 +214,10 @@ static void __init tegra_init_power(void)
 {
 	tegra_powergate_partition_with_clk_off(TEGRA_POWERGATE_MPE);
 	tegra_powergate_partition_with_clk_off(TEGRA_POWERGATE_3D);
+	tegra_powergate_partition_with_clk_off(TEGRA_POWERGATE_PCIE);
 #ifndef CONFIG_ARCH_TEGRA_2x_SOC
 	tegra_powergate_partition_with_clk_off(TEGRA_POWERGATE_3D1);
-#endif
-#ifdef CONFIG_ARCH_TEGRA_2x_SOC
-	/* for TEGRA_3x_SOC it will be handled seperately */
-	tegra_powergate_partition_with_clk_off(TEGRA_POWERGATE_PCIE);
+        tegra_powergate_partition_with_clk_off(TEGRA_POWERGATE_SATA);
 #endif
 }
 
