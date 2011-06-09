@@ -229,6 +229,7 @@ static u32 fuse_cmd_read(u32 addr)
 {
 	u32 reg;
 
+	wait_for_idle();
 	tegra_fuse_writel(addr, FUSE_REG_ADDR);
 	reg = tegra_fuse_readl(FUSE_CTRL);
 	reg &= ~FUSE_CMD_MASK;
@@ -244,6 +245,7 @@ static void fuse_cmd_write(u32 value, u32 addr)
 {
 	u32 reg;
 
+	wait_for_idle();
 	tegra_fuse_writel(addr, FUSE_REG_ADDR);
 	tegra_fuse_writel(value, FUSE_REG_WRITE);
 
@@ -258,6 +260,7 @@ static void fuse_cmd_sense(void)
 {
 	u32 reg;
 
+	wait_for_idle();
 	reg = tegra_fuse_readl(FUSE_CTRL);
 	reg &= ~FUSE_CMD_MASK;
 	reg |= FUSE_SENSE;
@@ -707,7 +710,8 @@ static ssize_t fuse_store(struct kobject *kobj, struct kobj_attribute *attr,
 	const char *buf, size_t count)
 {
 	enum fuse_io_param param = fuse_name_to_param(attr->attr.name);
-	int ret, orig_count = count;
+	int ret, i = 0;
+	int orig_count = count;
 	struct fuse_data data = {0};
 	u32 *raw_data = ((u32 *)&data) + fuse_info_tbl[param].data_offset;
 	u8 *raw_byte_data = (u8 *)raw_data;
@@ -743,15 +747,25 @@ static ssize_t fuse_store(struct kobject *kobj, struct kobj_attribute *attr,
 	wake_lock_init(&fuse_wk_lock, WAKE_LOCK_SUSPEND, "fuse_wk_lock");
 	wake_lock(&fuse_wk_lock);
 
+	/* we need to fit each character into a single nibble */
 	raw_byte_data += DIV_ROUND_UP(count, 2) - 1;
 
 	/* in case of odd number of writes, write the first one here */
 	if (count & 0x1) {
 		*raw_byte_data = char_to_xdigit(*buf);
-		*raw_byte_data <<= 4;
 		buf++;
-		*raw_byte_data |= (char_to_xdigit(*buf) & 0xF);
 		raw_byte_data--;
+		count--;
+	}
+
+	for (i = 1; i <= count; i++, buf++) {
+		if (i % 2) {
+			*raw_byte_data = char_to_xdigit(*buf);
+		} else {
+			*raw_byte_data <<= 4;
+			*raw_byte_data |= char_to_xdigit(*buf);
+			raw_byte_data--;
+		}
 	}
 
 	ret = tegra_fuse_program(&data, BIT(param));
@@ -777,7 +791,7 @@ static ssize_t fuse_store(struct kobject *kobj, struct kobj_attribute *attr,
 done:
 	wake_unlock(&fuse_wk_lock);
 	wake_lock_destroy(&fuse_wk_lock);
-	return count;
+	return orig_count;
 }
 
 static ssize_t fuse_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
