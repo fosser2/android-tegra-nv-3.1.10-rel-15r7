@@ -354,10 +354,10 @@ static struct tegra_suspend_platform_data enterprise_suspend_data = {
 	.separate_req	= true,
 	.corereq_high	= true,
 	.sysclkreq_high	= true,
-	.wake_enb	= 0,
+	.wake_enb	= TEGRA_WAKE_KBC_EVENT,
 	.wake_high	= 0,
 	.wake_low	= 0,
-	.wake_any	= 0,
+	.wake_any	= TEGRA_WAKE_KBC_EVENT,
 };
 
 int __init enterprise_suspend_init(void)
