@@ -388,7 +388,7 @@ void __init tegra_cpu_reset_handler_init(void)
 		virt_to_phys((void*)cpu_present_mask);
 	__tegra_cpu_reset_handler_data[TEGRA_RESET_STARTUP_SECONDARY] =
 		virt_to_phys((void*)tegra_secondary_startup);
-#ifdef CONFIG_HOTPLUG
+#ifdef CONFIG_HOTPLUG_CPU
 	__tegra_cpu_reset_handler_data[TEGRA_RESET_MASK_ONLINE_PTR] =
 		virt_to_phys((void*)cpu_online_mask);
 	__tegra_cpu_reset_handler_data[TEGRA_RESET_STARTUP_HOTPLUG] =
