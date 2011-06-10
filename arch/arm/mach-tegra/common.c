@@ -444,6 +444,9 @@ void __init tegra_common_init(void)
 	tegra_mc_init(); /* !!!FIXME!!! Change Tegra3 behavior to match Tegra2 */
 #endif
 	tegra_init_ahb_gizmo_settings();
+#ifndef CONFIG_ARCH_TEGRA_2x_SOC
+	tegra_tsensor_init();
+#endif
 }
 
 static int __init tegra_bootloader_fb_arg(char *options)
