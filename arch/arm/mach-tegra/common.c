@@ -100,13 +100,13 @@ static __initdata struct tegra_clk_init_table common_clk_init_table[] = {
 	/* set up clocks that should always be on */
 	/* name		parent		rate		enabled */
 	{ "clk_m",	NULL,		0,		true },
-	{ "pll_m",	"clk_m",	600000000,	true },
+	{ "pll_m",	"clk_m",	0,		true },
 	{ "pll_p",	"clk_m",	216000000,	true },
 	{ "pll_p_out1",	"pll_p",	28800000,	true },
 	{ "pll_p_out2",	"pll_p",	48000000,	true },
 	{ "pll_p_out3",	"pll_p",	72000000,	true },
 	{ "pll_m_out1",	"pll_m",	120000000,	true },
-	{ "sclk",	"pll_m_out1",	120000000,	true },
+	{ "sclk",	"pll_c_out1",	120000000,	true },
 	{ "hclk",	"sclk",		120000000,	true },
 	{ "pclk",	"hclk",		60000000,	true },
 	{ "pll_x",	NULL,		0,		true },
@@ -123,6 +123,12 @@ static __initdata struct tegra_clk_init_table common_clk_init_table[] = {
 	{ "sdmmc2",	"pll_p",	48000000,	false},
 	{ "sdmmc3",	"pll_p",	48000000,	false},
 	{ "sdmmc4",	"pll_p",	48000000,	false},
+	{ "mpe",	"pll_c",	0,		false},
+	{ "epp",	"pll_c",	0,		false},
+	{ "vi_sensor",	"pll_c",	0,		false},
+	{ "vi",		"pll_c",	0,		false},
+	{ "2d",		"pll_c",	0,		false},
+	{ "3d",		"pll_c",	0,		false},
 	{ NULL,		NULL,		0,		0},
 };
 

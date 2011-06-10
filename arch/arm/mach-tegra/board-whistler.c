@@ -155,7 +155,7 @@ static struct tegra_ulpi_config ulpi_phy_config = {
 static __initdata struct tegra_clk_init_table whistler_clk_init_table[] = {
 	/* name		parent		rate		enabled */
 	{ "uarta",	"pll_p",	216000000,	true},
-	{ "uartc",	"pll_m",	600000000,	false},
+	{ "uartc",	"pll_c",	600000000,	false},
 	{ "pwm",	"clk_32k",	32768,		false},
 	{ "kbc",	"clk_32k",	32768,		true},
 	{ "pll_a",	NULL,		56448000,	false},
