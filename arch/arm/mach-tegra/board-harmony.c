@@ -372,26 +372,15 @@ static __initdata struct tegra_clk_init_table harmony_clk_init_table[] = {
 	{ NULL,		NULL,		0,		0},
 };
 
-static struct tegra_suspend_platform_data harmony_suspend = {
-	.cpu_timer = 5000,
-	.cpu_off_timer = 5000,
-	.core_timer = 0x7e7e,
-	.core_off_timer = 0x7f,
-	.separate_req = true,
-	.corereq_high = false,
-	.sysclkreq_high = true,
-	.suspend_mode = TEGRA_SUSPEND_LP0,
-};
-
 static void __init tegra_harmony_init(void)
 {
 	tegra_common_init();
 
-	tegra_init_suspend(&harmony_suspend);
-
 	tegra_clk_init_from_table(harmony_clk_init_table);
 
 	harmony_pinmux_init();
+
+	harmony_regulator_init();
 
 	tegra_ehci3_device.dev.platform_data = &tegra_ehci_pdata;
 
@@ -402,6 +391,7 @@ static void __init tegra_harmony_init(void)
 	harmony_panel_init();
 	harmony_sdhci_init();
 	harmony_i2c_init();
+	harmony_power_off_init();
 }
 
 MACHINE_START(HARMONY, "harmony")
