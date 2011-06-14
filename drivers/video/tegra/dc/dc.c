@@ -1289,8 +1289,10 @@ static irqreturn_t tegra_dc_irq(int irq, void *ptr)
 			if (dc->underflow_mask & (WIN_A_UF_INT <<i)) {
 				dc->windows[i].underflows++;
 
+#ifdef CONFIG_ARCH_TEGRA_2x_SOC
 				if (dc->windows[i].underflows > 4)
 					schedule_work(&dc->reset_work);
+#endif
 			} else {
 				dc->windows[i].underflows = 0;
 			}
@@ -1526,6 +1528,7 @@ static bool _tegra_dc_controller_enable(struct tegra_dc *dc)
 	return true;
 }
 
+#ifdef CONFIG_ARCH_TEGRA_2x_SOC
 static bool _tegra_dc_controller_reset_enable(struct tegra_dc *dc)
 {
 	if (dc->out->enable)
@@ -1578,6 +1581,7 @@ static bool _tegra_dc_controller_reset_enable(struct tegra_dc *dc)
 
 	return true;
 }
+#endif
 
 static bool _tegra_dc_enable(struct tegra_dc *dc)
 {
@@ -1648,6 +1652,7 @@ void tegra_dc_disable(struct tegra_dc *dc)
 	mutex_unlock(&dc->lock);
 }
 
+#ifdef CONFIG_ARCH_TEGRA_2x_SOC
 static void tegra_dc_reset_worker(struct work_struct *work)
 {
 	struct tegra_dc *dc =
@@ -1689,6 +1694,7 @@ unlock:
 	mutex_unlock(&dc->lock);
 	mutex_unlock(&shared_lock);
 }
+#endif
 
 static ssize_t switch_modeset_print_mode(struct switch_dev *sdev, char *buf)
 {
@@ -1791,7 +1797,9 @@ static int tegra_dc_probe(struct nvhost_device *ndev)
 	mutex_init(&dc->lock);
 	init_completion(&dc->vblank_complete);
 	init_waitqueue_head(&dc->wq);
+#ifdef CONFIG_ARCH_TEGRA_2x_SOC
 	INIT_WORK(&dc->reset_work, tegra_dc_reset_worker);
+#endif
 	INIT_WORK(&dc->vblank_work, tegra_dc_vblank);
 
 	dc->n_windows = DC_N_WINDOWS;
