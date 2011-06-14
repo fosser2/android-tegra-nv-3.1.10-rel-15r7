@@ -37,6 +37,8 @@
 
 #include "patch_hdmi.c"
 
+extern void nv_tegra_enable_hda_clks(bool on);
+
 static char *nvhdmi_pcm_names[MAX_HDMI_CVTS] = {
 	"NVIDIA HDMI",
 };
@@ -157,6 +159,11 @@ static void nvhdmi_free(struct hda_codec *codec)
 	}
 
 	kfree(spec);
+}
+
+static void nvhdmi_shutup(struct hda_codec *codec)
+{
+	nv_tegra_enable_hda_clks(true);
 }
 
 /*
@@ -457,6 +464,7 @@ static struct hda_codec_ops nvhdmi_patch_ops_8ch_89 = {
 	.init = nvhdmi_init,
 	.free = nvhdmi_free,
 	.unsol_event = hdmi_unsol_event,
+	.reboot_notify = nvhdmi_shutup,
 };
 
 static struct hda_codec_ops nvhdmi_patch_ops_8ch_7x = {
@@ -464,6 +472,7 @@ static struct hda_codec_ops nvhdmi_patch_ops_8ch_7x = {
 	.build_pcms = nvhdmi_build_pcms_8ch_7x,
 	.init = nvhdmi_init,
 	.free = nvhdmi_free,
+	.reboot_notify = nvhdmi_shutup,
 };
 
 static struct hda_codec_ops nvhdmi_patch_ops_2ch = {
@@ -471,6 +480,7 @@ static struct hda_codec_ops nvhdmi_patch_ops_2ch = {
 	.build_pcms = nvhdmi_build_pcms_2ch,
 	.init = nvhdmi_init,
 	.free = nvhdmi_free,
+	.reboot_notify = nvhdmi_shutup,
 };
 
 static int patch_nvhdmi_8ch_89(struct hda_codec *codec)
