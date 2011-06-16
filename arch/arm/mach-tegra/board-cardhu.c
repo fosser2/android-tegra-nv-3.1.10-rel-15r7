@@ -36,6 +36,7 @@
 #include <linux/usb/android_composite.h>
 #include <linux/spi/spi.h>
 #include <linux/tegra_uart.h>
+#include <linux/memblock.h>
 #include <mach/clk.h>
 #include <mach/iomap.h>
 #include <mach/irqs.h>
@@ -57,6 +58,8 @@
 #include "gpio-names.h"
 #include "fuse.h"
 
+static unsigned long ramconsole_start;
+static unsigned long ramconsole_size;
 
 static struct usb_mass_storage_platform_data tegra_usb_fsg_platform = {
 	.vendor = "NVIDIA",
@@ -540,6 +543,19 @@ static struct platform_device tegra_camera = {
 	.id = -1,
 };
 
+static struct resource ram_console_resources[] = {
+	{
+		.flags = IORESOURCE_MEM,
+	},
+};
+
+static struct platform_device ram_console_device = {
+	.name 		= "ram_console",
+	.id 		= -1,
+	.num_resources	= ARRAY_SIZE(ram_console_resources),
+	.resource	= ram_console_resources,
+};
+
 static struct platform_device *cardhu_devices[] __initdata = {
 	&pmu_device,
 #if defined(CONFIG_RTC_DRV_TEGRA)
@@ -558,6 +574,7 @@ static struct platform_device *cardhu_devices[] __initdata = {
 #if defined(CONFIG_CRYPTO_DEV_TEGRA_SE)
 	&tegra_se_device,
 #endif
+	&ram_console_device,
 };
 
 static struct usb_phy_plat_data tegra_usb_phy_pdata[] = {
@@ -742,6 +759,14 @@ static void cardhu_sata_init(void)
 static void cardhu_sata_init(void) { }
 #endif
 
+static void cardhu_ramconsole_init(void)
+{
+	struct resource *res;
+	res = platform_get_resource(&ram_console_device, IORESOURCE_MEM, 0);
+	res->start = ramconsole_start;
+	res->end = res->start + ramconsole_size - 1;
+}
+
 static void __init tegra_cardhu_init(void)
 {
 	tegra_common_init();
@@ -755,6 +780,7 @@ static void __init tegra_cardhu_init(void)
 	cardhu_uart_init();
 	snprintf(usb_serial_num, sizeof(usb_serial_num), "%llx", tegra_chip_uid());
 	andusb_plat.serial_number = kstrdup(usb_serial_num, GFP_KERNEL);
+	cardhu_ramconsole_init();
 	platform_add_devices(cardhu_devices, ARRAY_SIZE(cardhu_devices));
 	cardhu_audio_init();
 	cardhu_sdhci_init();
@@ -781,6 +807,15 @@ static void __init tegra_cardhu_init(void)
 
 static void __init tegra_cardhu_reserve(void)
 {
+	long ret;
+	ramconsole_size = SZ_1M;
+	ramconsole_start = memblock_end_of_DRAM() - ramconsole_size;
+	ret = memblock_remove(ramconsole_start, ramconsole_size);
+	if (ret) {
+		ramconsole_size = 0;
+		pr_err("Failed to reserve memory block for ram console\n");
+	}
+
 #if defined(CONFIG_NVMAP_CONVERT_CARVEOUT_TO_IOVMM)
 	tegra_reserve(0, SZ_8M, SZ_8M);
 #else
