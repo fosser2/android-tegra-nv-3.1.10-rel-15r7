@@ -77,6 +77,7 @@ struct tegra_sdhci_host {
 	unsigned int card_present;
 	struct regulator *reg_vdd_slot;
 	struct regulator *reg_vddio;
+	unsigned int acquire_spinlock;
 };
 
 static irqreturn_t carddetect_irq(int irq, void *data)
@@ -156,6 +157,11 @@ static void tegra_sdhci_enable_clock(struct tegra_sdhci_host *host, int clock)
 {
 	u8 val;
 
+	if (spin_is_locked(&host->sdhci->lock)) {
+		spin_unlock_irqrestore(&host->sdhci->lock, host->sdhci->spinlock_flags);
+		host->acquire_spinlock = 1;
+	}
+
 	if (clock) {
 		if (!host->clk_enabled) {
 			clk_enable(host->clk);
@@ -175,6 +181,12 @@ static void tegra_sdhci_enable_clock(struct tegra_sdhci_host *host, int clock)
 		clk_disable(host->clk);
 		host->clk_enabled = 0;
 	}
+
+	if (host->acquire_spinlock) {
+		spin_lock_irqsave(&host->sdhci->lock, host->sdhci->spinlock_flags);
+		host->acquire_spinlock = 0;
+	}
+
 	if (host->clk_enabled)
 		host->sdhci->max_clk = clk_get_rate(host->clk);
 	else
@@ -292,6 +304,7 @@ static int __devinit tegra_sdhci_probe(struct platform_device *pdev)
 #ifdef CONFIG_MMC_TEGRA_TAP_DELAY
 	host->sdhci->tap_value = plat->tap_delay;
 #endif
+	host->acquire_spinlock = 0;
 	host->clk = clk_get(&pdev->dev, plat->clk_id);
 	if (IS_ERR(host->clk)) {
 		rc = PTR_ERR(host->clk);
