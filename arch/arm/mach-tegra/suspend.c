@@ -1097,7 +1097,7 @@ bad_name:
 }
 
 static struct kobj_attribute suspend_mode_attribute =
-	__ATTR(mode, 0666, suspend_mode_show, suspend_mode_store);
+	__ATTR(mode, 0644, suspend_mode_show, suspend_mode_store);
 #endif
 
 void __init tegra_init_suspend(struct tegra_suspend_platform_data *plat)
