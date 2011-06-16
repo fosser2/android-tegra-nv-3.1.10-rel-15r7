@@ -235,16 +235,15 @@ static void sdhci_led_control(struct led_classdev *led,
 	enum led_brightness brightness)
 {
 	struct sdhci_host *host = container_of(led, struct sdhci_host, led);
-	unsigned long flags;
 
-	spin_lock_irqsave(&host->lock, flags);
+	spin_lock_irqsave(&host->lock, host->spinlock_flags);
 
 	if (brightness == LED_OFF)
 		sdhci_deactivate_led(host);
 	else
 		sdhci_activate_led(host);
 
-	spin_unlock_irqrestore(&host->lock, flags);
+	spin_unlock_irqrestore(&host->lock, host->spinlock_flags);
 }
 #endif
 
@@ -1132,11 +1131,10 @@ static void sdhci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 {
 	struct sdhci_host *host;
 	bool present;
-	unsigned long flags;
 
 	host = mmc_priv(mmc);
 
-	spin_lock_irqsave(&host->lock, flags);
+	spin_lock_irqsave(&host->lock, host->spinlock_flags);
 
 	WARN_ON(host->mrq != NULL);
 
@@ -1170,19 +1168,18 @@ static void sdhci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		sdhci_send_command(host, mrq->cmd);
 
 	mmiowb();
-	spin_unlock_irqrestore(&host->lock, flags);
+	spin_unlock_irqrestore(&host->lock, host->spinlock_flags);
 }
 
 static void sdhci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 {
 	struct sdhci_host *host;
-	unsigned long flags;
 	u8 ctrl;
 	u16 clk;
 
 	host = mmc_priv(mmc);
 
-	spin_lock_irqsave(&host->lock, flags);
+	spin_lock_irqsave(&host->lock, host->spinlock_flags);
 
 	if (host->flags & SDHCI_DEVICE_DEAD)
 		goto out;
@@ -1324,12 +1321,12 @@ static void sdhci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		}
 
 		if (host->quirks & SDHCI_QUIRK_BROKEN_VOLTAGE_SWITCHING) {
-			spin_unlock_irqrestore(&host->lock, flags);
+			spin_unlock_irqrestore(&host->lock, host->spinlock_flags);
 			if (host->ops->set_signalling_voltage) {
 				host->ops->set_signalling_voltage(host,
 					ios->signalling_voltage);
 			}
-			spin_lock_irqsave(&host->lock, flags);
+			spin_lock_irqsave(&host->lock, host->spinlock_flags);
 		}
 
 		/* Wait for 5msec for the output to be stable */
@@ -1359,18 +1356,17 @@ static void sdhci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 #endif
 out:
 	mmiowb();
-	spin_unlock_irqrestore(&host->lock, flags);
+	spin_unlock_irqrestore(&host->lock, host->spinlock_flags);
 }
 
 static int sdhci_get_ro(struct mmc_host *mmc)
 {
 	struct sdhci_host *host;
-	unsigned long flags;
 	int present;
 
 	host = mmc_priv(mmc);
 
-	spin_lock_irqsave(&host->lock, flags);
+	spin_lock_irqsave(&host->lock, host->spinlock_flags);
 
 	if (host->flags & SDHCI_DEVICE_DEAD) {
 		present = 0;
@@ -1383,7 +1379,7 @@ static int sdhci_get_ro(struct mmc_host *mmc)
 		present = 0;
 	}
 
-	spin_unlock_irqrestore(&host->lock, flags);
+	spin_unlock_irqrestore(&host->lock, host->spinlock_flags);
 
 	if (host->quirks & SDHCI_QUIRK_INVERTED_WRITE_PROTECT)
 		return !!(present & SDHCI_WRITE_PROTECT);
@@ -1393,11 +1389,10 @@ static int sdhci_get_ro(struct mmc_host *mmc)
 static void sdhci_enable_sdio_irq(struct mmc_host *mmc, int enable)
 {
 	struct sdhci_host *host;
-	unsigned long flags;
 
 	host = mmc_priv(mmc);
 
-	spin_lock_irqsave(&host->lock, flags);
+	spin_lock_irqsave(&host->lock, host->spinlock_flags);
 
 	if (host->flags & SDHCI_DEVICE_DEAD)
 		goto out;
@@ -1419,7 +1414,7 @@ static void sdhci_enable_sdio_irq(struct mmc_host *mmc, int enable)
 out:
 	mmiowb();
 
-	spin_unlock_irqrestore(&host->lock, flags);
+	spin_unlock_irqrestore(&host->lock, host->spinlock_flags);
 }
 
 int sdhci_enable(struct mmc_host *mmc)
@@ -1458,10 +1453,9 @@ static const struct mmc_host_ops sdhci_ops = {
 
 void sdhci_card_detect_callback(struct sdhci_host *host)
 {
-	unsigned long flags;
 	int present;
 
-	spin_lock_irqsave(&host->lock, flags);
+	spin_lock_irqsave(&host->lock, host->spinlock_flags);
 
 	if ((host->quirks & SDHCI_QUIRK_BROKEN_CARD_DETECTION) && host->ops->get_cd)
 		present = host->ops->get_cd(host);
@@ -1484,7 +1478,7 @@ void sdhci_card_detect_callback(struct sdhci_host *host)
 		}
 	}
 
-	spin_unlock_irqrestore(&host->lock, flags);
+	spin_unlock_irqrestore(&host->lock, host->spinlock_flags);
 
 	mmc_detect_change(host->mmc, msecs_to_jiffies(200));
 }
@@ -1508,12 +1502,11 @@ static void sdhci_tasklet_card(unsigned long param)
 static void sdhci_tasklet_finish(unsigned long param)
 {
 	struct sdhci_host *host;
-	unsigned long flags;
 	struct mmc_request *mrq;
 
 	host = (struct sdhci_host*)param;
 
-	spin_lock_irqsave(&host->lock, flags);
+	spin_lock_irqsave(&host->lock, host->spinlock_flags);
 
 	del_timer(&host->timer);
 
@@ -1554,7 +1547,7 @@ static void sdhci_tasklet_finish(unsigned long param)
 #endif
 
 	mmiowb();
-	spin_unlock_irqrestore(&host->lock, flags);
+	spin_unlock_irqrestore(&host->lock, host->spinlock_flags);
 
 	mmc_request_done(host->mmc, mrq);
 }
@@ -1562,11 +1555,10 @@ static void sdhci_tasklet_finish(unsigned long param)
 static void sdhci_timeout_timer(unsigned long data)
 {
 	struct sdhci_host *host;
-	unsigned long flags;
 
 	host = (struct sdhci_host*)data;
 
-	spin_lock_irqsave(&host->lock, flags);
+	spin_lock_irqsave(&host->lock, host->spinlock_flags);
 
 	if (host->mrq) {
 		printk(KERN_ERR "%s: Timeout waiting for hardware "
@@ -1587,7 +1579,7 @@ static void sdhci_timeout_timer(unsigned long data)
 	}
 
 	mmiowb();
-	spin_unlock_irqrestore(&host->lock, flags);
+	spin_unlock_irqrestore(&host->lock, host->spinlock_flags);
 }
 
 /*****************************************************************************\
@@ -2246,10 +2238,8 @@ EXPORT_SYMBOL_GPL(sdhci_add_host);
 
 void sdhci_remove_host(struct sdhci_host *host, int dead)
 {
-	unsigned long flags;
-
 	if (dead) {
-		spin_lock_irqsave(&host->lock, flags);
+		spin_lock_irqsave(&host->lock, host->spinlock_flags);
 
 		host->flags |= SDHCI_DEVICE_DEAD;
 
@@ -2261,7 +2251,7 @@ void sdhci_remove_host(struct sdhci_host *host, int dead)
 			tasklet_schedule(&host->finish_tasklet);
 		}
 
-		spin_unlock_irqrestore(&host->lock, flags);
+		spin_unlock_irqrestore(&host->lock, host->spinlock_flags);
 	}
 
 	sdhci_disable_card_detection(host);

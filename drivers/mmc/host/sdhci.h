@@ -298,7 +298,7 @@ struct sdhci_host {
 #endif
 
 	spinlock_t		lock;		/* Mutex */
-
+	unsigned long		spinlock_flags;	/* Flags for spinlock */
 	int			flags;		/* Host attributes */
 #define SDHCI_USE_SDMA		(1<<0)		/* Host is SDMA capable */
 #define SDHCI_USE_ADMA		(1<<1)		/* Host is ADMA capable */
