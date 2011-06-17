@@ -278,15 +278,14 @@ static void __init tegra_init_ahb_gizmo_settings(void)
 static bool console_flushed;
 
 static int tegra_pm_flush_console(struct notifier_block *this,
-	unsigned long code,
-	void *unused)
+	unsigned long code, void *unused)
 {
 	if (console_flushed)
 		return NOTIFY_NONE;
 	console_flushed = true;
 
-	printk("\n");
 	pr_emerg("Restarting %s\n", linux_banner);
+
 	if (!try_acquire_console_sem()) {
 		release_console_sem();
 		return NOTIFY_NONE;
@@ -296,16 +295,12 @@ static int tegra_pm_flush_console(struct notifier_block *this,
 
 	local_irq_disable();
 	if (try_acquire_console_sem())
-		pr_emerg("tegra_restart: Console was locked! Busting\n");
+		pr_emerg("%s: Console was locked! Busting\n", __func__);
 	else
-		pr_emerg("tegra_restart: Console was locked!\n");
+		pr_emerg("%s: Console was locked!\n", __func__);
 	release_console_sem();
-	return NOTIFY_NONE;
-}
 
-static void tegra_pm_restart(char mode, const char *cmd)
-{
-	arm_machine_restart(mode, cmd);
+	return NOTIFY_NONE;
 }
 
 void tegra_cpu_reset_handler_enable(void)
@@ -416,7 +411,6 @@ static struct notifier_block tegra_reboot_notifier = {
 
 void __init tegra_common_init(void)
 {
-	arm_pm_restart = tegra_pm_restart;
 	register_reboot_notifier(&tegra_reboot_notifier);
 #ifndef CONFIG_SMP
 	/* For SMP system, initializing the reset dispatcher here is too
