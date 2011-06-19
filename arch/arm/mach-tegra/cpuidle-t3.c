@@ -213,12 +213,19 @@ void tegra_idle_enter_lp2_cpu_0(struct cpuidle_device *dev,
 		idle_stats.lp2_count_bin[bin]++;
 
 		trace_power_start(POWER_CSTATE, 2, dev->cpu);
+		if (!is_lp_cluster())
+			tegra_dvfs_rail_off(tegra_cpu_rail, enter);
 
 		if (tegra_suspend_lp2(sleep_time, 0) == 0)
 			sleep_completed = true;
 		else
 			idle_stats.lp2_int_count[tegra_pending_interrupt()]++;
-	}
+
+		exit = ktime_get();
+		if (!is_lp_cluster())
+			tegra_dvfs_rail_on(tegra_cpu_rail, exit);
+	} else
+		exit = ktime_get();
 
 #ifdef CONFIG_SMP
 	if (!is_lp_cluster() && (num_online_cpus() > 1)) {
@@ -234,7 +241,6 @@ void tegra_idle_enter_lp2_cpu_0(struct cpuidle_device *dev,
 	}
 #endif
 
-	exit = ktime_get();
 	if (sleep_completed) {
 		/*
 		 * Stayed in LP2 for the full time until the next tick,

@@ -62,6 +62,7 @@
 #include "power.h"
 #include "reset.h"
 #include "fuse.h"
+#include "dvfs.h"
 
 #ifdef CONFIG_TRUSTED_FOUNDATIONS
 void callGenericSMC(u32 param0, u32 param1, u32 param2)
@@ -176,6 +177,9 @@ unsigned long tegra_wfi_fail_count[CONFIG_NR_CPUS];
 phys_addr_t tegra_pgd_phys;  /* pgd used by hotplug & LP2 bootup */
 static pgd_t *tegra_pgd;
 void *tegra_context_area = NULL;
+
+struct dvfs_rail *tegra_cpu_rail = NULL;
+struct dvfs_rail *tegra_core_rail = NULL;
 
 static struct clk *tegra_pclk = NULL;
 static const struct tegra_suspend_platform_data *pdata = NULL;
@@ -1017,6 +1021,14 @@ static int tegra_suspend_enter(suspend_state_t state)
 
 	secs = rtc_after - rtc_before;
 	ms = do_div(secs, 1000);
+	{
+		ktime_t delta = ktime_set((s32)secs, ms * 1000000);
+		tegra_dvfs_rail_pause(tegra_cpu_rail, delta, false);
+		if (do_lp0)
+			tegra_dvfs_rail_pause(tegra_core_rail, delta, false);
+		else
+			tegra_dvfs_rail_pause(tegra_core_rail, delta, true);
+	}
 	pr_info("Suspended for %llu.%03u seconds\n", secs, ms);
 
 	tegra_time_in_suspend[time_to_bin(secs)]++;
@@ -1104,6 +1116,8 @@ void __init tegra_init_suspend(struct tegra_suspend_platform_data *plat)
 {
 	u32 reg, mode;
 
+	tegra_cpu_rail = tegra_dvfs_get_rail_by_name("vdd_cpu");
+	tegra_core_rail = tegra_dvfs_get_rail_by_name("vdd_core");
 	tegra_pclk = clk_get_sys(NULL, "pclk");
 	BUG_ON(!tegra_pclk);
 	pdata = plat;

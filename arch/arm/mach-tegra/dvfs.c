@@ -40,6 +40,8 @@
 #include "clock.h"
 #include "dvfs.h"
 
+#define DVFS_RAIL_STATS_BIN	25
+
 static LIST_HEAD(dvfs_rail_list);
 static DEFINE_MUTEX(dvfs_lock);
 
@@ -88,6 +90,59 @@ static int dvfs_solve_relationship(struct dvfs_relationship *rel)
 {
 	return rel->solve(rel->from, rel->to);
 }
+
+/* rail statistic - called during rail init, or under dfs_lock, or with
+   CPU0 only on-line, and interrupts disabled */
+static void dvfs_rail_stats_init(struct dvfs_rail *rail, int millivolts)
+{
+	rail->stats.last_update = ktime_get();
+	if (millivolts >= rail->min_millivolts) {
+		int i = (millivolts - rail->min_millivolts) /
+			DVFS_RAIL_STATS_BIN + 1;
+		rail->stats.last_index = min(i, MAX_DVFS_FREQS);
+	}
+}
+
+static void dvfs_rail_stats_update(
+	struct dvfs_rail *rail, int millivolts, ktime_t now)
+{
+	rail->stats.time_at_mv[rail->stats.last_index] = ktime_add(
+		rail->stats.time_at_mv[rail->stats.last_index], ktime_sub(
+			now, rail->stats.last_update));
+	rail->stats.last_update = now;
+
+	if (millivolts >= rail->min_millivolts) {
+		int i = (millivolts - rail->min_millivolts) /
+			DVFS_RAIL_STATS_BIN + 1;
+		rail->stats.last_index = min(i, MAX_DVFS_FREQS);
+	} else if (millivolts == 0)
+			rail->stats.last_index = 0;
+}
+
+static void dvfs_rail_stats_pause(struct dvfs_rail *rail, ktime_t delta, bool on)
+{
+	int i = on ? rail->stats.last_index : 0;
+	rail->stats.time_at_mv[i] = ktime_add(rail->stats.time_at_mv[i], delta);
+}
+
+void tegra_dvfs_rail_off(struct dvfs_rail *rail, ktime_t now)
+{
+	if (rail)
+		dvfs_rail_stats_update(rail, 0, now);
+}
+
+void tegra_dvfs_rail_on(struct dvfs_rail *rail, ktime_t now)
+{
+	if (rail)
+		dvfs_rail_stats_update(rail, rail->millivolts, now);
+}
+
+void tegra_dvfs_rail_pause(struct dvfs_rail *rail, ktime_t delta, bool on)
+{
+	if (rail)
+		dvfs_rail_stats_pause(rail, delta, on);
+}
+
 
 /* Sets the voltage on a dvfs rail to a specific value, and updates any
  * rails that depend on this rail. */
@@ -143,6 +198,7 @@ static int dvfs_rail_set_voltage(struct dvfs_rail *rail, int millivolts)
 		}
 
 		rail->millivolts = rail->new_millivolts;
+		dvfs_rail_stats_update(rail, rail->millivolts, ktime_get());
 
 		/* After changing the voltage, tell each rail that depends
 		 * on this rail that the voltage has changed.
@@ -226,6 +282,7 @@ static int dvfs_rail_connect_to_regulator(struct dvfs_rail *rail)
 	}
 	rail->millivolts = v / 1000;
 	rail->new_millivolts = rail->millivolts;
+	dvfs_rail_stats_init(rail, rail->millivolts);
 	return 0;
 }
 
@@ -498,6 +555,21 @@ out:
 	return ret;
 }
 
+struct dvfs_rail *tegra_dvfs_get_rail_by_name(const char *reg_id)
+{
+	struct dvfs_rail *rail;
+
+	mutex_lock(&dvfs_lock);
+	list_for_each_entry(rail, &dvfs_rail_list, node) {
+		if (!strcmp(reg_id, rail->reg_id)) {
+			mutex_unlock(&dvfs_lock);
+			return rail;
+		}
+	}
+	mutex_unlock(&dvfs_lock);
+	return NULL;
+}
+
 bool tegra_dvfs_rail_updating(struct clk *clk)
 {
 	return (!clk ? false :
@@ -596,12 +668,62 @@ static const struct file_operations dvfs_tree_fops = {
 	.release	= single_release,
 };
 
+static int rail_stats_show(struct seq_file *s, void *data)
+{
+	int i;
+	struct dvfs_rail *rail;
+
+	seq_printf(s, "%-12s %-10s (bin: %dmV)\n", "millivolts", "time",
+		   DVFS_RAIL_STATS_BIN);
+
+	mutex_lock(&dvfs_lock);
+
+	list_for_each_entry(rail, &dvfs_rail_list, node) {
+		seq_printf(s, "%s\n", rail->reg_id);
+		dvfs_rail_stats_update(rail, -1, ktime_get());
+
+		seq_printf(s, "%-12d %-10llu \n", 0,
+			cputime64_to_clock_t(msecs_to_jiffies(
+				ktime_to_ms(rail->stats.time_at_mv[0]))));
+
+		for (i = 1; i < MAX_DVFS_FREQS; i++) {
+			ktime_t ktime_zero = ktime_set(0, 0);
+			if (ktime_equal(rail->stats.time_at_mv[i], ktime_zero))
+				continue;
+			seq_printf(s, "%-12d %-10llu \n", rail->min_millivolts
+				+ (i - 1) * DVFS_RAIL_STATS_BIN,
+				cputime64_to_clock_t(msecs_to_jiffies(
+					ktime_to_ms(rail->stats.time_at_mv[i])))
+			);
+		}
+	}
+	mutex_unlock(&dvfs_lock);
+	return 0;
+}
+
+static int rail_stats_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, rail_stats_show, inode->i_private);
+}
+
+static const struct file_operations rail_stats_fops = {
+	.open		= rail_stats_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+
 int __init dvfs_debugfs_init(struct dentry *clk_debugfs_root)
 {
 	struct dentry *d;
 
 	d = debugfs_create_file("dvfs", S_IRUGO, clk_debugfs_root, NULL,
 		&dvfs_tree_fops);
+	if (!d)
+		return -ENOMEM;
+
+	d = debugfs_create_file("rails", S_IRUGO, clk_debugfs_root, NULL,
+		&rail_stats_fops);
 	if (!d)
 		return -ENOMEM;
 
