@@ -429,7 +429,7 @@ static noinline void suspend_cpu_complex(void)
 	int i;
 
 #ifdef CONFIG_ARCH_TEGRA_2x_SOC
-	disable_irq(INT_SYS_STATS_MON);
+	disable_irq_nosync(INT_SYS_STATS_MON);
 #endif
 	/* switch coresite to clk_m, save off original source */
 	tegra_sctx.clk_csite_src = readl(clk_rst + CLK_RESET_SOURCE_CSITE);
