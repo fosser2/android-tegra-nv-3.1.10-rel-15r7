@@ -290,8 +290,8 @@ static struct max98088_pdata max98088_pdata = {
 	.eq_cfgcnt = ARRAY_SIZE(max98088_eq_cfg),
 
 	/* microphone configuration */
-	.digmic_left_mode = 0,	/* 0 = normal analog mic */
-	.digmic_right_mode = 0,	/* 0 = normal analog mic */
+	.digmic_left_mode = 1,	/* 1 = digital mic */
+	.digmic_right_mode = 1,	/* 1 = digital mic */
 
 	/* receiver output configuration */
 	.receiver_mode = 0,	/* 0 = amplifier, 1 = line output */
