@@ -233,7 +233,7 @@ static int tegra_pcm_open(struct snd_pcm_substream *substream)
 	}
 
 	prtd->dma_chan = tegra_dma_allocate_channel(
-				TEGRA_DMA_MODE_CONTINUOUS_DOUBLE, "pcm");
+				TEGRA_DMA_MODE_CONTINUOUS_SINGLE, "pcm");
 	if (prtd->dma_chan == NULL) {
 		pr_err("%s: could not allocate DMA channel for PCM:\n",
 				__func__);
