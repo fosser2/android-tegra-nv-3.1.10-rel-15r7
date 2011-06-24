@@ -367,22 +367,6 @@ static void enterprise_stereo_set_orientation(int mode)
 	}
 }
 
-static int enterprise_dsi_panel_postsuspend(void)
-{
-	int err = 0;
-
-	if (enterprise_dsi_reg) {
-		err = regulator_disable(enterprise_dsi_reg);
-		if (err < 0)
-			printk(KERN_ERR
-			"DSI regulator avdd_dsi_csi disable failed\n");
-		regulator_put(enterprise_dsi_reg);
-		enterprise_dsi_reg = NULL;
-	}
-
-	return err;
-}
-
 static struct tegra_dsi_cmd dsi_init_cmd[]= {
 	DSI_CMD_SHORT(0x05, 0x11, 0x00),
 	DSI_DLY_MS(150),
@@ -462,7 +446,6 @@ static struct tegra_dc_out enterprise_disp1_out = {
 
 	.enable		= enterprise_dsi_panel_enable,
 	.disable	= enterprise_dsi_panel_disable,
-	.postsuspend	= enterprise_dsi_panel_postsuspend,
 };
 static struct tegra_dc_platform_data enterprise_disp1_pdata = {
 	.flags		= TEGRA_DC_FLAG_ENABLED,
