@@ -4133,6 +4133,8 @@ void tegra_clk_resume(void)
 	unsigned long off;
 	const u32 *ctx = clk_rst_suspend;
 	u32 val;
+	u32 pllc_base;
+	u32 plla_base;
 
 	val = clk_readl(OSC_CTRL) & ~OSC_CTRL_MASK;
 	val |= *ctx++;
@@ -4140,9 +4142,15 @@ void tegra_clk_resume(void)
 	clk_writel(*ctx++, CPU_SOFTRST_CTRL);
 
 	/* FIXME: add plld, and wait for lock */
-	clk_writel(*ctx++, tegra_pll_c.reg + PLL_BASE);
+	/* Since we are going to reset devices in this function, pllc/a is
+	 * required to be enabled. The actual value will be restore back later.
+	 */
+	pllc_base = *ctx++;
+	clk_writel(pllc_base | PLL_BASE_ENABLE, tegra_pll_c.reg + PLL_BASE);
 	clk_writel(*ctx++, tegra_pll_c.reg + PLL_MISC(&tegra_pll_c));
-	clk_writel(*ctx++, tegra_pll_a.reg + PLL_BASE);
+
+	plla_base = *ctx++;
+	clk_writel(plla_base | PLL_BASE_ENABLE, tegra_pll_a.reg + PLL_BASE);
 	clk_writel(*ctx++, tegra_pll_a.reg + PLL_MISC(&tegra_pll_a));
 	udelay(300);
 
@@ -4205,6 +4213,7 @@ void tegra_clk_resume(void)
 
 	clk_writel(*ctx++, MISC_CLK_ENB);
 	clk_writel(*ctx++, CLK_MASK_ARM);
+
 
 	/* Since EMC clock is not restored update current state, and mark
 	   EMC DFS as out of sync */
