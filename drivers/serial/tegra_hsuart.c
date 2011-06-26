@@ -3,7 +3,7 @@
  *
  * High-speed serial driver for NVIDIA Tegra SoCs
  *
- * Copyright (C) 2009 NVIDIA Corporation
+ * Copyright (C) 2009-2011 NVIDIA Corporation
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -987,6 +987,70 @@ static void tegra_enable_ms(struct uart_port *u)
 {
 }
 
+static int clk_div16_get_divider(unsigned long parent_rate, unsigned long rate)
+{
+	s64 divider_u16;
+
+	divider_u16 = parent_rate;
+	if (!rate)
+		return -EINVAL;
+	divider_u16 += rate - 1;
+	do_div(divider_u16, rate);
+
+	if (divider_u16 > 0xFFFF)
+		return -EINVAL;
+
+	return divider_u16;
+}
+
+static unsigned long find_best_clock_source(struct tegra_uart_port *t,
+		unsigned long rate)
+{
+	struct uart_port *u = &t->uport;
+	struct tegra_uart_platform_data *pdata;
+	int i;
+	int divider;
+	unsigned long parent_rate;
+	unsigned long new_rate;
+	unsigned long err_rate;
+	unsigned int fin_err = rate;
+	unsigned long fin_rate = rate;
+	int final_index = -1;
+	int count;
+
+	pdata = u->dev->platform_data;
+	if (!pdata || !pdata->parent_clk_count)
+		return fin_rate;
+
+	for (count = 0; count < pdata->parent_clk_count; ++count) {
+		parent_rate = pdata->parent_clk_list[count].fixed_clk_rate;
+
+		/* Get the divisor by uart controller dll/dlm */
+		divider = clk_div16_get_divider(parent_rate, rate);
+
+		/* Get the best divider around calculated value */
+		if (divider > 2) {
+			for (i = divider - 2; i < (divider + 2); ++i) {
+				new_rate = parent_rate/i;
+				err_rate = abs(new_rate - rate);
+				if (err_rate < fin_err) {
+					final_index = count;
+					fin_err = err_rate;
+					fin_rate = parent_rate;
+				}
+			}
+		}
+	}
+
+	if (final_index >= 0) {
+		dev_info(t->uport.dev, "Setting clk_src %s\n",
+				pdata->parent_clk_list[final_index].name);
+		clk_set_parent(t->clk,
+			pdata->parent_clk_list[final_index].parent_clk);
+	}
+	return fin_rate;
+}
+
 #define UART_CLOCK_ACCURACY 5
 
 static void tegra_set_baudrate(struct tegra_uart_port *t, unsigned int baud)
@@ -994,9 +1058,16 @@ static void tegra_set_baudrate(struct tegra_uart_port *t, unsigned int baud)
 	unsigned long rate;
 	unsigned int divisor;
 	unsigned char lcr;
+	unsigned int baud_actual;
+	unsigned int baud_delta;
+	unsigned long best_rate;
 
 	if (t->baud == baud)
 		return;
+
+	rate = baud * 16;
+	best_rate = find_best_clock_source(t, rate);
+	clk_set_rate(t->clk, best_rate);
 
 	rate = clk_get_rate(t->clk);
 
@@ -1004,6 +1075,14 @@ static void tegra_set_baudrate(struct tegra_uart_port *t, unsigned int baud)
 	do_div(divisor, 16);
 	divisor += baud/2;
 	do_div(divisor, baud);
+
+	/* The allowable baudrate error from desired baudrate is 5% */
+	baud_actual = divisor ? rate / (16 * divisor) : 0;
+	baud_delta = abs(baud_actual - baud);
+	if (WARN_ON(baud_delta * 20 > baud)) {
+		dev_err(t->uport.dev, "requested baud %u, actual %u\n",
+				baud, baud_actual);
+	}
 
 	lcr = t->lcr_shadow;
 	lcr |= UART_LCR_DLAB;
