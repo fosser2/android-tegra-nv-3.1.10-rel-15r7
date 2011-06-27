@@ -2098,9 +2098,10 @@ static struct i2c_driver mxt_driver = {
 	.id_table = mxt_idtable,
 	.probe = mxt_probe,
 	.remove = __devexit_p(mxt_remove),
+#if !defined(CONFIG_HAS_EARLYSUSPEND)
 	.suspend = mxt_suspend,
 	.resume = mxt_resume,
-
+#endif
 };
 
 static int __init mxt_init(void)
