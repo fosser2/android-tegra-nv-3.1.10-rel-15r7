@@ -435,15 +435,12 @@ struct clk *clk_get_parent(struct clk *c)
 }
 EXPORT_SYMBOL(clk_get_parent);
 
-int clk_set_rate(struct clk *c, unsigned long rate)
+int clk_set_rate_locked(struct clk *c, unsigned long rate)
 {
 	int ret = 0;
-	unsigned long flags;
 	unsigned long old_rate, max_rate;
 	long new_rate;
 	bool disable = false;
-
-	clk_lock_save(c, flags);
 
 	if (!c->ops || !c->ops->set_rate) {
 		ret = -ENOSYS;
@@ -502,6 +499,16 @@ int clk_set_rate(struct clk *c, unsigned long rate)
 out:
 	if (disable)
 		clk_disable_locked(c);
+	return ret;
+}
+
+int clk_set_rate(struct clk *c, unsigned long rate)
+{
+	int ret;
+	unsigned long flags;
+
+	clk_lock_save(c, flags);
+	ret = clk_set_rate_locked(c, rate);
 	clk_unlock_restore(c, flags);
 	return ret;
 }
@@ -665,6 +672,16 @@ int tegra_is_clk_enabled(struct clk *c)
 	return c->refcnt;
 }
 EXPORT_SYMBOL(tegra_is_clk_enabled);
+
+void tegra_clk_shared_bus_update(struct clk *c)
+{
+	unsigned long flags;
+
+	clk_lock_save(c, flags);
+	if (c->ops && c->ops->shared_bus_update)
+		c->ops->shared_bus_update(c);
+	clk_unlock_restore(c, flags);
+}
 
 /* dvfs initialization may lower default maximum rate */
 void __init tegra_init_max_rate(struct clk *c, unsigned long max_rate)
