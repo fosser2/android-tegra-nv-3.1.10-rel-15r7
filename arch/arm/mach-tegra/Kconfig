@@ -272,3 +272,7 @@ config TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND
 	default n
 	help
 	 Also will restore to original cpu frequency governor when device is resumed
+
+config USB_HOTPLUG
+	bool "Enabling the USB hotplug"
+	default n
