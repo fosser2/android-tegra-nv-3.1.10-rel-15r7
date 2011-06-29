@@ -111,6 +111,7 @@ void tegra_dvfs_rail_off(struct dvfs_rail *rail, ktime_t now);
 void tegra_dvfs_rail_on(struct dvfs_rail *rail, ktime_t now);
 void tegra_dvfs_rail_pause(struct dvfs_rail *rail, ktime_t delta, bool on);
 struct dvfs_rail *tegra_dvfs_get_rail_by_name(const char *reg_id);
+int tegra_dvfs_predict_millivolts(struct clk *c, unsigned long rate);
 #else
 static inline void tegra_soc_init_dvfs(void)
 {}
@@ -139,7 +140,8 @@ static inline void tegra_dvfs_rail_pause(
 {}
 static inline struct dvfs_rail *tegra_dvfs_get_rail_by_name(const char *reg_id)
 { return NULL;}
-
+static inline int tegra_dvfs_predict_millivolts(struct clk *c, unsigned long rate)
+{ return 0; }
 #endif
 
 #endif
