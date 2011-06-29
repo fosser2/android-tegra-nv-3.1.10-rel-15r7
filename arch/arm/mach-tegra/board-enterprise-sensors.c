@@ -28,6 +28,7 @@
 #include <mach/gpio.h>
 
 #include <media/ar0832_main.h>
+#include <media/ov9726.h>
 #include "cpu-tegra.h"
 #include "gpio-names.h"
 #include "board-enterprise.h"
@@ -153,14 +154,106 @@ static void enterprise_isl_init(void)
 				ARRAY_SIZE(enterprise_i2c0_isl_board_info));
 }
 
+typedef enum {
+	CAM_REAR_LEFT,
+	CAM_REAR_RIGHT,
+	CAM_FRONT,
+	NUM_OF_CAM
+} CAMERA_INDEX;
 
-static struct regulator *cam_reg;
-static struct regulator *csi_reg;
+struct ent_camera_regulators {
+	struct regulator	*cam_reg;
+	struct regulator	*csi_reg;
+	bool			cam_pwr_state[NUM_OF_CAM];
+};
+
+static struct ent_camera_regulators ent_cam_pwr;
+
+static int enterprise_cam_pwr(CAMERA_INDEX cam, bool pwr_on)
+{
+	int ret = 0;
+	bool *pwr_ptr = ent_cam_pwr.cam_pwr_state;
+
+	/*
+	* SW must turn on 1.8V first then 2.8V
+	* SW must turn off 2.8V first then 1.8V
+	*/
+	if (pwr_on) {
+		if (!pwr_ptr[CAM_REAR_LEFT] &&
+		    !pwr_ptr[CAM_REAR_RIGHT] &&
+		    !pwr_ptr[CAM_REAR_RIGHT])	{
+			if (ent_cam_pwr.csi_reg == NULL) {
+			    ent_cam_pwr.csi_reg = regulator_get(NULL, "avdd_dsi_csi");
+			    if (IS_ERR_OR_NULL(ent_cam_pwr.csi_reg)) {
+				    pr_err("%s: get csi pwr err\n", __func__);
+				    ret = PTR_ERR(ent_cam_pwr.csi_reg);
+				    goto enterprise_cam_pwr_fail;
+			    }
+			}
+
+			ret = regulator_enable(ent_cam_pwr.csi_reg);
+			if (ret) {
+				pr_err("%s: enable csi pwr err\n", __func__);
+				goto enterprise_cam_pwr_fail;
+			}
+
+			if (ent_cam_pwr.cam_reg == NULL) {
+			    ent_cam_pwr.cam_reg = regulator_get(NULL, "vddio_cam");
+			    if (IS_ERR_OR_NULL(ent_cam_pwr.cam_reg)) {
+				    pr_err("%s: get cam pwr err\n", __func__);
+				    ret = PTR_ERR(ent_cam_pwr.cam_reg);
+				    goto enterprise_cam_pwr_fail;
+			    }
+			}
+
+			ret = regulator_enable(ent_cam_pwr.cam_reg);
+			if (ret) {
+				pr_err("%s: enable cam pwr err\n", __func__);
+				goto enterprise_cam_pwr_fail;
+			}
+		}
+
+		// turn on powers
+		gpio_set_value(CAM_LDO_1V8_EN_L_GPIO, 1);
+		enterprise_msleep(20);
+		gpio_set_value(CAM_LDO_2V8_EN_L_GPIO, 1);
+		pwr_ptr[cam] = true;
+	}
+	else {
+		pwr_ptr[cam] = false;
+		if (!pwr_ptr[CAM_REAR_LEFT] &&
+		    !pwr_ptr[CAM_REAR_RIGHT] &&
+		    !pwr_ptr[CAM_REAR_RIGHT]) {
+			if (ent_cam_pwr.cam_reg)
+			    regulator_disable(ent_cam_pwr.cam_reg);
+
+			if (ent_cam_pwr.csi_reg)
+			    regulator_disable(ent_cam_pwr.csi_reg);
+
+			// turn powers off
+			gpio_set_value(CAM_LDO_2V8_EN_L_GPIO, 0);
+			enterprise_msleep(20);
+			gpio_set_value(CAM_LDO_1V8_EN_L_GPIO, 0);
+		}
+	}
+	return 0;
+
+enterprise_cam_pwr_fail:
+	if (!IS_ERR_OR_NULL(ent_cam_pwr.cam_reg))
+		regulator_put(ent_cam_pwr.cam_reg);
+	ent_cam_pwr.cam_reg = NULL;
+
+	if (!IS_ERR_OR_NULL(ent_cam_pwr.csi_reg))
+		regulator_put(ent_cam_pwr.csi_reg);
+	ent_cam_pwr.csi_reg = NULL;
+
+	return ret;
+}
 
 static int enterprise_ar0832_power_on(void)
 {
 	int ret = 0;
-
+#if 0
 	csi_reg = regulator_get(NULL, "avdd_dsi_csi");
 	if (IS_ERR_OR_NULL(csi_reg)) {
 		pr_err("%s: get csi pwr err\n", __func__);
@@ -190,10 +283,19 @@ static int enterprise_ar0832_power_on(void)
 	enterprise_msleep(20);
 	pr_info("%s: enable 2.8V...\n", __func__);
 	gpio_set_value(CAM_LDO_2V8_EN_L_GPIO, 1);
+#else
+	ret = enterprise_cam_pwr(CAM_REAR_RIGHT, true);
+	if (ret)
+		return ret;
+#endif
 
 	gpio_set_value(CAM1_PWDN_GPIO, 1);
 	enterprise_msleep(5);
 	gpio_set_value(CAM1_RST_L_GPIO, 1);
+
+	// switch mipi mux to rear camera
+	gpio_set_value(CAM_CSI_MUX_SEL_GPIO, CAM_CSI_MUX_SEL_REAR);
+
 	/*
 	It takes 2400 EXTCLK for ar0832 to be ready for I2c.
 	EXTCLK is 10 ~ 24MCK. 1 ms should be enough to cover
@@ -201,17 +303,19 @@ static int enterprise_ar0832_power_on(void)
 	*/
 	enterprise_msleep(1);
 	return 0;
-
+#if 0
 fail_regulator_cam_reg:
 	regulator_put(cam_reg);
 fail_regulator_csi_reg:
 	regulator_put(csi_reg);
 
 	return ret;
+#endif
 }
 
 static int enterprise_ar0832_power_off(void)
 {
+#if 0
 	if (cam_reg) {
 		regulator_disable(cam_reg);
 		regulator_put(cam_reg);
@@ -224,6 +328,9 @@ static int enterprise_ar0832_power_off(void)
 	gpio_set_value(CAM_LDO_2V8_EN_L_GPIO, 0);
 	mdelay(20);
 	gpio_set_value(CAM_LDO_1V8_EN_L_GPIO, 0);
+#else
+	enterprise_cam_pwr(CAM_REAR_RIGHT, true);
+#endif
 
 	return 0;
 }
@@ -261,13 +368,65 @@ struct ar0832_platform_data enterprise_ar0832_data = {
 	.power_off = enterprise_ar0832_power_off,
 };
 
-static struct i2c_board_info ar0832_i2c2_boardinfo[] = {
+static int enterprise_ov9726_power_on(void)
+{
+	pr_info("ov9726 power on\n");
+
+	enterprise_cam_pwr(CAM_FRONT, true);
+	enterprise_msleep(1);
+	gpio_set_value(CAM3_PWDN_GPIO, CAM3_PWDN_FALSE);               // turn on ov9726
+
+	enterprise_msleep(5);
+
+	gpio_set_value(CAM3_RST_L_GPIO, CAM3_RST_L_TRUE);
+	enterprise_msleep(5);
+	gpio_set_value(CAM3_RST_L_GPIO, CAM3_RST_L_FALSE);
+	enterprise_msleep(20);
+
+	// switch mipi mux to front camera
+	gpio_set_value(CAM_CSI_MUX_SEL_GPIO, CAM_CSI_MUX_SEL_FRONT);
+
+	pr_info("cs0n: %x %x %x\n",
+		gpio_get_value(CAM3_PWDN_GPIO),
+		gpio_get_value(CAM_LDO_1V8_EN_L_GPIO),
+		gpio_get_value(CAM_CSI_MUX_SEL_GPIO));
+
+	return 0;
+}
+
+static int enterprise_ov9726_power_off(void)
+{
+	pr_info("ov9726 power off\n");
+
+	gpio_set_value(CAM3_RST_L_GPIO, CAM3_RST_L_TRUE);     // pull low the RST pin of ov9726
+	enterprise_msleep(1);
+	gpio_set_value(CAM3_PWDN_GPIO, CAM3_PWDN_TRUE);      // turn off ov9726
+	enterprise_msleep(1);
+	enterprise_cam_pwr(CAM_FRONT, false);
+	pr_info("cs0n: %x %x %x\n",
+		gpio_get_value(CAM3_PWDN_GPIO),
+		gpio_get_value(CAM_LDO_1V8_EN_L_GPIO),
+		gpio_get_value(CAM_CSI_MUX_SEL_GPIO));
+
+	return 0;
+}
+
+struct ov9726_platform_data enterprise_ov9726_data = {
+    .power_on = enterprise_ov9726_power_on,
+    .power_off = enterprise_ov9726_power_off,
+};
+
+static struct i2c_board_info enterprise_i2c2_board_info[] = {
 	{
 		I2C_BOARD_INFO("ar0832", 0x36),
 		.platform_data = &enterprise_ar0832_data,
 	},
 	{
 		I2C_BOARD_INFO("ar0832_focuser", 0x36),
+	},
+	{
+		I2C_BOARD_INFO("ov9726", OV9726_I2C_ADDR >> 1 ),
+		.platform_data = &enterprise_ov9726_data,
 	},
 };
 
@@ -277,6 +436,8 @@ static int enterprise_cam_init(void)
 	int i;
 
 	pr_info("%s:++\n", __func__);
+
+	memset(&ent_cam_pwr, sizeof(struct ent_camera_regulators), 0);
 
 	for (i = 0; i < ARRAY_SIZE(enterprise_cam_gpio_data); i++) {
 		ret = gpio_request(enterprise_cam_gpio_data[i].gpio,
@@ -292,8 +453,8 @@ static int enterprise_cam_init(void)
 		tegra_gpio_enable(enterprise_cam_gpio_data[i].gpio);
 	}
 
-	i2c_register_board_info(2, ar0832_i2c2_boardinfo,
-		ARRAY_SIZE(ar0832_i2c2_boardinfo));
+	i2c_register_board_info(2, enterprise_i2c2_board_info,
+				ARRAY_SIZE(enterprise_i2c2_board_info));
 
 	return 0;
 
@@ -306,10 +467,11 @@ fail_free_gpio:
 
 int __init enterprise_sensors_init(void)
 {
+	int ret;
 	enterprise_isl_init();
 	enterprise_nct1008_init();
 	enterprise_mpuirq_init();
-	enterprise_cam_init();
+	ret = enterprise_cam_init();
 
-	return 0;
+	return ret;
 }
