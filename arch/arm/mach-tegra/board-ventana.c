@@ -118,7 +118,7 @@ struct uart_clk_parent uart_parent_clk[] = {
 	[2] = {.name = "clk_m"},
 };
 
-static struct tegra_uart_platform_data cardhu_uart_pdata;
+static struct tegra_uart_platform_data ventana_uart_pdata;
 
 static void __init uart_debug_init(void)
 {
@@ -165,12 +165,12 @@ static void __init ventana_uart_init(void)
 		uart_parent_clk[i].parent_clk = c;
 		uart_parent_clk[i].fixed_clk_rate = clk_get_rate(c);
 	}
-	cardhu_uart_pdata.parent_clk_list = uart_parent_clk;
-	cardhu_uart_pdata.parent_clk_count = ARRAY_SIZE(uart_parent_clk);
+	ventana_uart_pdata.parent_clk_list = uart_parent_clk;
+	ventana_uart_pdata.parent_clk_count = ARRAY_SIZE(uart_parent_clk);
 
-	tegra_uartb_device.dev.platform_data = &cardhu_uart_pdata;
-	tegra_uartc_device.dev.platform_data = &cardhu_uart_pdata;
-	tegra_uartd_device.dev.platform_data = &cardhu_uart_pdata;
+	tegra_uartb_device.dev.platform_data = &ventana_uart_pdata;
+	tegra_uartc_device.dev.platform_data = &ventana_uart_pdata;
+	tegra_uartd_device.dev.platform_data = &ventana_uart_pdata;
 
 	/* Register low speed only if it is selected */
 	if (!is_tegra_debug_uartport_hs())
