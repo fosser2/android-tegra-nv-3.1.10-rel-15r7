@@ -178,6 +178,11 @@ static void tegra_sdhci_enable_clock(struct tegra_sdhci_host *host, int clock)
 		val = sdhci_readb(host->sdhci, SDHCI_VENDOR_CLOCK_CNTRL);
 		val &= ~(0x1);
 		sdhci_writeb(host->sdhci, val, SDHCI_VENDOR_CLOCK_CNTRL);
+		/*
+		 * Read back the register to ensure all writes on AHB are flushed prior
+		 * to switching OFF the clock.
+		 */
+		val = sdhci_readb(host->sdhci, SDHCI_VENDOR_CLOCK_CNTRL);
 		clk_disable(host->clk);
 		host->clk_enabled = 0;
 	}
