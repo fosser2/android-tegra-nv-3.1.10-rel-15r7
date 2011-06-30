@@ -284,6 +284,7 @@ struct tegra_dc_win {
 	unsigned		out_w;
 	unsigned		out_h;
 	unsigned		z;
+	unsigned		size;
 
 	int			dirty;
 	int			underflows;
