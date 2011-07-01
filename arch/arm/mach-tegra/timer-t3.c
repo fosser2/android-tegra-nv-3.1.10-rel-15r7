@@ -345,7 +345,7 @@ static void __init tegra_init_timer(void)
 	/* For T30.A01 use INT_TMR_SHARED instead of INT_TMR6. */
 	id = readl(chip_id);
 	if (((id & 0xFF00) >> 8) == 0x30) {
-#ifndef CONFIG_TEGRA_FPGA_PLATFORM
+#ifdef CONFIG_TEGRA_SILICON_PLATFORM
 		if (((id >> 16) & 0xf) == 1) {
 			tegra_lp2wake_irq_cpu3.irq = INT_TMR_SHARED;
 		}

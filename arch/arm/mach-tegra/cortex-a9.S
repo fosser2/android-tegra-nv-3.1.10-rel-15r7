@@ -611,7 +611,7 @@ ENTRY(__cortex_a9_l2x0_restart)
 	add	r10, r8, #CTX_L2_CTRL
 	ldmia	r10, {r3-r7}
 #ifndef  CONFIG_ARCH_TEGRA_2x_SOC
-#ifndef CONFIG_TEGRA_FPGA_PLATFORM
+#ifdef CONFIG_TEGRA_SILICON_PLATFORM
 	mov32	r5, (TEGRA_FLOW_CTRL_BASE-IO_PPSB_PHYS+IO_PPSB_VIRT)
 	ldr	r5, [r5, #0x2C]		@ FLOW_CTRL_CLUSTER_CONTROL
 	ands	r5, r5, #1		@ 0 == G cluster, 1 == LP cluster

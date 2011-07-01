@@ -322,7 +322,7 @@ ENTRY(__enable_coresite_access)
 
 	/* assert reset for 2usec */
 	ldr	r1, [r0]
-#ifndef CONFIG_TEGRA_FPGA_PLATFORM
+#ifdef CONFIG_TEGRA_SILICON_PLATFORM
 	orr	r1, #(1<<9)
 	str	r1, [r0]
 #endif
