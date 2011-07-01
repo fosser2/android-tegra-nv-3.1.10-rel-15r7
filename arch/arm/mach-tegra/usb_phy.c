@@ -667,10 +667,18 @@ static void utmi_phy_power_off(struct tegra_usb_phy *phy, bool is_dpd)
 		writel(val, base + USB_SUSP_CTRL);
 	}
 
-	val = readl(base + UTMIP_BAT_CHRG_CFG0);
-	val |= UTMIP_PD_CHRG;
-	writel(val, base + UTMIP_BAT_CHRG_CFG0);
+	if (phy->mode == TEGRA_USB_PHY_MODE_DEVICE) {
+		val = readl(base + UTMIP_BAT_CHRG_CFG0);
+		val |= UTMIP_PD_CHRG;
+		writel(val, base + UTMIP_BAT_CHRG_CFG0);
+	}
 
+	if (phy->instance != 2) {
+		val = readl(base + UTMIP_XCVR_CFG0);
+		val |= (UTMIP_FORCE_PD_POWERDOWN | UTMIP_FORCE_PD2_POWERDOWN |
+			 UTMIP_FORCE_PDZI_POWERDOWN);
+		writel(val, base + UTMIP_XCVR_CFG0);
+	}
 	val = readl(base + UTMIP_XCVR_CFG1);
 	val |= UTMIP_FORCE_PDDISC_POWERDOWN | UTMIP_FORCE_PDCHRP_POWERDOWN |
 	       UTMIP_FORCE_PDDR_POWERDOWN;
@@ -681,6 +689,11 @@ static void utmi_phy_power_off(struct tegra_usb_phy *phy, bool is_dpd)
 		val |= USB_PORTSC1_WKCN;
 		writel(val, base + USB_PORTSC1);
 	}
+	if (phy->instance != 0) {
+		val = readl(base + UTMIP_BIAS_CFG0);
+		val |= UTMIP_OTGPD;
+		writel(val, base + UTMIP_BIAS_CFG0);
+	}
 
 	utmi_phy_clk_disable(phy);
 
@@ -688,8 +701,16 @@ static void utmi_phy_power_off(struct tegra_usb_phy *phy, bool is_dpd)
 		val = readl(base + USB_SUSP_CTRL);
 		val |= USB_PHY_CLK_VALID_INT_ENB;
 		writel(val, base + USB_SUSP_CTRL);
+	} else {
+		val = readl(base + USB_SUSP_CTRL);
+		val |= UTMIP_RESET;
+		writel(val, base + USB_SUSP_CTRL);
 	}
+#ifdef CONFIG_USB_HOTPLUG
 	utmip_pad_power_off(phy, is_dpd);
+#else
+	utmip_pad_power_off(phy, true);
+#endif
 }
 
 static void utmi_phy_preresume(struct tegra_usb_phy *phy, bool is_dpd)

@@ -147,3 +147,7 @@ config TEGRA_STAT_MON
 	default n
 	help
 	  Enables support for hardware statistics monitor for AVP.
+
+config USB_HOTPLUG
+	bool "Enable USB hotplug"
+	default n
