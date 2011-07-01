@@ -18,7 +18,10 @@
 #define SD_SEND_RELATIVE_ADDR     3   /* bcr                     R6  */
 #define SD_SEND_IF_COND           8   /* bcr  [11:0] See below   R7  */
 #define SD_VOLTAGE_SWITCH        11   /* ac                      R1  */
+
+  /* class 2 */
 #define SD_SEND_TUNING_PATTERN   19   /* adtc                    R1  */
+#define SD_SPEED_CLASS_CONTROL   20   /* ac                      R1b */
 
   /* class 10 */
 #define SD_SWITCH                 6   /* adtc [31:0] See below   R1  */
@@ -85,6 +88,14 @@
  */
 #define SD_SWITCH_ACCESS_DEF	0
 #define SD_SWITCH_ACCESS_HS	1
+
+/*
+ * SD_SPEED_CLASS_CONTROL definitions
+ */
+#define SD_SPEED_CLASS_CONTROL_START_REC		0
+#define SD_SPEED_CLASS_CONTROL_CREATE_DIR		1
+#define SD_SPEED_CLASS_CONTROL_END_REC_WITHOUT_MOVE	2
+#define SD_SPEED_CLASS_CONTROL_END_REC_WITH_MOVE	3
 
 #endif
 
