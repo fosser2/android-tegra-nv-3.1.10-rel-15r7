@@ -64,6 +64,9 @@ static void tegra_ehci_power_up(struct usb_hcd *hcd, bool is_dpd)
 
 	clk_enable(tegra->emc_clk);
 	clk_enable(tegra->sclk_clk);
+#ifndef CONFIG_USB_HOTPLUG
+	clk_enable(tegra->clk);
+#endif
 	tegra_usb_phy_power_on(tegra->phy, is_dpd);
 	tegra->host_resumed = 1;
 }
@@ -74,6 +77,9 @@ static void tegra_ehci_power_down(struct usb_hcd *hcd, bool is_dpd)
 
 	tegra->host_resumed = 0;
 	tegra_usb_phy_power_off(tegra->phy, is_dpd);
+#ifndef CONFIG_USB_HOTPLUG
+	clk_disable(tegra->clk);
+#endif
 	clk_disable(tegra->emc_clk);
 	clk_disable(tegra->sclk_clk);
 }
