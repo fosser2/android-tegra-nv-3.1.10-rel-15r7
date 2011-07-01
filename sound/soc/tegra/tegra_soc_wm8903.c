@@ -63,7 +63,6 @@ extern struct wired_jack_conf tegra_wired_jack_conf;
 #define ADC_DIGITAL_VOL_9DB		0x1D8
 #define ADC_DIGITAL_VOL_12DB		0x1E0
 #define ADC_ANALOG_VOLUME		0x1C
-#define DRC_MAX_36DB			0x03
 
 #define SET_REG_VAL(r,m,l,v) (((r)&(~((m)<<(l))))|(((v)&(m))<<(l)))
 
@@ -128,11 +127,11 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 		int CtrlReg = 0;
 		int VolumeCtrlReg = 0;
 		int SidetoneCtrlReg = 0;
-		int SideToneAtenuation = 0;
 
 		/* Mic Bias enable */
 		CtrlReg = MICBIAS_ENA | MICDET_ENA;
 		snd_soc_write(codec, WM8903_MIC_BIAS_CONTROL_0, CtrlReg);
+
 		/* Enable DRC */
 		CtrlReg = snd_soc_read(codec, WM8903_DRC_0);
 		CtrlReg |= WM8903_DRC_ENA;
@@ -151,19 +150,11 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 		CtrlReg |= WM8903_ADC_HPF_ENA;
 		snd_soc_write(codec, WM8903_ADC_DIGITAL_0, CtrlReg);
 
+		/* Disable sidetone */
 		SidetoneCtrlReg = 0;
 		snd_soc_write(codec, WM8903_DAC_DIGITAL_0, SidetoneCtrlReg);
 
-		SideToneAtenuation = 12 ;
-
-		CtrlReg = snd_soc_read(codec, WM8903_DRC_1);
-		CtrlReg |= DRC_MAX_36DB;
-		snd_soc_write(codec, WM8903_DRC_1, CtrlReg);
-
 #if defined(CONFIG_ARCH_TEGRA_2x_SOC)
-
-		snd_soc_write(codec, WM8903_ANALOGUE_LEFT_INPUT_0, 0X7);
-		snd_soc_write(codec, WM8903_ANALOGUE_RIGHT_INPUT_0, 0X7);
 
 		/* Single Ended Mic */
 		CtrlReg = CM_DISABLED |
@@ -172,21 +163,21 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 		snd_soc_write(codec, WM8903_ANALOGUE_LEFT_INPUT_1, CtrlReg);
 		snd_soc_write(codec, WM8903_ANALOGUE_RIGHT_INPUT_1, CtrlReg);
 
-		/* replicate mic setting on both channels */
+		/* Duplicate left ADC data on both channels */
 		CtrlReg = snd_soc_read(codec, WM8903_AUDIO_INTERFACE_0);
 		CtrlReg  = SET_REG_VAL(CtrlReg, 0x1, B06_AIF_ADCR, 0x0);
 		CtrlReg  = SET_REG_VAL(CtrlReg, 0x1, B06_AIF_ADCL, 0x0);
 		snd_soc_write(codec, WM8903_AUDIO_INTERFACE_0, CtrlReg);
 		/* Enable analog inputs */
-		CtrlReg = INL_ENA | INR_ENA;
+		CtrlReg = INL_ENA;
 		snd_soc_write(codec, WM8903_POWER_MANAGEMENT_0, CtrlReg);
 
 		/* Enable ADC */
 		CtrlReg = snd_soc_read(codec, WM8903_POWER_MANAGEMENT_6);
-		CtrlReg |= ADCR_ENA| ADCL_ENA;
+		CtrlReg |= ADCL_ENA;
 		snd_soc_write(codec, WM8903_POWER_MANAGEMENT_6, CtrlReg);
-#else
 
+#else
 
 		/* Enabling Digital mic as default*/
 		/* Set GP1_FN as DMIC_LR */
@@ -363,10 +354,15 @@ void tegra_ext_control(struct snd_soc_codec *codec, int new_con)
 	else
 		snd_soc_dapm_disable_pin(codec, "Linein");
 
-	if (new_con & TEGRA_HEADSET)
-		snd_soc_dapm_enable_pin(codec, "Headset");
+	if (new_con & TEGRA_HEADSET_OUT)
+		snd_soc_dapm_enable_pin(codec, "Headset Out");
 	else
-		snd_soc_dapm_disable_pin(codec, "Headset");
+		snd_soc_dapm_disable_pin(codec, "Headset Out");
+
+	if (new_con & TEGRA_HEADSET_IN)
+		snd_soc_dapm_enable_pin(codec, "Headset In");
+	else
+		snd_soc_dapm_disable_pin(codec, "Headset In");
 
 	audio_data->codec_con = new_con;
 
@@ -430,7 +426,8 @@ static int tegra_dapm_event_ext_mic(struct snd_soc_dapm_widget* w,
 /*tegra machine dapm widgets */
 static const struct snd_soc_dapm_widget tegra_dapm_widgets[] = {
 	SND_SOC_DAPM_HP("Headphone", NULL),
-	SND_SOC_DAPM_HP("Headset", NULL),
+	SND_SOC_DAPM_HP("Headset Out", NULL),
+	SND_SOC_DAPM_MIC("Headset In", NULL),
 	SND_SOC_DAPM_SPK("Lineout", NULL),
 	SND_SOC_DAPM_SPK("Int Spk", tegra_dapm_event_int_spk),
 	SND_SOC_DAPM_MIC("Ext Mic", tegra_dapm_event_ext_mic),
@@ -446,10 +443,9 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{"Headphone", NULL, "HPOUTL"},
 
 	/* headset Jack  - in = micin, out = HPOUT*/
-	{"Headset", NULL, "HPOUTR"},
-	{"Headset", NULL, "HPOUTL"},
-	{"IN1L", NULL, "Headset"},
-	{"IN1R", NULL, "Headset"},
+	{"Headset Out", NULL, "HPOUTR"},
+	{"Headset Out", NULL, "HPOUTL"},
+	{"IN1L", NULL, "Headset In"},
 
 	/* lineout connected to LINEOUTR and LINEOUTL */
 	{"Lineout", NULL, "LINEOUTR"},
@@ -462,7 +458,7 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{"Int Spk", NULL, "LOP"},
 
 	/* internal mic is mono */
-	{"IN1R", NULL, "Int Mic"},
+	{"IN1L", NULL, "Int Mic"},
 
 	/* external mic is stero */
 	{"IN1L", NULL, "Ext Mic"},

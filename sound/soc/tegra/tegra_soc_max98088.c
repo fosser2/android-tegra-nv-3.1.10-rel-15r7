@@ -266,10 +266,15 @@ void tegra_ext_control(struct snd_soc_codec *codec, int new_con)
 	else
 		snd_soc_dapm_disable_pin(codec, "Linein");
 
-	if (new_con & TEGRA_HEADSET)
-		snd_soc_dapm_enable_pin(codec, "Headset");
+	if (new_con & TEGRA_HEADSET_OUT)
+		snd_soc_dapm_enable_pin(codec, "Headset Out");
 	else
-		snd_soc_dapm_disable_pin(codec, "Headset");
+		snd_soc_dapm_disable_pin(codec, "Headset Out");
+
+	if (new_con & TEGRA_HEADSET_IN)
+		snd_soc_dapm_enable_pin(codec, "Headset In");
+	else
+		snd_soc_dapm_disable_pin(codec, "Headset In");
 
 	audio_data->codec_con = new_con;
 
@@ -334,7 +339,8 @@ static int tegra_dapm_event_ext_mic(struct snd_soc_dapm_widget *w,
 /*tegra machine dapm widgets */
 static const struct snd_soc_dapm_widget tegra_dapm_widgets[] = {
 	SND_SOC_DAPM_HP("Headphone", NULL),
-	SND_SOC_DAPM_HP("Headset", NULL),
+	SND_SOC_DAPM_HP("Headset Out", NULL),
+	SND_SOC_DAPM_MIC("Headset In", NULL),
 	SND_SOC_DAPM_SPK("Lineout", NULL),
 	SND_SOC_DAPM_SPK("Int Spk", tegra_dapm_event_int_spk),
 	SND_SOC_DAPM_MIC("Ext Mic", tegra_dapm_event_ext_mic),
@@ -348,8 +354,8 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{"Headphone", NULL, "HPR"},
 
 	/* Headset connected to HPL and HPR */
-	{"Headset", NULL, "HPL"},
-	{"Headset", NULL, "HPR"},
+	{"Headset Out", NULL, "HPL"},
+	{"Headset Out", NULL, "HPR"},
 
 	/* Speaker connected to SPKL and SPKR */
 	{"Int Spk", NULL, "SPKL"},
