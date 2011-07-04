@@ -236,7 +236,7 @@ static const char *s_syncpt_names[32] = {
 
 const char *nvhost_syncpt_name(u32 id)
 {
-	BUG_ON(id > ARRAY_SIZE(s_syncpt_names));
+	BUG_ON(id >= ARRAY_SIZE(s_syncpt_names));
 	return s_syncpt_names[id];
 }
 
