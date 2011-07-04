@@ -32,6 +32,7 @@
 
 #define DRIVER_NAME    "sdhci-tegra"
 
+#define SDHCI_TEGRA_MIN_CONTROLLER_CLOCK	12000000
 #define SDHCI_VENDOR_CLOCK_CNTRL       0x100
 
 struct tegra_sdhci_host {
@@ -44,6 +45,7 @@ struct tegra_sdhci_host {
 	int card_present;
 	int cd_gpio;
 	int cd_gpio_polarity;
+	unsigned int clk_limit;
 };
 
 static irqreturn_t carddetect_irq(int irq, void *data)
@@ -70,17 +72,35 @@ static int tegra_sdhci_enable_dma(struct sdhci_host *host)
 	return 0;
 }
 
-static void tegra_sdhci_enable_clock(struct tegra_sdhci_host *host, int enable)
+static void tegra_sdhci_enable_clock(struct tegra_sdhci_host *host, int clock)
 {
-	if (enable && !host->clk_enabled) {
-		clk_enable(host->clk);
-		sdhci_writeb(host->sdhci, 1, SDHCI_VENDOR_CLOCK_CNTRL);
-		host->clk_enabled = 1;
-	} else if (!enable && host->clk_enabled) {
-		sdhci_writeb(host->sdhci, 0, SDHCI_VENDOR_CLOCK_CNTRL);
+	u8 val;
+
+	if (clock) {
+		if (!host->clk_enabled) {
+			clk_enable(host->clk);
+			val = sdhci_readb(host->sdhci, SDHCI_VENDOR_CLOCK_CNTRL);
+			val |= 1;
+			sdhci_writeb(host->sdhci, val, SDHCI_VENDOR_CLOCK_CNTRL);
+			host->clk_enabled = 1;
+		}
+		if (host->clk_limit && (clock > host->clk_limit))
+			clock = host->clk_limit;
+		if (clock < SDHCI_TEGRA_MIN_CONTROLLER_CLOCK)
+			clk_set_rate(host->clk, SDHCI_TEGRA_MIN_CONTROLLER_CLOCK);
+		else
+			clk_set_rate(host->clk, clock);
+	} else if (host->clk_enabled) {
+		val = sdhci_readb(host->sdhci, SDHCI_VENDOR_CLOCK_CNTRL);
+		val &= ~(0x1);
+		sdhci_writeb(host->sdhci, val, SDHCI_VENDOR_CLOCK_CNTRL);
 		clk_disable(host->clk);
 		host->clk_enabled = 0;
 	}
+	if (host->clk_enabled)
+		host->sdhci->max_clk = clk_get_rate(host->clk);
+	else
+		host->sdhci->max_clk = 0;
 }
 
 static void tegra_sdhci_set_clock(struct sdhci_host *sdhci, unsigned int clock)
@@ -153,6 +173,7 @@ static int __devinit tegra_sdhci_probe(struct platform_device *pdev)
 	host->wp_gpio = plat->wp_gpio;
 	host->cd_gpio = plat->cd_gpio;
 	host->cd_gpio_polarity = plat->cd_gpio_polarity;
+	host->clk_limit = plat->clk_limit;
 
 	host->clk = clk_get(&pdev->dev, plat->clk_id);
 	if (IS_ERR(host->clk)) {
@@ -356,7 +377,6 @@ static int tegra_sdhci_resume(struct platform_device *pdev)
 {
 	struct tegra_sdhci_host *host = platform_get_drvdata(pdev);
 	int ret;
-	u8 pwr;
 
 	if (host->card_always_on && is_card_sdio(host->sdhci->mmc->card)) {
 		int ret = 0;
@@ -378,11 +398,7 @@ static int tegra_sdhci_resume(struct platform_device *pdev)
 		return 0;
 	}
 
-	tegra_sdhci_enable_clock(host, 1);
-
-	pwr = SDHCI_POWER_ON;
-	sdhci_writeb(host->sdhci, pwr, SDHCI_POWER_CONTROL);
-	host->sdhci->pwr = 0;
+	tegra_sdhci_enable_clock(host, SDHCI_TEGRA_MIN_CONTROLLER_CLOCK);
 
 	ret = sdhci_resume_host(host->sdhci);
 	if (ret)
