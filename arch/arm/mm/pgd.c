@@ -41,8 +41,9 @@ pgd_t *get_pgd_slow(struct mm_struct *mm)
 	memcpy(new_pgd + FIRST_KERNEL_PGD_NR, init_pgd + FIRST_KERNEL_PGD_NR,
 		       (PTRS_PER_PGD - FIRST_KERNEL_PGD_NR) * sizeof(pgd_t));
 
+#if !defined(CONFIG_CPU_CACHE_V7) || !defined(CONFIG_SMP)
 	clean_dcache_area(new_pgd, PTRS_PER_PGD * sizeof(pgd_t));
-
+#endif
 	if (!vectors_high()) {
 		/*
 		 * On ARM, first page must always be allocated since it
