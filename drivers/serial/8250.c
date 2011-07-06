@@ -306,14 +306,6 @@ static const struct serial8250_config uart_config[] = {
 		.tx_loadsz	= 8,
 		.fcr		= UART_FCR_ENABLE_FIFO | UART_FCR_T_TRIG_01 |
 				  UART_FCR_R_TRIG_01,
-		.flags		= UART_CAP_FIFO,
-	},
-	[PORT_TEGRA] = {
-		.name		= "Tegra",
-		.fifo_size	= 32,
-		.tx_loadsz	= 8,
-		.fcr		= UART_FCR_ENABLE_FIFO | UART_FCR_T_TRIG_01 |
-				  UART_FCR_R_TRIG_01,
 		.flags		= UART_CAP_FIFO | UART_CAP_HW_CTSRTS,
 	},
 };
@@ -2646,6 +2638,9 @@ static void serial8250_config_port(struct uart_port *port, int flags)
 
 	/* if access method is AU, it is a 16550 with a quirk */
 	if (up->port.type == PORT_16550A && up->port.iotype == UPIO_AU)
+		up->bugs |= UART_BUG_NOMSR;
+
+	if (up->port.type == PORT_TEGRA)
 		up->bugs |= UART_BUG_NOMSR;
 
 	if (up->port.type != PORT_UNKNOWN && flags & UART_CONFIG_IRQ)
