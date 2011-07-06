@@ -841,6 +841,7 @@ static void __init tegra_ventana_init(void)
 #ifdef CONFIG_BT_BLUESLEEP
 	tegra_setup_bluesleep();
 #endif
+	tegra_release_bootloader_fb();
 }
 
 int __init tegra_ventana_protected_aperture_init(void)

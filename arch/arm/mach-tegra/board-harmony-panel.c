@@ -144,7 +144,7 @@ static struct tegra_fb_data harmony_fb_data = {
 	.win		= 0,
 	.xres		= 1024,
 	.yres		= 600,
-	.bits_per_pixel	= 16,
+	.bits_per_pixel	= 32,
 };
 
 static struct tegra_dc_out harmony_disp1_out = {
