@@ -53,7 +53,6 @@ static int enable_msi;
 
 /* Module clock info */
 static struct clk *clk_hda,  *clk_hda2codec , *clk_hda2hdmicodec;
-static bool is_hda_clk_on = false;
 
 #ifdef CONFIG_SND_HDA_PATCH_LOADER
 static char *patch[SNDRV_CARDS];
@@ -449,21 +448,6 @@ azx_attach_pcm_stream(struct hda_bus *bus, struct hda_codec *codec,
 	return 0;
 }
 
-static void nv_tegra_enable_hda_clks(bool on)
-{
-	if (on && !is_hda_clk_on) {
-		clk_enable(clk_hda);
-		clk_enable(clk_hda2codec);
-		clk_enable(clk_hda2hdmicodec);
-	}
-	else if (!on && is_hda_clk_on) {
-		clk_disable(clk_hda2hdmicodec);
-		clk_disable(clk_hda2codec);
-		clk_disable(clk_hda);
-	}
-	is_hda_clk_on = on;
-}
-
 #ifdef CONFIG_SND_HDA_POWER_SAVE
 /* power-up/down the controller */
 void azx_power_notify(struct hda_bus *bus)
@@ -478,18 +462,11 @@ void azx_power_notify(struct hda_bus *bus)
 			break;
 		}
 	}
-
-	if (power_on) {
-		nv_tegra_enable_hda_clks(true);
+	if (power_on)
 		azx_init_chip(chip, 1);
-	}
-	else {
-		if (chip->running && power_save_controller &&
-			!bus->power_keep_link_on)
-			azx_stop_chip(chip);
-
-		nv_tegra_enable_hda_clks(false);
-	}
+	else if (chip->running && power_save_controller &&
+		 !bus->power_keep_link_on)
+		azx_stop_chip(chip);
 }
 #endif /* CONFIG_SND_HDA_POWER_SAVE */
 
@@ -498,6 +475,15 @@ void azx_power_notify(struct hda_bus *bus)
 /*
  * power management
  */
+static int nv_tegra_hda_controller_suspend(struct platform_device *pdev)
+{
+	clk_disable(clk_hda2hdmicodec);
+	clk_disable(clk_hda2codec);
+	clk_disable(clk_hda);
+
+	return 0;
+}
+
 static int nv_tegra_azx_suspend(struct platform_device *pdev,
 				pm_message_t state)
 {
@@ -505,23 +491,26 @@ static int nv_tegra_azx_suspend(struct platform_device *pdev,
 	struct azx *chip = card->private_data;
 	int i;
 
-	nv_tegra_enable_hda_clks(true);
 	snd_power_change_state(card, SNDRV_CTL_POWER_D3hot);
 	azx_clear_irq_pending(chip);
 	for (i = 0; i < HDA_MAX_PCMS; i++)
 		snd_pcm_suspend_all(chip->pcm[i]);
 	if (chip->initialized)
 		snd_hda_suspend(chip->bus);
-
-	if (!chip->bus->power_keep_link_on)
-		azx_stop_chip(chip);
-
+	azx_stop_chip(chip);
 	if (chip->irq >= 0) {
 		free_irq(chip->irq, chip);
 		chip->irq = -1;
 	}
 
-	nv_tegra_enable_hda_clks(false);
+	return nv_tegra_hda_controller_suspend(pdev);
+}
+
+static int nv_tegra_hda_controller_resume(struct platform_device *pdev)
+{
+	clk_enable(clk_hda);
+	clk_enable(clk_hda2codec);
+	clk_enable(clk_hda2hdmicodec);
 
 	return 0;
 }
@@ -530,22 +519,21 @@ static int nv_tegra_azx_resume(struct platform_device *pdev)
 {
 	struct snd_card *card = dev_get_drvdata(&pdev->dev);
 	struct azx *chip = card->private_data;
+	int rc;
 
-	nv_tegra_enable_hda_clks(true);
+	rc = nv_tegra_hda_controller_resume(pdev);
+	if (rc)
+		return rc;
 
 	chip->msi = 0;
 	if (azx_acquire_irq(chip, 1) < 0)
 		return -EIO;
 
-	if (snd_hda_codecs_inuse(chip->bus) || chip->bus->power_keep_link_on)
+	if (snd_hda_codecs_inuse(chip->bus))
 		azx_init_chip(chip, 1);
 
 	snd_hda_resume(chip->bus);
 	snd_power_change_state(card, SNDRV_CTL_POWER_D0);
-
-	if (!snd_hda_codecs_inuse(chip->bus))
-		nv_tegra_enable_hda_clks(false);
-
 	return 0;
 }
 
@@ -795,8 +783,9 @@ static int nv_tegra_hda_controller_init(struct platform_device *pdev)
 		snd_printk(KERN_ERR T30SFX "%s: can't get hda clock\n", __func__);
 		return -1;
 	}
-	nv_tegra_enable_hda_clks(true);
-
+	clk_enable(clk_hda);
+	clk_enable(clk_hda2codec);
+	clk_enable(clk_hda2hdmicodec);
 	/*Enable the PCI access */
 	temp = readl(hda_reg + IPFS_HDA_CONFIGURATION_0);
 	temp |= IPFS_EN_FPCI;
