@@ -54,6 +54,9 @@ extern unsigned int yaffs_wr_attempts;
 #define YAFFS_TRACE_BUG			0x80000000
 #define YAFFS_TRACE_ALWAYS		0xF0000000
 
+#ifdef T
+#undef T
+#endif
 
 #define T(mask, p) do { if ((mask) & (yaffs_traceMask | YAFFS_TRACE_ALWAYS)) TOUT(p); } while (0)
 
