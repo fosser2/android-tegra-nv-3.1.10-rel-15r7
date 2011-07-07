@@ -719,6 +719,9 @@ static void whistler_codec_init(void)
 static char usb_serial_num[SERIAL_NUMBER_LENGTH];
 static void whistler_usb_init(void)
 {
+	char *src = NULL;
+	int i;
+
 	tegra_usb_phy_init(tegra_usb_phy_pdata, ARRAY_SIZE(tegra_usb_phy_pdata));
 
 	tegra_otg_device.dev.platform_data = &tegra_otg_pdata;
