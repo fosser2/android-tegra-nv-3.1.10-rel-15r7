@@ -166,6 +166,20 @@ static u32 dvc_readl(struct tegra_i2c_dev *i2c_dev, unsigned long reg)
 	return readl(i2c_dev->base + reg);
 }
 
+static void dvc_i2c_mask_irq(struct tegra_i2c_dev *i2c_dev, u32 mask)
+{
+	u32 int_mask = dvc_readl(i2c_dev, DVC_CTRL_REG3);
+	int_mask &= ~mask;
+	dvc_writel(i2c_dev, int_mask, DVC_CTRL_REG3);
+}
+
+static void dvc_i2c_unmask_irq(struct tegra_i2c_dev *i2c_dev, u32 mask)
+{
+	u32 int_mask = dvc_readl(i2c_dev, DVC_CTRL_REG3);
+	int_mask |= mask;
+	dvc_writel(i2c_dev, int_mask, DVC_CTRL_REG3);
+}
+
 /* i2c_writel and i2c_readl will offset the register if necessary to talk
  * to the I2C block inside the DVC block
  */
@@ -282,10 +296,15 @@ static int tegra_i2c_fill_tx_fifo(struct tegra_i2c_dev *i2c_dev)
 
 	for (word = 0; word < words_to_transfer; word++) {
 		val = get_unaligned_le32(buf);
-		i2c_writel(i2c_dev, val, I2C_TX_FIFO);
+
+		/* Update the field before writing into Tx Fifo */
 		buf += BYTES_PER_FIFO_WORD;
 		buf_remaining -= BYTES_PER_FIFO_WORD;
 		tx_fifo_avail--;
+		i2c_dev->msg_buf_remaining = buf_remaining;
+		i2c_dev->msg_buf = buf;
+
+		i2c_writel(i2c_dev, val, I2C_TX_FIFO);
 	}
 
 	if (tx_fifo_avail > 0 && buf_remaining > 0) {
@@ -295,9 +314,14 @@ static int tegra_i2c_fill_tx_fifo(struct tegra_i2c_dev *i2c_dev)
 		val = 0;
 		for (byte = 0; byte < bytes_to_transfer; byte++)
 			val |= (*buf++) << (byte * 8);
-		i2c_writel(i2c_dev, val, I2C_TX_FIFO);
+
+		/* Update the field before writing into Tx Fifo */
 		buf_remaining -= bytes_to_transfer;
 		tx_fifo_avail--;
+		i2c_dev->msg_buf_remaining = buf_remaining;
+		i2c_dev->msg_buf = buf;
+
+		i2c_writel(i2c_dev, val, I2C_TX_FIFO);
 	}
 	BUG_ON(tx_fifo_avail > 0 && buf_remaining > 0);
 	i2c_dev->msg_buf_remaining = buf_remaining;
@@ -316,7 +340,6 @@ static void tegra_dvc_init(struct tegra_i2c_dev *i2c_dev)
 	u32 val = 0;
 	val = dvc_readl(i2c_dev, DVC_CTRL_REG3);
 	val |= DVC_CTRL_REG3_SW_PROG;
-	val |= DVC_CTRL_REG3_I2C_DONE_INTR_EN;
 	dvc_writel(i2c_dev, val, DVC_CTRL_REG3);
 
 	val = dvc_readl(i2c_dev, DVC_CTRL_REG1);
@@ -348,7 +371,7 @@ static int tegra_i2c_init(struct tegra_i2c_dev *i2c_dev)
 
 	/* Interrupt generated before sending stop signal so
 	* wait for some time so that stop signal can be send proerly */
-	udelay(100);
+	mdelay(1);
 
 	tegra_periph_reset_assert(i2c_dev->clk);
 	udelay(2);
@@ -511,6 +534,10 @@ err:
 
 	i2c_writel(i2c_dev, status, I2C_INT_STATUS);
 
+	/* An error occured, mask dvc interrupt */
+	if (i2c_dev->is_dvc)
+		dvc_i2c_mask_irq(i2c_dev, DVC_CTRL_REG3_I2C_DONE_INTR_EN);
+
 	if (i2c_dev->is_dvc)
 		dvc_writel(i2c_dev, DVC_STATUS_I2C_DONE_INTR, DVC_STATUS);
 
@@ -565,6 +592,9 @@ static int tegra_i2c_xfer_msg(struct tegra_i2c_bus *i2c_bus,
 	if (!(msg->flags & I2C_M_RD))
 		tegra_i2c_fill_tx_fifo(i2c_dev);
 
+	if (i2c_dev->is_dvc)
+		dvc_i2c_unmask_irq(i2c_dev, DVC_CTRL_REG3_I2C_DONE_INTR_EN);
+
 	int_mask = I2C_INT_NO_ACK | I2C_INT_ARBITRATION_LOST | I2C_INT_TX_FIFO_OVERFLOW;
 	if (msg->flags & I2C_M_RD)
 		int_mask |= I2C_INT_RX_FIFO_DATA_REQ;
@@ -576,6 +606,9 @@ static int tegra_i2c_xfer_msg(struct tegra_i2c_bus *i2c_bus,
 	ret = wait_for_completion_timeout(&i2c_dev->msg_complete,
 					TEGRA_I2C_TIMEOUT);
 	tegra_i2c_mask_irq(i2c_dev, int_mask);
+
+	if (i2c_dev->is_dvc)
+		dvc_i2c_mask_irq(i2c_dev, DVC_CTRL_REG3_I2C_DONE_INTR_EN);
 
 	if (WARN_ON(ret == 0)) {
 		dev_err(i2c_dev->dev,
