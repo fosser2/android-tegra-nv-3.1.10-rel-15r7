@@ -32,8 +32,6 @@
 #define WIN_USE_V_FILTER(win)	((win)->flags & TEGRA_WIN_FLAG_V_FILTER)
 #define WIN_USE_H_FILTER(win)	((win)->flags & TEGRA_WIN_FLAG_H_FILTER)
 
-#define NEED_UPDATE_EMC_ON_EVERY_FRAME (windows_idle_detection_time == 0)
-
 /* DDR: 8 bytes transfer per clock */
 #define DDR_BW_TO_FREQ(bw) ((bw) / 8)
 
@@ -122,7 +120,6 @@ struct tegra_dc {
 
 	unsigned long			underflow_mask;
 	struct work_struct		reset_work;
-	struct delayed_work		reduce_emc_clk_work;
 
 	struct switch_dev		modeset_switch;
 
