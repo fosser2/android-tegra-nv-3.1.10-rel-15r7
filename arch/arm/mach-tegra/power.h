@@ -144,26 +144,6 @@ void tegra_idle_enter_lp2_cpu_n(struct cpuidle_device *dev,
 	struct cpuidle_state *state);
 void tegra_cpu_dynamic_power_init(void);
 
-unsigned int tegra_count_slow_cpus(unsigned long speed_limit);
-unsigned int tegra_get_slowest_cpu_n(void);
-unsigned long tegra_cpu_lowest_speed(void);
-unsigned long tegra_cpu_highest_speed(void);
-int tegra_cpu_cap_highest_speed(unsigned int *speed_cap);
-
-#if defined(CONFIG_TEGRA_AUTO_HOTPLUG) && !defined(CONFIG_ARCH_TEGRA_2x_SOC)
-int tegra_auto_hotplug_init(struct mutex *cpu_lock);
-void tegra_auto_hotplug_exit(void);
-void tegra_auto_hotplug_governor(unsigned int cpu_freq, bool suspend);
-#else
-static inline int tegra_auto_hotplug_init(struct mutex *cpu_lock)
-{ return 0; }
-static inline void tegra_auto_hotplug_exit(void)
-{ }
-static inline void tegra_auto_hotplug_governor(unsigned int cpu_freq,
-					       bool suspend)
-{ }
-#endif
-
 #ifdef CONFIG_ARCH_TEGRA_2x_SOC
 #define INSTRUMENT_CLUSTER_SWITCH 0	/* Must be zero for ARCH_TEGRA_2x_SOC */
 #define DEBUG_CLUSTER_SWITCH 0		/* Must be zero for ARCH_TEGRA_2x_SOC */
