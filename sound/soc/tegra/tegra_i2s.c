@@ -335,8 +335,6 @@ int tegra_i2s_resume(struct snd_soc_dai *cpu_dai)
 
 	tegra_das_set_all_regs(&info->das_regs);
 	am_resume(&info->i2sdev_info);
-	tegra_jack_resume();
-
 
 	/* disabled clock as it is being enabled back on startup */
 	am_clock_disable(&info->i2sdev_info);
