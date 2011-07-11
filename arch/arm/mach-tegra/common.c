@@ -95,7 +95,7 @@ static struct board_info pmu_board_info;
 
 static int pmu_core_edp = 1200;	/* default 1.2V EDP limit */
 static int board_panel_type;
-
+static int modem_id;
 void (*tegra_reset)(char mode, const char *cmd);
 
 /* WARNING: There is implicit client of pllp_out3 like i2c, uart, dsi
@@ -548,6 +548,20 @@ void tegra_get_pmu_board_info(struct board_info *bi)
 
 __setup("pmuboard=", tegra_pmu_board_info);
 
+static int __init tegra_modem_id(char *id)
+{
+	char *p = id;
+
+	modem_id = memparse(p, &p);
+	return 1;
+}
+
+int tegra_get_modem_id(void)
+{
+	return modem_id;
+}
+
+__setup("modem_id=", tegra_modem_id);
 
 /*
  * Tegra has a protected aperture that prevents access by most non-CPU
