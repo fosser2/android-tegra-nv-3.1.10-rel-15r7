@@ -400,6 +400,8 @@ static int tegra_otg_suspend(struct platform_device *pdev, pm_message_t state)
 static int tegra_otg_resume(struct platform_device * pdev)
 {
 	struct tegra_otg_data *tegra_otg = platform_get_drvdata(pdev);
+	int val;
+	unsigned long flags;
 
 	tegra_otg_enable_clk();
 
@@ -411,7 +413,19 @@ static int tegra_otg_resume(struct platform_device * pdev)
 	/* restore the interupt enable for cable ID and VBUS */
 	clk_enable(tegra_otg->clk);
 	writel(tegra_otg->intr_reg_data, (tegra_otg->regs + USB_PHY_WAKEUP));
+	val = readl(tegra_otg->regs + USB_PHY_WAKEUP);
 	clk_disable(tegra_otg->clk);
+
+	/* A device might be connected while CPU is in sleep mode. In this case no interrupt
+	 * will be triggered
+	 * force irq_work to recheck connected devices
+	 */
+	if (!(val & USB_ID_STATUS)) {
+		spin_lock_irqsave(&tegra_otg->lock, flags);
+		tegra_otg->int_status = (val | USB_ID_INT_STATUS);
+		schedule_work(&tegra_otg->work);
+		spin_unlock_irqrestore(&tegra_otg->lock, flags);
+	}
 
 	return 0;
 }
