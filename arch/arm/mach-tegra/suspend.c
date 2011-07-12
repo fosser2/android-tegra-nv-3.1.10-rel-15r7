@@ -633,6 +633,11 @@ void tegra_suspend_dram(bool do_lp0)
 	reg = readl(pmc + PMC_CTRL);
 	mode |= ((reg >> TEGRA_POWER_PMC_SHIFT) & TEGRA_POWER_PMC_MASK);
 
+	if (pdata && pdata->board_suspend) {
+		int lp_state = (do_lp0) ? 0 : 1;
+		pdata->board_suspend(lp_state, TEGRA_SUSPEND_BEFORE_CPU);
+	}
+
 	if (!do_lp0) {
 		cpu = cpu_number();
 
@@ -755,16 +760,18 @@ static void tegra_suspend_wake(void)
 }
 
 static u8 uart_state[5];
+unsigned long debug_uart_port_base = 0;
+EXPORT_SYMBOL(debug_uart_port_base);
 
 static int tegra_debug_uart_suspend(void)
 {
 	void __iomem *uart;
 	u32 lcr;
 
-	if (TEGRA_DEBUG_UART_BASE == 0)
+	if (!debug_uart_port_base)
 		return 0;
 
-	uart = IO_ADDRESS(TEGRA_DEBUG_UART_BASE);
+	uart = IO_ADDRESS(debug_uart_port_base);
 
 	lcr = readb(uart + UART_LCR * 4);
 
@@ -792,10 +799,10 @@ static void tegra_debug_uart_resume(void)
 	void __iomem *uart;
 	u32 lcr;
 
-	if (TEGRA_DEBUG_UART_BASE == 0)
+	if (!debug_uart_port_base)
 		return;
 
-	uart = IO_ADDRESS(TEGRA_DEBUG_UART_BASE);
+	uart = IO_ADDRESS(debug_uart_port_base);
 
 	lcr = uart_state[0];
 
@@ -956,6 +963,8 @@ static int tegra_suspend_enter(suspend_state_t state)
 	local_fiq_disable();
 
 	pr_info("Entering suspend state LP%d\n", lp_state);
+	if (pdata && pdata->board_suspend)
+		pdata->board_suspend(lp_state, TEGRA_SUSPEND_BEFORE_PERIPHERAL);
 	if (do_lp0) {
 		tegra_lp0_cpu_mode(true);
 		tegra_irq_suspend();
@@ -1000,6 +1009,9 @@ static int tegra_suspend_enter(suspend_state_t state)
 	/* Clear DPD sample */
 	writel(0x0, pmc + PMC_DPD_SAMPLE);
 
+	if (pdata && pdata->board_resume)
+		pdata->board_resume(lp_state, TEGRA_RESUME_AFTER_CPU);
+
 	if (do_lp0) {
 		writel(mc_data[0], mc + MC_SECURITY_START);
 		writel(mc_data[1], mc + MC_SECURITY_SIZE);
@@ -1018,6 +1030,8 @@ static int tegra_suspend_enter(suspend_state_t state)
 		tegra_irq_resume();
 		tegra_lp0_cpu_mode(false);
 	}
+	if (pdata && pdata->board_resume)
+		pdata->board_resume(lp_state, TEGRA_RESUME_AFTER_PERIPHERAL);
 
 	secs = rtc_after - rtc_before;
 	ms = do_div(secs, 1000);

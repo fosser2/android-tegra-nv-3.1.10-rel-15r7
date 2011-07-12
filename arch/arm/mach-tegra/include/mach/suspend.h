@@ -31,6 +31,16 @@ enum tegra_suspend_mode {
 	TEGRA_MAX_SUSPEND_MODE,
 };
 
+enum suspend_stage {
+	TEGRA_SUSPEND_BEFORE_PERIPHERAL,
+	TEGRA_SUSPEND_BEFORE_CPU,
+};
+
+enum resume_stage {
+	TEGRA_RESUME_AFTER_PERIPHERAL,
+	TEGRA_RESUME_AFTER_CPU,
+};
+
 struct tegra_suspend_platform_data {
 	unsigned long cpu_timer;	/* CPU power good time in us, LP2/LP1 */
 	unsigned long cpu_off_timer;	/* CPU power off time us, LP2/LP1 */
@@ -45,6 +55,9 @@ struct tegra_suspend_platform_data {
 	bool separate_req;		/* Core & CPU power request are separate */
 	enum tegra_suspend_mode	suspend_mode;
 	unsigned long cpu_lp2_min_residency; /* Min LP2 state residency in us */
+	void (*board_suspend)(int lp_state, enum suspend_stage stg);
+	/* lp_state = 0 for LP0 state, 1 for LP1 state, 2 for LP2 state */
+	void (*board_resume)(int lp_state, enum resume_stage stg);
 };
 
 unsigned long tegra_cpu_power_good_time(void);
@@ -93,5 +106,8 @@ void __init tegra_init_suspend(struct tegra_suspend_platform_data *plat);
  * Callbacks for platform drivers to implement.
  */
 extern void (*tegra_deep_sleep)(int);
+
+/* The debug channel uart base physical address */
+extern unsigned long  debug_uart_port_base;
 
 #endif /* _MACH_TEGRA_SUSPEND_H_ */
