@@ -37,6 +37,7 @@ obj-y                                   += spdif.o
 obj-$(CONFIG_ARCH_TEGRA_3x_SOC)         += audio_jack.o
 obj-$(CONFIG_ARCH_TEGRA_2x_SOC)         += tegra_das.o
 obj-y                                   += mc.o
+obj-$(CONFIG_TEGRA_STAT_MON)			+= tegra2_statmon.o
 obj-$(CONFIG_USB_SUPPORT)               += usb_phy.o
 obj-$(CONFIG_FIQ)                       += fiq.o
 obj-$(CONFIG_TEGRA_FIQ_DEBUGGER)        += tegra_fiq_debugger.o
