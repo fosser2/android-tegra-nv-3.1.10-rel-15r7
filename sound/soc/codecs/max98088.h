@@ -194,6 +194,22 @@
 #define M98088_PWRSV8K                  (1<<1)
 #define M98088_PWRSV                    (1<<0)
 
+/* M98088_REG_4E_BIAS_CNTL */
+#define M98088_REG_4E_BIAS_CNTL_JDWK        (1<<1)
+
+/* M98088_REG_4B_CFG_JACKDET */
+#define M98088_REG_4B_CFG_JACKDET_JDETEN    (1<<7)
+
+/* M98088_REG_0F_IRQ_ENABLE */
+#define M98088_REG_0F_IRQ_ENABLE_IJDET      (1<<1)
+
+/* M98088_REG_02_JACK_STAUS */
+#define M98088_REG_02_JACK_STAUS_JKSNS_7    (1<<7)
+#define M98088_REG_02_JACK_STAUS_JKSNS_6    (1<<6)
+
+int max98088_headset_detect(struct snd_soc_codec *codec,
+		struct snd_soc_jack *jack);
+
 /* Line inputs */
 #define LINE_INA  0
 #define LINE_INB  1

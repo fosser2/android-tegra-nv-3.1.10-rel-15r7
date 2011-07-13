@@ -29,6 +29,7 @@
 #include <linux/slab.h>
 #include <asm/div64.h>
 #include <sound/max98088.h>
+#include <sound/jack.h>
 #include "max98088.h"
 
 static struct snd_soc_codec *max98088_codec;
@@ -62,6 +63,7 @@ struct max98088_priv {
 	unsigned int mic1pre;
 	unsigned int mic2pre;
 	unsigned int extmic_mode;
+	struct snd_soc_jack *headset_jack;
 };
 
 static const u8 max98088_reg[M98088_REG_CNT] = {
@@ -2061,6 +2063,15 @@ static int max98088_resume(struct platform_device *pdev)
 #define max98088_resume NULL
 #endif
 
+int max98088_headset_detect(struct snd_soc_codec *codec,
+		struct snd_soc_jack *jack)
+{
+	struct max98088_priv *max98088 = snd_soc_codec_get_drvdata(codec);
+	max98088->headset_jack = jack;
+	return 0;
+}
+EXPORT_SYMBOL_GPL(max98088_headset_detect);
+
 static int max98088_probe(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
@@ -2145,6 +2156,22 @@ static int max98088_probe(struct platform_device *pdev)
 	snd_soc_write(codec, M98088_REG_1E_DAI2_IOCFG,
 		M98088_S2NORMAL|M98088_SDATA);
 
+	/* Enable Interrupts for Headphone and Headset Detection */
+
+	/* Set JDWK to 0 so as to detect both Headphone and Headset */
+	snd_soc_update_bits(codec, M98088_REG_4E_BIAS_CNTL,
+		M98088_REG_4E_BIAS_CNTL_JDWK, 0);
+
+	/* Enable the Jack Detection Circuitry */
+	snd_soc_update_bits(codec, M98088_REG_4B_CFG_JACKDET,
+		M98088_REG_4B_CFG_JACKDET_JDETEN,
+		M98088_REG_4B_CFG_JACKDET_JDETEN);
+
+	/* Enable the Jack Detect Interrupt */
+	snd_soc_update_bits(codec, M98088_REG_0F_IRQ_ENABLE,
+		M98088_REG_0F_IRQ_ENABLE_IJDET,
+		M98088_REG_0F_IRQ_ENABLE_IJDET);
+
 	max98088_handle_pdata(codec);
 
 	max98088_add_widgets(codec);
@@ -2156,6 +2183,54 @@ err_access:
 	snd_soc_dapm_free(socdev);
 pcm_err:
 	return ret;
+}
+
+static irqreturn_t max98088_jack_handler(int irq, void *data)
+{
+	struct snd_soc_codec *codec = data;
+	struct max98088_priv *max98088 = snd_soc_codec_get_drvdata(codec);
+	unsigned int value;
+	unsigned int jksns_7;
+	unsigned int jksns_6;
+
+	/* Disable the Jack Detect Interrupt by reading the irq enable
+	   and status registers*/
+	value = snd_soc_read(codec, M98088_REG_0F_IRQ_ENABLE);
+	value = snd_soc_read(codec, M98088_REG_00_IRQ_STATUS);
+
+
+	/* Read the Jack Status Register*/
+	value = snd_soc_read(codec, M98088_REG_02_JACK_STAUS);
+
+	if (value & M98088_REG_02_JACK_STAUS_JKSNS_7)
+		jksns_7 = 1;
+	else
+		jksns_7 = 0;
+
+	if (value & M98088_REG_02_JACK_STAUS_JKSNS_6)
+		jksns_6 = 1;
+	else
+		jksns_6 = 0;
+
+	/* No Headphone or Headset*/
+	if ((jksns_7 == 1) && (jksns_6 == 1)) {
+		snd_soc_jack_report(max98088->headset_jack,
+				SND_JACK_NO_TYPE_SPECIFIED, SND_JACK_HEADSET);
+	}
+
+	/* Headphone Detected */
+	if ((jksns_7 == 0) && (jksns_6 == 0)) {
+		snd_soc_jack_report(max98088->headset_jack,
+				SND_JACK_HEADPHONE, SND_JACK_HEADSET);
+	}
+
+	/* Headset Detected */
+	if ((jksns_7 == 0) && (jksns_6 == 1)) {
+		snd_soc_jack_report(max98088->headset_jack,
+				SND_JACK_HEADSET, SND_JACK_HEADSET);
+	}
+
+	return IRQ_HANDLED;
 }
 
 static int max98088_remove(struct platform_device *pdev)
@@ -2226,6 +2301,18 @@ static int max98088_i2c_probe(struct i2c_client *i2c,
 	codec->reg_cache_size = M98088_REG_CNT;
 	codec->reg_cache = &max98088->reg_cache;
 	codec->volatile_register = max98088_volatile_register;
+
+	if (i2c->irq) {
+		/* audio interrupt */
+		ret = request_threaded_irq(i2c->irq, NULL,
+				max98088_jack_handler,
+				IRQF_TRIGGER_FALLING,
+				"max98088", codec);
+		if (ret) {
+			dev_err(codec->dev, "Failed to request IRQ: %d\n", ret);
+			goto err_codec;
+		}
+	}
 
 	/* power on device */
 	max98088_codec = codec;

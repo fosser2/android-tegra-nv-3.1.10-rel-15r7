@@ -23,6 +23,7 @@
 #include <linux/gpio.h>
 #include "tegra_soc.h"
 #include "../codecs/max98088.h"
+#include <sound/jack.h>
 
 static struct platform_device *tegra_snd_device;
 
@@ -31,6 +32,35 @@ extern struct snd_soc_dai tegra_spdif_dai;
 extern struct snd_soc_dai tegra_generic_codec_dai[];
 extern struct snd_soc_platform tegra_soc_platform;
 extern struct wired_jack_conf tegra_wired_jack_conf;
+
+static struct snd_soc_jack *max98088_jack;
+
+/* These values are copied from WiredAccessoryObserver */
+enum headset_state {
+	BIT_NO_HEADSET = 0,
+	BIT_HEADSET = (1 << 0),
+	BIT_HEADSET_NO_MIC = (1 << 1),
+};
+
+static int headset_switch_notify(struct notifier_block *self,
+				unsigned long action, void *dev)
+{
+
+	if (action == SND_JACK_NO_TYPE_SPECIFIED)
+		tegra_switch_set_state(BIT_NO_HEADSET);
+
+	if (action == SND_JACK_HEADPHONE)
+		tegra_switch_set_state(BIT_HEADSET_NO_MIC);
+
+	if (action == SND_JACK_HEADSET)
+		tegra_switch_set_state(BIT_HEADSET);
+
+	return NOTIFY_OK;
+}
+
+static struct notifier_block headset_switch_nb = {
+	.notifier_call = headset_switch_notify,
+};
 
 void speaker_settings(struct snd_soc_codec *codec, int value)
 {
@@ -366,6 +396,7 @@ static int tegra_codec_init(struct snd_soc_codec *codec)
 {
 	struct tegra_audio_data *audio_data = codec->socdev->codec_data;
 	int err = 0;
+	int ret = 0;
 
 	if (!audio_data->init_done) {
 
@@ -373,14 +404,14 @@ static int tegra_codec_init(struct snd_soc_codec *codec)
 		if (err) {
 			pr_err(" Failed get dap mclk\n");
 			err = -ENODEV;
-			goto wm8903_init_fail;
+			goto max98088_init_fail;
 		}
 
 		err = tegra_das_enable_mclk();
 		if (err) {
 			pr_err(" Failed to enable dap mclk\n");
 			err = -ENODEV;
-			goto wm8903_init_fail;
+			goto max98088_init_fail;
 		}
 
 		/* Add tegra specific widgets */
@@ -395,7 +426,7 @@ static int tegra_codec_init(struct snd_soc_codec *codec)
 		err = tegra_jack_init(codec);
 		if (err < 0) {
 			pr_err("Failed in jack init\n");
-			goto wm8903_init_fail;
+			goto max98088_init_fail;
 		}
 
 		/* Default to OFF */
@@ -404,7 +435,32 @@ static int tegra_codec_init(struct snd_soc_codec *codec)
 		err = tegra_controls_init(codec);
 		if (err < 0) {
 			pr_err("Failed in controls init\n");
-			goto wm8903_init_fail;
+			goto max98088_init_fail;
+		}
+
+		if (!max98088_jack) {
+
+			/* Add jack detection */
+
+			max98088_jack = kzalloc(sizeof(*max98088_jack),
+						GFP_KERNEL);
+			if (!max98088_jack) {
+				pr_err("failed to allocate max98088-jack\n");
+				ret = -ENOMEM;
+				goto max98088_init_fail;
+			}
+
+			ret = snd_soc_jack_new(codec->socdev->card,
+					"Headset Jack",
+					SND_JACK_HEADSET,
+					max98088_jack);
+			if (ret < 0)
+				goto failed;
+
+			snd_soc_jack_notifier_register(max98088_jack,
+					&headset_switch_nb);
+
+			max98088_headset_detect(codec, max98088_jack);
 		}
 
 		audio_data->codec = codec;
@@ -415,8 +471,9 @@ static int tegra_codec_init(struct snd_soc_codec *codec)
 
 	return err;
 
-wm8903_init_fail:
-
+failed:
+	kfree(max98088_jack);
+max98088_init_fail:
 	tegra_das_disable_mclk();
 	tegra_das_close();
 	return err;
@@ -519,6 +576,8 @@ static void __exit tegra_exit(void)
 {
 	tegra_jack_exit();
 	platform_device_unregister(tegra_snd_device);
+	kfree(max98088_jack);
+	max98088_jack = NULL;
 }
 
 module_init(tegra_init);
