@@ -298,7 +298,7 @@ int tegra_cluster_control(unsigned int us, unsigned int flags)
 	if (flags & TEGRA_POWER_CLUSTER_IMMEDIATE)
 		us = 0;
 
-	if (current_cluster != target_cluster) {
+	if ((current_cluster != target_cluster) && (!timekeeping_suspended)) {
 		ktime_t now = ktime_get();
 		if (target_cluster == TEGRA_POWER_CLUSTER_G) {
 			s64 t = ktime_to_us(ktime_sub(now, last_g2lp));
