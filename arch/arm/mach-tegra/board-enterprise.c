@@ -327,6 +327,7 @@ static struct i2c_board_info __initdata enterprise_i2c_bus1_board_info[] = {
 	{
 		I2C_BOARD_INFO("max98088", 0x10),
 		.platform_data = &max98088_pdata,
+		.irq = TEGRA_GPIO_TO_IRQ(TEGRA_GPIO_PW3),
 	},
 };
 
@@ -415,6 +416,10 @@ static void enterprise_audio_init(void)
 #if defined(CONFIG_SND_HDA_TEGRA)
 	platform_device_register(&tegra_hda_device);
 #endif
+
+	gpio_request(TEGRA_GPIO_PW3, "audio_int");
+	gpio_direction_input(TEGRA_GPIO_PW3);
+	tegra_gpio_enable(TEGRA_GPIO_PW3);
 
 	tegra_i2s_device0.dev.platform_data = &tegra_i2s_pdata[0];
 	platform_device_register(&tegra_i2s_device0);
