@@ -865,18 +865,18 @@ static const struct soc_enum rsidetone_enum =
 static const struct snd_kcontrol_new wm8903_snd_controls[] = {
 
 /* Input PGAs - No TLV since the scale depends on PGA mode */
-SOC_SINGLE("Left Input PGA Switch", WM8903_ANALOGUE_LEFT_INPUT_0,
+SOC_SINGLE("Left Input PGA Capture Switch", WM8903_ANALOGUE_LEFT_INPUT_0,
 	   7, 1, 1),
-SOC_SINGLE("Left Input PGA Volume", WM8903_ANALOGUE_LEFT_INPUT_0,
+SOC_SINGLE("Left Input PGA Capture Volume", WM8903_ANALOGUE_LEFT_INPUT_0,
 	   0, 31, 0),
-SOC_SINGLE("Left Input PGA Common Mode Switch", WM8903_ANALOGUE_LEFT_INPUT_1,
+SOC_SINGLE("Left Input PGA Capture Common Mode Switch", WM8903_ANALOGUE_LEFT_INPUT_1,
 	   6, 1, 0),
 
-SOC_SINGLE("Right Input PGA Switch", WM8903_ANALOGUE_RIGHT_INPUT_0,
+SOC_SINGLE("Right Input PGA Capture Switch", WM8903_ANALOGUE_RIGHT_INPUT_0,
 	   7, 1, 1),
-SOC_SINGLE("Right Input PGA Volume", WM8903_ANALOGUE_RIGHT_INPUT_0,
+SOC_SINGLE("Right Input PGA Capture Volume", WM8903_ANALOGUE_RIGHT_INPUT_0,
 	   0, 31, 0),
-SOC_SINGLE("Right Input PGA Common Mode Switch", WM8903_ANALOGUE_RIGHT_INPUT_1,
+SOC_SINGLE("Right Input PGA Capture Common Mode Switch", WM8903_ANALOGUE_RIGHT_INPUT_1,
 	   6, 1, 0),
 
 /* ADCs */
