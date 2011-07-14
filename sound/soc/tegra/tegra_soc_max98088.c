@@ -74,54 +74,39 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
 	int sys_clk;
 	int err;
-
-#if 0
-#ifdef CONFIG_ARCH_TEGRA_2x_SOC
-	int dai_flag = 0;
+	int dai_flag = SND_SOC_DAIFMT_NB_NF;
 	enum dac_dap_data_format data_fmt;
+	struct audio_dev_property dev_prop;
 
+#ifdef CONFIG_ARCH_TEGRA_2x_SOC
 	if (tegra_das_is_port_master(tegra_audio_codec_type_hifi))
+#else
+    if(tegra_das_is_device_master(tegra_audio_codec_type_hifi))
+#endif
 		dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
 	else
-#endif
 		dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
+
 
 #ifdef CONFIG_ARCH_TEGRA_2x_SOC
 	data_fmt = tegra_das_get_codec_data_fmt(tegra_audio_codec_type_hifi);
-
+#else
+	tegra_das_get_device_property(tegra_audio_codec_type_hifi,&dev_prop);
+	data_fmt = dev_prop.dac_dap_data_comm_format;
+#endif
 	/* We are supporting DSP and I2s format for now */
 	if (data_fmt & dac_dap_data_format_dsp)
 		dai_flag |= SND_SOC_DAIFMT_DSP_A;
 	else
-#endif
 		dai_flag |= SND_SOC_DAIFMT_I2S;
 
-	err = snd_soc_dai_set_fmt(codec_dai, dai_flag);
+	err = snd_soc_dai_set_fmt(codec_dai,dai_flag);
 	if (err < 0) {
 		pr_err("codec_dai fmt not set\n");
 		return err;
 	}
 
-	err = snd_soc_dai_set_fmt(cpu_dai, dai_flag);
-	if (err < 0) {
-		pr_err("cpu_dai fmt not set\n");
-		return err;
-	}
-#endif
-
-	err = snd_soc_dai_set_fmt(codec_dai,
-					SND_SOC_DAIFMT_I2S | \
-					SND_SOC_DAIFMT_NB_NF | \
-					SND_SOC_DAIFMT_CBS_CFS);
-	if (err < 0) {
-		pr_err("codec_dai fmt not set\n");
-		return err;
-	}
-
-	err = snd_soc_dai_set_fmt(cpu_dai,
-					SND_SOC_DAIFMT_I2S | \
-					SND_SOC_DAIFMT_NB_NF | \
-					SND_SOC_DAIFMT_CBS_CFS);
+	err = snd_soc_dai_set_fmt(cpu_dai,dai_flag);
 	if (err < 0) {
 		pr_err("cpu_dai fmt not set\n");
 		return err;
@@ -153,24 +138,29 @@ static int tegra_voice_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
 	int dai_flag = 0, sys_clk;
 	int err;
+	enum dac_dap_data_format data_fmt;
+	struct audio_dev_property dev_prop;
 
 #ifdef CONFIG_ARCH_TEGRA_2x_SOC
-	enum dac_dap_data_format data_fmt;
-
 	if (tegra_das_is_port_master(tegra_audio_codec_type_bluetooth))
+#else
+	if(tegra_das_is_device_master(tegra_audio_codec_type_bluetooth))
+#endif
 		dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
 	else
-#endif
 		dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
+
 
 #ifdef CONFIG_ARCH_TEGRA_2x_SOC
 	data_fmt = tegra_das_get_codec_data_fmt(tegra_audio_codec_type_bluetooth);
-
+#else
+	tegra_das_get_device_property(tegra_audio_codec_type_bluetooth,&dev_prop);
+	data_fmt = dev_prop.dac_dap_data_comm_format;
+#endif
 	/* We are supporting DSP and I2s format for now */
 	if (data_fmt & dac_dap_data_format_i2s)
 		dai_flag |= SND_SOC_DAIFMT_I2S;
 	else
-#endif
 		dai_flag |= SND_SOC_DAIFMT_DSP_A;
 
 	err = snd_soc_dai_set_fmt(codec_dai, dai_flag);
@@ -390,9 +380,9 @@ static const struct snd_soc_dapm_widget tegra_dapm_widgets[] = {
 	SND_SOC_DAPM_HP("Headset Out", NULL),
 	SND_SOC_DAPM_MIC("Headset In", NULL),
 	SND_SOC_DAPM_SPK("Lineout", NULL),
-	SND_SOC_DAPM_SPK("Int Spk", tegra_dapm_event_int_spk),
-	SND_SOC_DAPM_MIC("Ext Mic", tegra_dapm_event_ext_mic),
-	SND_SOC_DAPM_MIC("Int Mic", tegra_dapm_event_int_mic),
+	SND_SOC_DAPM_SPK("Int Spk", NULL),
+	SND_SOC_DAPM_MIC("Ext Mic", NULL),
+	SND_SOC_DAPM_MIC("Int Mic", NULL),
 	SND_SOC_DAPM_LINE("Linein", NULL),
 };
 
@@ -404,10 +394,15 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	/* Headset connected to HPL and HPR */
 	{"Headset Out", NULL, "HPL"},
 	{"Headset Out", NULL, "HPR"},
+	{"MIC2", NULL, "Headset In"},
 
 	/* Speaker connected to SPKL and SPKR */
 	{"Int Spk", NULL, "SPKL"},
 	{"Int Spk", NULL, "SPKR"},
+
+	/* internal mic */
+	{"MIC1", NULL, "Int Mic"},
+	{"MIC1", NULL, "Int Mic"},
 
 	/*
 	 * To be complete, add remained in/out devices such as built-in mic

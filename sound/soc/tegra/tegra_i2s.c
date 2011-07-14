@@ -252,6 +252,8 @@ static int tegra_i2s_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 static int tegra_i2s_set_dai_sysclk(struct snd_soc_dai *cpu_dai,
 					int clk_id, unsigned int freq, int dir)
 {
+	struct tegra_i2s_info *info = cpu_dai->private_data;
+	am_clock_set_rate(&info->i2sdev_info, freq);
 	return 0;
 }
 

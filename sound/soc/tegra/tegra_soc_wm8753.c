@@ -157,23 +157,28 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 	int dai_flag = 0, sys_clk;
 	unsigned int value;
 	int err;
+	enum dac_dap_data_format data_fmt;
+	struct audio_dev_property dev_prop;
 
 #ifdef CONFIG_ARCH_TEGRA_2x_SOC
-	enum dac_dap_data_format data_fmt;
 	if (tegra_das_is_port_master(tegra_audio_codec_type_hifi))
+#else
+	if(tegra_das_is_device_master(tegra_audio_codec_type_hifi))
+#endif
 		dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
 	else
-#endif
 		dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
 
 #ifdef CONFIG_ARCH_TEGRA_2x_SOC
 	data_fmt = tegra_das_get_codec_data_fmt(tegra_audio_codec_type_hifi);
-
+#else
+	tegra_das_get_device_property(tegra_audio_codec_type_hifi,&dev_prop);
+	data_fmt = dev_prop.dac_dap_data_comm_format;
+#endif
 	/* We are supporting DSP and I2s format for now */
 	if (data_fmt & dac_dap_data_format_dsp)
 		dai_flag |= SND_SOC_DAIFMT_DSP_A;
 	else
-#endif
 		dai_flag |= SND_SOC_DAIFMT_I2S;
 
 	err = snd_soc_dai_set_fmt(codec_dai, dai_flag);
@@ -323,24 +328,28 @@ static int tegra_voice_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
 	int dai_flag = 0, sys_clk;
 	int err;
+	enum dac_dap_data_format data_fmt;
+	struct audio_dev_property dev_prop;
 
 #ifdef CONFIG_ARCH_TEGRA_2x_SOC
-	enum dac_dap_data_format data_fmt;
-
 	if (tegra_das_is_port_master(tegra_audio_codec_type_bluetooth))
+#else
+	if(tegra_das_is_device_master(tegra_audio_codec_type_bluetooth))
+#endif
 		dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
 	else
-#endif
 		dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
 
 #ifdef CONFIG_ARCH_TEGRA_2x_SOC
 	data_fmt = tegra_das_get_codec_data_fmt(tegra_audio_codec_type_bluetooth);
-
+#else
+	tegra_das_get_device_property(tegra_audio_codec_type_bluetooth,&dev_prop);
+	data_fmt = dev_prop.dac_dap_data_comm_format;
+#endif
 	/* We are supporting DSP and I2s format for now */
 	if (data_fmt & dac_dap_data_format_i2s)
 		dai_flag |= SND_SOC_DAIFMT_I2S;
 	else
-#endif
 		dai_flag |= SND_SOC_DAIFMT_DSP_A;
 
 	err = snd_soc_dai_set_fmt(codec_dai, dai_flag);

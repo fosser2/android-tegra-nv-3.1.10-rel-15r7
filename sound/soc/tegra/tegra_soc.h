@@ -69,9 +69,9 @@
 #define STATE_EXITED	3
 #define STATE_INVALID	4
 
-#define I2S1_CLK 		11289600
+#define I2S1_CLK 		12288000
 #define I2S2_CLK 		2000000
-#define TEGRA_DEFAULT_SR	44100
+#define TEGRA_DEFAULT_SR	48000
 #define TEGRA_INT_I2SLOOPBACK_ON	1
 #define TEGRA_INT_I2SLOOPBACK_OFF	0
 
@@ -123,6 +123,7 @@ struct tegra_audio_data {
 	int codec_con;
 };
 
+
 /* i2s controller */
 struct tegra_i2s_info {
 	struct platform_device *pdev;
@@ -134,6 +135,7 @@ struct tegra_i2s_info {
 	aud_dev_info  i2sdev_info;
 	struct das_regs_cache das_regs;
 };
+
 
 void tegra_ext_control(struct snd_soc_codec *codec, int new_con);
 int tegra_controls_init(struct snd_soc_codec *codec);
