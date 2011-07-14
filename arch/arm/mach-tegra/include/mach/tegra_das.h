@@ -234,9 +234,22 @@ int tegra_das_get_connection(void);
 bool tegra_das_is_port_master(enum tegra_audio_codec_type codec_type);
 
 /*
+ * Function to query if certain device need to be
+ * configured as master for current das connection
+ */
+int tegra_das_is_device_master(enum tegra_audio_codec_type codec_type);
+
+
+/*
  * Function to get data format for certain codec for current das connection
  */
 int tegra_das_get_codec_data_fmt(enum tegra_audio_codec_type codec_type);
+
+/*
+ * Function to query device properties
+ */
+int tegra_das_get_device_property(enum tegra_audio_codec_type codec_type,
+	struct audio_dev_property *dev_prop);
 
 /*
  * Function to get dap Mclk handle

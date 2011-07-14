@@ -339,6 +339,7 @@ int tegra_das_is_device_master(enum tegra_audio_codec_type codec_type)
 	}
 	return -ENOENT;
 }
+EXPORT_SYMBOL_GPL(tegra_das_is_device_master);
 
 int tegra_das_get_device_i2s_port(enum tegra_audio_codec_type codec_type)
 {
@@ -373,6 +374,7 @@ int tegra_das_get_device_property(enum tegra_audio_codec_type codec_type,
 	}
 	return -ENOENT;
 }
+EXPORT_SYMBOL_GPL(tegra_das_get_device_property);
 
 int default_record_connection(aud_dev_info *devinfo)
 {

@@ -340,15 +340,14 @@ int i2s_set_bit_format(int ifc, unsigned fmt)
 		(fmt == AUDIO_FRAME_FORMAT_RJM) ||
 		(fmt == AUDIO_FRAME_FORMAT_LJM)) {
 		val |= I2S_CTRL_FRAME_FORMAT_LRCK;
+		i2s_set_edge_control(ifc, 0);
 	} else { /*Dsp,Pcm,Tdm,Nw*/
 		val |= I2S_CTRL_FRAME_FORMAT_FSYNC;
-
 		i2s_set_fsync_width(ifc, 0);
 		i2s_set_edge_control(ifc, 1);
 		i2s_set_slot_control(ifc, AUDIO_TX_MODE, 0, 0x1);
 		i2s_set_slot_control(ifc, AUDIO_RX_MODE, 0, 0x1);
 	}
-
 	i2s_writel(ifc, val, I2S_CTRL_0);
 	return 0;
 }
@@ -950,7 +949,39 @@ int i2s_clock_enable(int ifc, int fifo_mode)
 		}
 		info->clk_refs++;
 	} else {
-
+		if (!info->clk_refs) {
+			if (clk_enable(info->i2sprop.i2s_clk))
+			{
+				err = PTR_ERR(info->i2sprop.i2s_clk);
+				return err;
+			}
+			if (info->i2sprop.i2s_sync_clk) {
+				if (clk_enable(info->i2sprop.i2s_sync_clk))
+				{
+					err = PTR_ERR(info->i2sprop.i2s_sync_clk);
+					I2S_DEBUG_PRINT("i2s enable i2s_sync_clk failed \n");
+					return err;
+				}
+				clk_set_rate(info->i2sprop.i2s_sync_clk,info->i2sprop.clk_rate);
+			}
+			if (info->i2sprop.audio_clk) {
+				if (clk_enable(info->i2sprop.audio_clk))
+				{
+					err = PTR_ERR(info->i2sprop.audio_clk);
+					I2S_DEBUG_PRINT("i2s enable audio_clk failed \n");
+					return err;
+				}
+			}
+			if (info->i2sprop.audio2x_clk) {
+				if (clk_enable(info->i2sprop.audio2x_clk))
+				{
+					err = PTR_ERR(info->i2sprop.audio2x_clk);
+					I2S_DEBUG_PRINT("i2s enable audio2x_clk failed \n");
+					return err;
+				}
+				clk_set_rate(info->i2sprop.audio2x_clk,info->i2sprop.clk_rate);
+			}
+		}
 		info->clk_refs++;
 	}
 
@@ -980,7 +1011,8 @@ int i2s_clock_disable(int ifc, int fifo_mode)
 			info->clk_refs--;
 
 			if (info->clk_refs == 0) {
-
+				clk_disable(info->i2sprop.i2s_clk);
+				info->clk_refs = 0;
 				if (info->i2sprop.i2s_sync_clk) {
 					clk_disable(info->i2sprop.i2s_sync_clk);
 				}
@@ -1015,9 +1047,16 @@ int i2s_clock_set_parent(int ifc, int mode, int parent)
 	struct clk *pll_a_out0_clk = clk_get_sys(NULL, "pll_a_out0");
 	struct i2s_controller_info *info = &i2s_cont_info[ifc];
 
-	if (info->i2sprop.i2s_clk)
+	if (info->i2sprop.i2s_clk &&
+		(info->i2sprop.master_mode == true)) {
 		clk_set_parent(info->i2sprop.i2s_clk,
 			pll_a_out0_clk);
+	} else {
+		clk_set_parent(info->i2sprop.audio_clk,
+			info->i2sprop.i2s_sync_clk);
+		clk_set_parent(info->i2sprop.i2s_clk,
+		info->i2sprop.audio2x_clk);
+	}
 
 	return 0;
 }
