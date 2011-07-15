@@ -224,6 +224,9 @@
 #define PMC_BLINK_TIMER_DATA_OFF_SHIFT	16
 #define PMC_BLINK_TIMER_DATA_OFF_MASK	0xffff
 
+#define PMC_PLLP_WB0_OVERRIDE_0		0xf8
+#define PMC_PLLP_WB0_OVERRIDE_0_PLLM_ENABLE		(1 << 12)
+
 #define UTMIP_PLL_CFG2					0x488
 #define UTMIP_PLL_CFG2_STABLE_COUNT(x)			(((x) & 0xfff) << 6)
 #define UTMIP_PLL_CFG2_ACTIVE_DLY_COUNT(x)		(((x) & 0x3f) << 18)
@@ -1351,6 +1354,12 @@ static int tegra3_pll_clk_enable(struct clk *c)
 		clk_writel(val, c->reg + PLL_MISC(c) + PLL_BASE);
 	}
 
+	if (c->flags & PLLM) {
+		val = pmc_readl(PMC_PLLP_WB0_OVERRIDE_0);
+		val |= PMC_PLLP_WB0_OVERRIDE_0_PLLM_ENABLE;
+		pmc_writel(val, PMC_PLLP_WB0_OVERRIDE_0);
+	}
+
 	tegra3_pll_clk_wait_for_lock(c, c->reg + PLL_BASE, PLL_BASE_LOCK);
 
 	return 0;
@@ -1369,6 +1378,11 @@ static void tegra3_pll_clk_disable(struct clk *c)
 		val = clk_readl(c->reg + PLL_MISC(c) + PLL_BASE);
 		val &= ~PLLD_MISC_CLKENABLE;
 		clk_writel(val, c->reg + PLL_MISC(c) + PLL_BASE);
+	}
+	if (c->flags & PLLM) {
+		val = pmc_readl(PMC_PLLP_WB0_OVERRIDE_0);
+		val &= ~PMC_PLLP_WB0_OVERRIDE_0_PLLM_ENABLE;
+		pmc_writel(val, PMC_PLLP_WB0_OVERRIDE_0);
 	}
 }
 
@@ -2308,7 +2322,7 @@ static int tegra3_emc_clk_set_rate(struct clk *c, unsigned long rate)
 		return ret;
 
 	if (p != c->parent) {
-		if(c->refcnt && c->parent)
+		if (c->refcnt && c->parent)
 			clk_disable(c->parent);
 		clk_reparent(c, p);
 	}

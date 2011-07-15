@@ -583,12 +583,18 @@ powerdown_l2_done:
 
 	/* disable PLLM via PMC in LP0 and LP1 states */
 	tst	sp, #TEGRA_POWER_EFFECT_LP0
-	bne	powerdown_pll_pcx
+	bne	enable_pllm_lp0
 	ldr	r0, [r4, #PMC_PLLP_WB0_OVERRIDE]
 	bic	r0, r0, #(1<<12)
 	str	r0, [r4, #PMC_PLLP_WB0_OVERRIDE]
-powerdown_pll_pcx:
+	b	powerdown_pll_pcx
 
+enable_pllm_lp0:
+	ldr	r0, [r4, #PMC_PLLP_WB0_OVERRIDE]
+	orr	r0, r0, #((1<<12) | (1 << 11))
+	str	r0, [r4, #PMC_PLLP_WB0_OVERRIDE]
+
+powerdown_pll_pcx:
 	/* disable PLLP, PLLA, PLLC, and PLLX in LP0 and LP1 states */
 	ldr	r0, [r5, #CLK_RESET_PLLP_BASE]
 	bic	r0, r0, #(1<<30)
