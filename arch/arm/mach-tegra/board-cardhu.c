@@ -37,7 +37,7 @@
 #include <linux/spi/spi.h>
 #include <linux/tegra_uart.h>
 #include <linux/memblock.h>
-
+#include <linux/spi-tegra.h>
 #include <mach/clk.h>
 #include <mach/iomap.h>
 #include <mach/irqs.h>
@@ -593,6 +593,45 @@ static void __init cardhu_uart_init(void)
 				ARRAY_SIZE(cardhu_uart_devices));
 }
 
+static struct platform_device *cardhu_spi_devices[] __initdata = {
+	&tegra_spi_device4,
+};
+
+struct spi_clk_parent spi_parent_clk[] = {
+	[0] = {.name = "pll_p"},
+	[1] = {.name = "pll_m"},
+	[2] = {.name = "clk_m"},
+};
+
+static struct tegra_spi_platform_data cardhu_spi_pdata = {
+	.is_dma_based		= true,
+	.max_dma_buffer		= (16 * 1024),
+	.is_clkon_always	= false,
+	.max_rate		= 100000000,
+};
+
+static void __init cardhu_spi_init(void)
+{
+	int i;
+	struct clk *c;
+
+	for (i = 0; i < ARRAY_SIZE(spi_parent_clk); ++i) {
+		c = tegra_get_clock_by_name(spi_parent_clk[i].name);
+		if (IS_ERR_OR_NULL(c)) {
+			pr_err("Not able to get the clock for %s\n",
+						spi_parent_clk[i].name);
+			continue;
+		}
+		spi_parent_clk[i].parent_clk = c;
+		spi_parent_clk[i].fixed_clk_rate = clk_get_rate(c);
+	}
+	cardhu_spi_pdata.parent_clk_list = spi_parent_clk;
+	cardhu_spi_pdata.parent_clk_count = ARRAY_SIZE(spi_parent_clk);
+	tegra_spi_device4.dev.platform_data = &cardhu_spi_pdata;
+	platform_add_devices(cardhu_spi_devices,
+				ARRAY_SIZE(cardhu_spi_devices));
+}
+
 #if defined(CONFIG_RTC_DRV_TEGRA)
 static struct resource tegra_rtc_resources[] = {
 	[0] = {
@@ -649,7 +688,6 @@ static struct platform_device *cardhu_devices[] __initdata = {
 	&tegra_avp_device,
 #endif
 	&tegra_camera,
-	&tegra_spi_device4,
 #if defined(CONFIG_CRYPTO_DEV_TEGRA_SE)
 	&tegra_se_device,
 #endif
@@ -864,6 +902,7 @@ static void __init tegra_cardhu_init(void)
 	tegra_clk_init_from_table(cardhu_clk_init_table);
 	cardhu_pinmux_init();
 	cardhu_i2c_init();
+	cardhu_spi_init();
 	cardhu_usb_init();
 #ifdef CONFIG_TEGRA_EDP_LIMITS
 	cardhu_edp_init();
