@@ -11,6 +11,7 @@ obj-y                                   += dvfs.o
 obj-$(CONFIG_ARCH_TEGRA_2x_SOC)         += tegra2_dvfs.o
 obj-$(CONFIG_ARCH_TEGRA_3x_SOC)         += tegra3_dvfs.o
 obj-$(CONFIG_ARCH_TEGRA_3x_SOC)         += latency_allowance.o
+obj-$(CONFIG_TEGRA_EDP_LIMITS)          += edp.o
 endif
 obj-$(CONFIG_ARCH_TEGRA_2x_SOC)         += timer-t2.o
 obj-$(CONFIG_ARCH_TEGRA_3x_SOC)         += timer-t3.o
