@@ -37,6 +37,8 @@
 #include <linux/spi/spi.h>
 #include <linux/tegra_uart.h>
 #include <linux/memblock.h>
+#include <linux/console.h>
+
 #include <mach/clk.h>
 #include <mach/iomap.h>
 #include <mach/irqs.h>
@@ -518,6 +520,18 @@ static void __init cardhu_uart_init(void)
 
 	platform_add_devices(cardhu_uart_devices,
 				ARRAY_SIZE(cardhu_uart_devices));
+}
+
+void debug_uart_suspend(void)
+{
+	if (console_suspend_enabled)
+		clk_disable(debug_uart_clk);
+}
+
+void debug_uart_resume(void)
+{
+	if (console_suspend_enabled)
+		clk_enable(debug_uart_clk);
 }
 
 #if defined(CONFIG_RTC_DRV_TEGRA)
