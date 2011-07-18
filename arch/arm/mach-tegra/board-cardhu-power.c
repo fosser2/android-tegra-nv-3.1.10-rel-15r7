@@ -903,13 +903,13 @@ int __init cardhu_gpio_switch_regulator_init(void)
 static void cardhu_board_suspend(int lp_state, enum suspend_stage stg)
 {
 	if ((lp_state == 1) && (stg == TEGRA_SUSPEND_BEFORE_CPU))
-		debug_uart_suspend();
+		tegra_console_uart_suspend();
 }
 
 static void cardhu_board_resume(int lp_state, enum resume_stage stg)
 {
 	if ((lp_state == 1) && (stg == TEGRA_RESUME_AFTER_CPU))
-		debug_uart_resume();
+		tegra_console_uart_resume();
 }
 
 static struct tegra_suspend_platform_data cardhu_suspend_data = {

@@ -202,6 +202,18 @@ static struct i2c_board_info __initdata ventana_regulators[] = {
 	},
 };
 
+static void ventana_board_suspend(int lp_state, enum suspend_stage stg)
+{
+	if ((lp_state == 1) && (stg == TEGRA_SUSPEND_BEFORE_CPU))
+		tegra_console_uart_suspend();
+}
+
+static void ventana_board_resume(int lp_state, enum resume_stage stg)
+{
+	if ((lp_state == 1) && (stg == TEGRA_RESUME_AFTER_CPU))
+		tegra_console_uart_resume();
+}
+
 static struct tegra_suspend_platform_data ventana_suspend_data = {
 	/*
 	 * Check power on time and crystal oscillator start time
@@ -219,6 +231,8 @@ static struct tegra_suspend_platform_data ventana_suspend_data = {
 	.wake_high	= 0,
 	.wake_low	= TEGRA_WAKE_GPIO_PV2 | TEGRA_WAKE_GPIO_PY6,
 	.wake_any	= 0,
+	.board_suspend = ventana_board_suspend,
+	.board_resume = ventana_board_resume,
 };
 
 int __init ventana_regulator_init(void)

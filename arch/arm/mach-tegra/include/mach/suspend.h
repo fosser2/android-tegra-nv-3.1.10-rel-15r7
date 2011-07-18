@@ -23,6 +23,8 @@
 #ifndef _MACH_TEGRA_SUSPEND_H_
 #define _MACH_TEGRA_SUSPEND_H_
 
+#include <mach/clk.h>
+
 enum tegra_suspend_mode {
 	TEGRA_SUSPEND_NONE = 0,
 	TEGRA_SUSPEND_LP2,	/* CPU voltage off */
@@ -109,5 +111,9 @@ extern void (*tegra_deep_sleep)(int);
 
 /* The debug channel uart base physical address */
 extern unsigned long  debug_uart_port_base;
+
+extern struct clk *debug_uart_clk;
+void tegra_console_uart_suspend(void);
+void tegra_console_uart_resume(void);
 
 #endif /* _MACH_TEGRA_SUSPEND_H_ */

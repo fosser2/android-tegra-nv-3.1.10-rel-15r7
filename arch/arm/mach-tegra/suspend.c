@@ -39,6 +39,7 @@
 #include <linux/serial_reg.h>
 #include <linux/seq_file.h>
 #include <linux/uaccess.h>
+#include <linux/console.h>
 
 #include <linux/regulator/machine.h>
 
@@ -820,6 +821,21 @@ static void tegra_debug_uart_resume(void)
 	writeb(uart_state[4], uart + UART_DLM * 4);
 
 	writeb(lcr, uart + UART_LCR * 4);
+}
+
+struct clk *debug_uart_clk = NULL;
+EXPORT_SYMBOL(debug_uart_clk);
+
+void tegra_console_uart_suspend(void)
+{
+	if (console_suspend_enabled && debug_uart_clk)
+		clk_disable(debug_uart_clk);
+}
+
+void tegra_console_uart_resume(void)
+{
+	if (console_suspend_enabled && debug_uart_clk)
+		clk_enable(debug_uart_clk);
 }
 
 #define MC_SECURITY_START	0x6c

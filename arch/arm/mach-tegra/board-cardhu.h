@@ -172,9 +172,6 @@ int cardhu_power_off_init(void);
 int cardhu_edp_init(void);
 int cardhu_pmon_init(void);
 
-void debug_uart_suspend(void);
-void debug_uart_resume(void);
-
 #define TOUCH_GPIO_IRQ_ATMEL_T9	TEGRA_GPIO_PH4
 #define TOUCH_GPIO_RST_ATMEL_T9	TEGRA_GPIO_PH6
 #define TOUCH_BUS_ATMEL_T9	1

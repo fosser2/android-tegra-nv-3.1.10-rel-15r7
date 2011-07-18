@@ -401,6 +401,18 @@ int __init enterprise_regulator_init(void)
 	return 0;
 }
 
+static void enterprise_board_suspend(int lp_state, enum suspend_stage stg)
+{
+	if ((lp_state == 1) && (stg == TEGRA_SUSPEND_BEFORE_CPU))
+		tegra_console_uart_suspend();
+}
+
+static void enterprise_board_resume(int lp_state, enum resume_stage stg)
+{
+	if ((lp_state == 1) && (stg == TEGRA_RESUME_AFTER_CPU))
+		tegra_console_uart_resume();
+}
+
 static struct tegra_suspend_platform_data enterprise_suspend_data = {
 	.cpu_timer	= 2000,
 	.cpu_off_timer	= 200,
@@ -414,6 +426,9 @@ static struct tegra_suspend_platform_data enterprise_suspend_data = {
 	.wake_high	= TEGRA_WAKE_RTC_ALARM,
 	.wake_low	= 0,
 	.wake_any	= TEGRA_WAKE_KBC_EVENT,
+	.board_suspend = enterprise_board_suspend,
+	.board_resume = enterprise_board_resume,
+
 };
 
 int __init enterprise_suspend_init(void)
