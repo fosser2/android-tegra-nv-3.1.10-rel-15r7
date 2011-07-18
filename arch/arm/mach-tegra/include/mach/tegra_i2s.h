@@ -52,6 +52,11 @@ struct tegra_i2s_property {
 	int fsync_width;	/* Fsync width in terms of bit clocks */
 	int highz_control;	/* Highz control */
 	int edge_control;	/* sample data on edge */
+	int rx_bit_offset;	/* Data offset to FSync for TDM mode */
+	int tx_bit_offset;  /* Data offset to FSync for TDM mode */
+	int tx_slot_enables; /* Number of slots enabled in the Fsync */
+	int rx_slot_enables; /* Number of slots enabled in the Fsync */
+	int tdm_bitsize;
 
 	struct clk *i2s_clk;
 	struct clk *i2s_sync_clk;
@@ -100,4 +105,5 @@ int i2s_clock_enable(int ifc, int fifo_mode);
 int i2s_close(int ifc);
 int i2s_clock_set_parent(int ifc, int mode, int parent);
 int i2s_clock_set_rate(int ifc, int mode, int rate);
+
 #endif /* __ARCH_ARM_MACH_TEGRA_I2S_H */

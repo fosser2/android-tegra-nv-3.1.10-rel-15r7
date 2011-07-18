@@ -217,6 +217,7 @@ int am_set_stream_format(aud_dev_info* devinfo, am_stream_format_info *format)
 		spdif_set_fifo_attention(dev_id,
 			devinfo->fifo_mode, format->buffersize);
 	}
+
 	return 0;
 }
 
@@ -257,6 +258,13 @@ int am_device_init(aud_dev_info* devinfo, void *dev_fmt, void  *strm_fmt)
 			i2sprop.audio_mode = dfmt->audiomode;
 			i2sprop.clk_rate = dfmt->clkrate;
 			i2sprop.fifo_fmt = dfmt->fifofmt;
+			i2sprop.total_slots  = dfmt->total_slots;
+			i2sprop.fsync_width  = dfmt->fsync_width;
+			i2sprop.rx_slot_enables = dfmt->rx_slot_enables;
+			i2sprop.tx_slot_enables = dfmt->tx_slot_enables;
+			i2sprop.rx_bit_offset = dfmt->rx_bit_offset;
+			i2sprop.tx_bit_offset = dfmt->tx_bit_offset;
+			i2sprop.tdm_bitsize = dfmt->tdm_bitsize;
 		}
 
 		return i2s_init(devinfo->dev_id, &i2sprop);
@@ -276,6 +284,7 @@ int am_device_init(aud_dev_info* devinfo, void *dev_fmt, void  *strm_fmt)
 				&spdifprop);
 		}
 	}
+
 	return 0;
 }
 

@@ -176,6 +176,17 @@ struct tegra_audio_platform_data {
 	int mask; /* enable tx and rx? */
 	bool stereo_capture; /* True if hardware supports stereo */
 	void *driver_data;
+
+	/* Below Fields are valid for TDM mode*/
+	bool tdm_enable;
+	int total_slots;
+	int rx_bit_offset;
+	int tx_bit_offset;
+	int fsync_width;
+	int rx_slot_enables;
+	int tx_slot_enables;
+	int tdm_bitsize;
+	unsigned int dap_port_num;
 };
 
 struct wired_jack_conf {

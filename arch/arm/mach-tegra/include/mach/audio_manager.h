@@ -46,6 +46,13 @@ typedef struct am_dev_format_info_{
 	int clkrate;
 	int fifofmt;
 	int loopmode;
+	int total_slots;
+	int fsync_width;
+	int tdm_bitsize;
+	int rx_bit_offset;
+	int tx_bit_offset;
+	int rx_slot_enables;
+	int tx_slot_enables;
 }am_dev_format_info;
 
 struct am_dev_fns {

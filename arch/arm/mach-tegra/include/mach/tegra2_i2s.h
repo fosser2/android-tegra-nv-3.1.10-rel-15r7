@@ -35,8 +35,8 @@
 #define I2S_I2S_FIFO_SCR_0		0x0c
 #define I2S_I2S_PCM_CTRL_0		0x10
 #define I2S_I2S_NW_CTRL_0		0x14
-#define I2S_I2S_TDM_CTRL_0		0x20
-#define I2S_I2S_TDM_TX_RX_CTRL_0	0x24
+#define I2S_TDM_CTRL_0		0x20
+#define I2S_TDM_TX_RX_CTRL_0	0x24
 #define I2S_I2S_FIFO1_0			0x40
 #define I2S_I2S_FIFO2_0			0x80
 
@@ -84,21 +84,21 @@
 #define I2S_FIFO_16_LSB 0
 #define I2S_FIFO_20_LSB 1
 #define I2S_FIFO_24_LSB 2
-#define I2S_FIFO_32     3
+#define I2S_FIFO_32	 3
 #define I2S_FIFO_PACKED 7
 #define I2S_FIFO_SHIFT  4
 
 #define I2S_I2S_CTRL_FIFO_FORMAT_MASK		(7<<4)
 #define I2S_I2S_CTRL_FIFO_FORMAT_16_LSB	\
-		    (I2S_FIFO_16_LSB << I2S_FIFO_SHIFT)
+			(I2S_FIFO_16_LSB << I2S_FIFO_SHIFT)
 #define I2S_I2S_CTRL_FIFO_FORMAT_20_LSB	\
-		    (I2S_FIFO_20_LSB << I2S_FIFO_SHIFT)
+			(I2S_FIFO_20_LSB << I2S_FIFO_SHIFT)
 #define I2S_I2S_CTRL_FIFO_FORMAT_24_LSB	\
-		    (I2S_FIFO_24_LSB << I2S_FIFO_SHIFT)
+			(I2S_FIFO_24_LSB << I2S_FIFO_SHIFT)
 #define I2S_I2S_CTRL_FIFO_FORMAT_32	\
-		    (I2S_FIFO_32 << I2S_FIFO_SHIFT)
+			(I2S_FIFO_32 << I2S_FIFO_SHIFT)
 #define I2S_I2S_CTRL_FIFO_FORMAT_PACKED	\
-		    (I2S_FIFO_PACKED << I2S_FIFO_SHIFT)
+			(I2S_FIFO_PACKED << I2S_FIFO_SHIFT)
 
 // Left/Right Control Polarity. 0= Left channel when LRCK is low,
 // Right channel  when LRCK is high, 1= vice versa
@@ -289,6 +289,39 @@
 
 #define I2S_I2S_PCM_CTRL_RCV_MODE			(1<<0)
 
+/*
+ * I2S_TDM_CTRL_0
+ */
+#define I2S_TDM_CTRL_TDM_EN				 (1<<31)
+#define I2S_TDM_CTRL_TX_MSB_LSB_MASK		(1<<25)
+#define I2S_TDM_CTRL_TX_MSB_LSB_SHIFT	   25
+#define I2S_TDM_CTRL_RX_MSB_LSB_MASK		(1<<24)
+#define I2S_TDM_CTRL_RX_MSB_LSB_SHIFT	   24
+#define I2S_TDM_CTRL_TDM_EDGE_CTRL_MASK	 (1<<22)
+#define I2S_TDM_CTRL_TDM_EDGE_CTRL_SHIFT	22
+#define I2S_TDM_CTRL_TOTAL_SLOTS_MASK	   (0x7<<18)
+#define I2S_TDM_CTRL_TOTAL_SLOTS_SHIFT	  18
+#define I2S_TDM_CTRL_TDM_BIT_SIZE_MASK	  (0x1f<<12)
+#define I2S_TDM_CTRL_TDM_BIT_SIZE_SHIFT	 12
+#define I2S_TDM_CTRL_RX_DATA_OFFSET_MASK	(0x3<<8)
+#define I2S_TDM_CTRL_RX_DATA_OFFSET_SHIFT   8
+#define I2S_TDM_CTRL_TX_DATA_OFFSET_MASK	(0x3<<6)
+#define I2S_TDM_CTRL_TX_DATA_OFFSET_SHIFT   6
+#define I2S_TDM_CTRL_FSYNC_WIDTH_MASK	   0x3f
+#define I2S_TDM_CTRL_FSYNC_WIDTH_SHIFT	  0
+
+/*
+ * I2S_TDM_TX_RX_CTRL_0
+ */
+#define I2S_TDM_TX_RX_CTRL_TDM_TX_EN				  (1<<31)
+#define I2S_TDM_TX_RX_CTRL_TDM_RX_EN				  (1<<29)
+#define I2S_TDM_TX_RX_CTRL_TDM_RX_SLOT_ENABLES_MASK   (0xff<<8)
+#define I2S_TDM_TX_RX_CTRL_TDM_RX_SLOT_ENABLES_SHIFT  8
+#define I2S_TDM_TX_RX_CTRL_TDM_TX_SLOT_ENABLES_MASK   (0xff<<0)
+#define I2S_TDM_TX_RX_CTRL_TDM_TX_SLOT_ENABLES_SHIFT  0
+#define I2S_TDM_TX_FIFO_BUSY			  (1<<30)
+#define I2S_TDM_RX_FIFO_BUSY			  (1<<28)
+
 
 /*
  * API
@@ -300,4 +333,20 @@ int i2s_set_pcm_mask_bits(int ifc, unsigned mask_bits, int tx);
 int i2s_set_pcm_fsync_width(int ifc, int fsync_long);
 int i2s_enable_pcm_mode(int ifc, int enable);
 int i2s_enable_fifos(int ifc, int on);
+
+/* I2S TDM APIs */
+
+int i2s_tdm_set_transfer(int ifc, int mode , int on);
+int i2s_tdm_set_fifo_attention(int ifc, int fifo_mode, int buffersize);
+u32 i2s_tdm_get_status(int ifc, int mode);
+int i2s_tdm_enable(int ifc);
+int i2s_tdm_set_msb_first(int ifc, int mode, int msb_first);
+int i2s_tdm_set_tdm_edge_ctrl_highz(int ifc, int highz);
+int i2s_tdm_set_total_slots(int ifc, int num_slots);
+int i2s_tdm_set_bit_size(int ifc, int bit_size);
+int i2s_tdm_set_data_offset(int ifc, int mode, int data_offset);
+int i2s_tdm_set_fsync_width(int ifc, int fsync_width);
+int i2s_tdm_set_slot_enables(int ifc, int mode, int slot_mask);
+int i2s_tdm_init(int ifc, struct tegra_i2s_property *pi2sprop);
+
 #endif /* __ARCH_ARM_MACH_TEGRA_I2S_H */
