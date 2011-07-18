@@ -32,6 +32,7 @@ struct tegra_i2s_channel_property {
 	int fifo_attn;		/* fifo attention */
 	int dma_ch;		/* dma channel being used */
 	int stream_index;	/* stream index being used */
+	int enable_refcnt;	/* enable ref count */
 };
 
 struct tegra_i2s_property {

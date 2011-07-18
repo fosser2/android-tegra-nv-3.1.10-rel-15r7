@@ -755,6 +755,7 @@ fail_audio_clock:
 int audio_apbif_set_acif(int ifc, int fifo_mode, struct audio_cif *cifInfo)
 {
 	struct apbif_channel_info *ch;
+	check_apbif_ifc(ifc, -EINVAL);
 	ch =  &apbif_channels[ifc];
 
 	if (fifo_mode == AUDIO_TX_MODE) {

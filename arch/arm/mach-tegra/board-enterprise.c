@@ -45,6 +45,7 @@
 #include <mach/i2s.h>
 #include <mach/spdif.h>
 #include <mach/audio.h>
+#include <mach/tegra_das.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 #include <mach/usb_phy.h>
@@ -378,8 +379,8 @@ static struct tegra_audio_platform_data tegra_i2s_pdata[] = {
 	[1] = {
 		.i2s_master	= true,
 		.dma_on		= true,  /* use dma by default */
-		.i2s_master_clk = 8000,
-		.dev_clk_rate	= 1024000,
+		.i2s_master_clk = 16000,
+		.dev_clk_rate	= 2048000,
 		.mode		= AUDIO_FRAME_FORMAT_DSP,
 		.fifo_fmt	= AUDIO_FIFO_NOP,
 		.bit_size	= AUDIO_BIT_SIZE_16,
@@ -389,8 +390,8 @@ static struct tegra_audio_platform_data tegra_i2s_pdata[] = {
 	[2] = {
 		.i2s_master	= true,
 		.dma_on		= true,  /* use dma by default */
-		.i2s_master_clk = 8000,
-		.dev_clk_rate	= 1024000,
+		.i2s_master_clk = 16000,
+		.dev_clk_rate	= 2048000,
 		.mode		= AUDIO_FRAME_FORMAT_DSP,
 		.fifo_fmt	= AUDIO_FIFO_NOP,
 		.bit_size	= AUDIO_BIT_SIZE_16,
@@ -401,15 +402,86 @@ static struct tegra_audio_platform_data tegra_i2s_pdata[] = {
 
 static struct tegra_audio_platform_data tegra_spdif_pdata = {
 	.dma_on = true,  /* use dma by default */
-	.dev_clk_rate = 5644800,
+	.dev_clk_rate = 6144000,
 	.mode = SPDIF_BIT_MODE_MODE16BIT,
 	.fifo_fmt = AUDIO_FIFO_PACK_16,
 };
 
 struct wired_jack_conf audio_wr_jack_conf = {
-	.hp_det_n = TEGRA_GPIO_PW2,
-	.en_mic_ext = TEGRA_GPIO_PX1,
-	.en_mic_int = TEGRA_GPIO_PX0,
+	.cdc_irq = TEGRA_GPIO_PW3,
+};
+
+struct tegra_das_platform_data tegra_das_pdata = {
+	.tegra_dap_port_info_table = {
+		/* I2S0 <--> Hifi codec */
+		[0] = {
+			.dac_port = tegra_das_port_i2s0,
+			.codec_type = tegra_audio_codec_type_hifi,
+			.device_property = {
+				.num_channels = 2,
+				.bits_per_sample = 16,
+				.rate = 48000,
+				.master = 0,
+				.lrck_high_left = false,
+				.dac_dap_data_comm_format =
+						dac_dap_data_format_i2s,
+			},
+		},
+		/* I2S1 <--> vdac Codec */
+		[1] = {
+			.dac_port = tegra_das_port_i2s1,
+			.codec_type = tegra_audio_codec_type_voice,
+			.device_property = {
+				.num_channels = 1,
+				.bits_per_sample = 16,
+				.rate = 16000,
+				.master = 0,
+				.lrck_high_left = false,
+				.dac_dap_data_comm_format =
+						dac_dap_data_format_dsp,
+			},
+		},
+		/* I2s2 <--> BB */
+		[2] = {
+			.dac_port = tegra_das_port_i2s2,
+			.codec_type = tegra_audio_codec_type_baseband,
+			.device_property = {
+				.num_channels = 1,
+				.bits_per_sample = 16,
+				.rate = 16000,
+				.master = 0,
+				.lrck_high_left = true,
+				.dac_dap_data_comm_format =
+					dac_dap_data_format_dsp,
+			},
+		},
+		/* I2s3 <--> BT */
+		[3] = {
+			.dac_port = tegra_das_port_i2s3,
+			.codec_type = tegra_audio_codec_type_bluetooth,
+			.device_property = {
+				.num_channels = 1,
+				.bits_per_sample = 16,
+				.rate = 8000,
+				.master = 0,
+				.lrck_high_left = false,
+				.dac_dap_data_comm_format =
+					dac_dap_data_format_dsp,
+			},
+		},
+		[4] = {
+			.dac_port = tegra_das_port_none,
+			.codec_type = tegra_audio_codec_type_none,
+			.device_property = {
+				.num_channels = 0,
+				.bits_per_sample = 0,
+				.rate = 0,
+				.master = 0,
+				.lrck_high_left = false,
+				.dac_dap_data_comm_format = 0,
+			},
+		},
+	},
 };
 
 static void enterprise_audio_init(void)
@@ -717,7 +789,6 @@ static void __init tegra_enterprise_init(void)
 	enterprise_panel_init();
 	enterprise_bt_rfkill();
 	enterprise_setup_bluesleep();
-	audio_wired_jack_init();
 	enterprise_emc_init();
 	enterprise_sensors_init();
 	enterprise_suspend_init();

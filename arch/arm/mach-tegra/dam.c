@@ -127,12 +127,14 @@
 /* FIXME: move this control to audio_manager later if needed */
 struct dam_context {
 	int		outsamplerate;
+	bool		ch_alloc[DAM_NUM_INPUT_CHANNELS];
 	bool		ch_inuse[DAM_NUM_INPUT_CHANNELS];
 	int		ch_insamplerate[DAM_NUM_INPUT_CHANNELS];
 	int		ctrlreg_cache[DAM_CTRL_REGINDEX];
-	struct clk 	*dam_clk;
-	int  		clk_refcnt;
+	struct clk	*dam_clk;
+	int		clk_refcnt;
 	int		dma_ch[dam_ch_maxnum];
+	int		in_use;
 };
 
 struct dam_context dam_cont_info[NR_DAM_IFC];
@@ -157,12 +159,11 @@ struct dam_src_step_table  step_table[] = {
 	{ 44100, 8000, 441 },
 	{ 48000, 8000, 6 },
 	{ 44100, 16000, 441 },
-	{ 48000, 16000, 3 },
+	{ 48000, 16000, 0 },
 };
 
 struct dam_module_context {
 	int refcnt;
-	bool inuse[NR_DAM_IFC];
 };
 
 static struct dam_module_context *dam_info = NULL;
@@ -188,7 +189,7 @@ void dam_ch1_set_gain(int ifc,int gain);
 static inline void dam_writel(int ifc, u32 val, u32 reg)
 {
 	__raw_writel(val, dam_base[ifc] + reg);
-	DAM_DEBUG_PRINT("dam write 0x%lx: %08x\n", dam_base[ifc] + reg, val);
+	DAM_DEBUG_PRINT("dam write 0x%p: %08x\n", dam_base[ifc] + reg, val);
 }
 
 static inline u32 dam_readl(int ifc, u32 reg)
@@ -234,7 +235,8 @@ void dam_enable(int ifc, int on, int chtype)
 	val = dam_readl(ifc, DAM_CTRL_0);
 
 	val &= ~DAM_CTRL_0_DAM_EN;
-	val |= on ? DAM_CTRL_0_DAM_EN : 0;
+	val |= ((ch->ch_inuse[dam_ch_in0] || ch->ch_inuse[dam_ch_in1])) ?
+		DAM_CTRL_0_DAM_EN : 0;
 
 	dam_writel(ifc, val, DAM_CTRL_0);
 }
@@ -488,9 +490,10 @@ void dam_restore_ctrl_registers(int ifc)
 
 int dam_suspend(int ifc)
 {
-	if (dam_info->inuse[ifc] == true) {
-		dam_save_ctrl_registers(ifc);
-	}
+	struct dam_context *ch;
+	ch = &dam_cont_info[ifc];
+
+	dam_save_ctrl_registers(ifc);
 
 	dam_disable_clock(ifc);
 
@@ -499,12 +502,12 @@ int dam_suspend(int ifc)
 
 int dam_resume(int ifc)
 {
+	struct dam_context *ch;
+	ch = &dam_cont_info[ifc];
 
 	dam_enable_clock(ifc);
 
-	if (dam_info->inuse[ifc] == true) {
-		dam_restore_ctrl_registers(ifc);
-	}
+	dam_restore_ctrl_registers(ifc);
 
 	return 0;
 }
@@ -541,7 +544,8 @@ void dam_disable_clock(int ifc)
 	}
 
 	audio_switch_disable_clock();
-	DAM_DEBUG_PRINT("%s clk cnt %d\n", __func__,  ch->clk_refcnt);
+	DAM_DEBUG_PRINT("%s dev%d clk cnt %d\n", __func__,
+					ifc, ch->clk_refcnt);
 }
 
 int dam_enable_clock(int ifc)
@@ -564,7 +568,8 @@ int dam_enable_clock(int ifc)
 
 	ch->clk_refcnt++;
 
-	DAM_DEBUG_PRINT(" %s clk cnt %d\n", __func__,  ch->clk_refcnt);
+	DAM_DEBUG_PRINT("%s dev%d clk cnt %d\n", __func__,
+				ifc, ch->clk_refcnt);
 	return err;
 
 fail_dam_clock:
@@ -583,6 +588,8 @@ int dam_set_acif(int ifc, int chtype, struct audio_cif *cifInfo)
 		reg_addr += DAM_AUDIOCIF_OUT_CTRL_0;
 		break;
 	case dam_ch_in0:
+		/*always Mono channel*/
+		cifInfo->client_channels = AUDIO_CHANNEL_1;
 		reg_addr += DAM_AUDIOCIF_CH0_CTRL_0;
 		break;
 	case dam_ch_in1:
@@ -599,29 +606,38 @@ int dam_set_acif(int ifc, int chtype, struct audio_cif *cifInfo)
 	return 0;
 }
 
-int dam_get_controller(void)
+int dam_get_controller(int chtype)
 {
 	int i = 0, err = 0;
+	struct dam_context *ch = NULL;
 
 	if (!dam_info)
 		return -ENOENT;
 
 	for (i = 0; i < NR_DAM_IFC; i++) {
-		if (dam_info->inuse[i] == false) {
+		ch =  &dam_cont_info[i];
+
+		if (ch->in_use == false) {
 
 			err = dam_enable_clock(i);
 			if (err) {
 				pr_err("unable to enable the dam channel\n");
 				return -ENOENT;
 			}
-			dam_info->inuse[i] = true;
+			ch->in_use = true;
+			ch->ch_alloc[chtype] = true;
 			return i;
+		} else {
+			if (ch->ch_alloc[chtype] == false) {
+				ch->ch_alloc[chtype] = true;
+				return i;
+			}
 		}
 	}
 	return -ENOENT;
 }
 
-int dam_free_controller(int ifc)
+int dam_free_controller(int ifc, int chtype)
 {
 	struct dam_context *ch = NULL;
 
@@ -633,10 +649,16 @@ int dam_free_controller(int ifc)
 	if (!dam_info)
 		return -ENOENT;
 
-	dam_disable_clock(ifc);
+	ch->ch_alloc[chtype] = false;
 
-	if (ch->clk_refcnt == 0)
-		dam_info->inuse[ifc] = false;
+	if (ch->ch_alloc[dam_ch_in0] == false &&
+		ch->ch_alloc[dam_ch_in1] == false) {
+
+		dam_disable_clock(ifc);
+
+		if (ch->clk_refcnt == 0)
+			ch->in_use = false;
+	}
 
 	return 0;
 }
@@ -691,6 +713,7 @@ int dam_open(void)
 
 		for (i = 0; i < NR_DAM_IFC; i++) {
 			ch = &dam_cont_info[i];
+			memset(ch, 0, sizeof(struct dam_context));
 			ch->dam_clk = tegra_get_clock_by_name(damclk_info[i]);
 			if (!ch->dam_clk) {
 				pr_err("unable to get dam%d clock\n", i);

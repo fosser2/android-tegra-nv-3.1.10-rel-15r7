@@ -286,7 +286,9 @@ struct am_ch_info {
 	int outsample;
 	int ahubrx_index;
 	int ahubtx_index;
-	int damch[AUDIO_FIFO_CNT];
+	int data_format;
+	int lrck_polarity;
+	int damch[dam_ch_maxnum];
 	int dmach[AUDIO_FIFO_CNT];
 	int dmach_refcnt[AUDIO_FIFO_CNT];
 	am_stream_format_info sfmt;
@@ -302,10 +304,66 @@ struct audio_manager_context {
 	int mclk_parent;
 	struct am_ch_info i2s_ch[NR_I2S_IFC];
 	struct am_ch_info spdif_ch;
+	int hifi_port_idx;
+	int voice_codec_idx;
+	int bb_port_idx;
+	int bt_port_idx;
+	int fm_radio_port_idx;
+	enum tegra_das_port_con_id cur_conn;
 };
 
 
 struct audio_manager_context *aud_manager;
+extern struct tegra_das_platform_data tegra_das_pdata;
+
+int tegra_das_is_device_master(enum tegra_audio_codec_type codec_type)
+{
+	const struct tegra_dap_property *port_info =
+				tegra_das_pdata.tegra_dap_port_info_table;
+	int max_tbl_index =
+		ARRAY_SIZE(tegra_das_pdata.tegra_dap_port_info_table);
+	int i = 0;
+
+	for (i = 0 ; i < max_tbl_index; i++) {
+		if (port_info[i].codec_type == codec_type)
+			return port_info[i].device_property.master;
+	}
+	return -ENOENT;
+}
+
+int tegra_das_get_device_i2s_port(enum tegra_audio_codec_type codec_type)
+{
+	const struct tegra_dap_property *port_info =
+				tegra_das_pdata.tegra_dap_port_info_table;
+	int max_tbl_index =
+		ARRAY_SIZE(tegra_das_pdata.tegra_dap_port_info_table);
+	int i = 0;
+
+	for (i = 0 ; i < max_tbl_index; i++) {
+		if (port_info[i].codec_type == codec_type)
+			return port_info[i].dac_port;
+	}
+	return -ENOENT;
+}
+
+int tegra_das_get_device_property(enum tegra_audio_codec_type codec_type,
+	struct audio_dev_property *dev_prop)
+{
+	const struct tegra_dap_property *port_info =
+				tegra_das_pdata.tegra_dap_port_info_table;
+	int max_tbl_index =
+		ARRAY_SIZE(tegra_das_pdata.tegra_dap_port_info_table);
+	int i = 0;
+
+	for (i = 0 ; i < max_tbl_index; i++) {
+		if (port_info[i].codec_type == codec_type) {
+			memcpy(dev_prop, (void *)&port_info[i].device_property,
+				sizeof(struct audio_dev_property));
+			return 0;
+		}
+	}
+	return -ENOENT;
+}
 
 int default_record_connection(aud_dev_info *devinfo)
 {
@@ -318,32 +376,29 @@ int default_record_connection(aud_dev_info *devinfo)
 int default_playback_connection(struct am_ch_info *ch, int ifc, int fifo_mode)
 {
 	/* get unused dam channel first */
-	ch->damch[fifo_mode] = dam_get_controller();
+	int damch = -1;
+	AM_DEBUG_PRINT("%s++\n", __func__);
+	damch = dam_get_controller(dam_ch_in1);
 
-	if (ch->damch[fifo_mode] < 0) {
+	if (damch < 0) {
 		pr_err("unable to get the dam channel\n");
 		return -ENOENT;
 	}
 
 	if (fifo_mode == AUDIO_TX_MODE)
-		ch->ahubtx_index = ahubtx_dam0 + ch->damch[fifo_mode];
+		ch->ahubtx_index = ahubtx_dam0 + damch;
 /*	else if (fifo_mode == AUDIO_RX_MODE)
-		ch->ahubrx_index = ahubrx1_dam0 + (ch->damch[fifo_mode] << 1);
+		ch->ahubrx_index = ahubrx1_dam0 + (damch << 1);
 		*/
 
 	/* Enable the clock if needed */
 
 	/* FIXME: Take the property from the destination device
-	 - it shoule the stream format also*/
-	dam_set_samplerate(ch->damch[fifo_mode],
-			 dam_ch_out, ch->sfmt.samplerate);
-
-	/*ch 0 expecting as 8Khz */
-	dam_set_samplerate(ch->damch[fifo_mode],
-			 dam_ch_in0, AUDIO_SAMPLERATE_8000);
+	 - it should the stream format also*/
+	dam_set_samplerate(damch, dam_ch_out, ch->sfmt.samplerate);
 
 	/*Apbif dma going through DAM */
-	ch->dmach[fifo_mode] = dam_get_dma_requestor(ch->damch[fifo_mode],
+	ch->dmach[fifo_mode] = dam_get_dma_requestor(damch,
 				dam_ch_in1, fifo_mode);
 
 	if (ch->dmach[fifo_mode] < 0)
@@ -356,36 +411,43 @@ int default_playback_connection(struct am_ch_info *ch, int ifc, int fifo_mode)
 	ch->inacif.audio_bits = ch->sfmt.bitsize;
 	ch->inacif.client_bits = ch->sfmt.bitsize;
 
-	dam_set_acif(ch->damch[fifo_mode], dam_ch_out, &ch->inacif);
-	dam_set_acif(ch->damch[fifo_mode], dam_ch_in1, &ch->inacif);
+	dam_set_acif(damch, dam_ch_out, &ch->inacif);
+	dam_set_acif(damch, dam_ch_in1, &ch->inacif);
 
 	/* set unity gain to damch1 */
-	dam_set_gain(ch->damch[fifo_mode], dam_ch_in1, LINEAR_UNITY_GAIN);
+	dam_set_gain(damch, dam_ch_in1, LINEAR_UNITY_GAIN);
+	ch->damch[dam_ch_in1] = damch;
+	AM_DEBUG_PRINT("%s--\n", __func__);
 	return 0;
 
 conn_fail:
 
-	dam_free_controller(ch->damch[fifo_mode]);
+	dam_free_controller(damch, dam_ch_in1);
+	AM_DEBUG_PRINT("%s-- failed\n", __func__);
 	return -ENOENT;
 }
 
-int test_free_dam_connection(aud_dev_info *devinfo, int fifo_mode)
+int free_dam_connection(aud_dev_info *devinfo)
 {
+	int damch = 0;
 	struct am_ch_info *ch = NULL;
 	int dev_id = devinfo->dev_id;
+	int fifo_mode = devinfo->fifo_mode;
 
 	if (devinfo->dev_type == AUDIO_I2S_DEVICE)
 		ch = &aud_manager->i2s_ch[dev_id];
 	else if (devinfo->dev_type == AUDIO_SPDIF_DEVICE)
 		ch = &aud_manager->spdif_ch;
 
+	AM_DEBUG_PRINT("%s++\n", __func__);
 	if (fifo_mode == AUDIO_TX_MODE) {
-		dam_free_dma_requestor(ch->damch[fifo_mode], dam_ch_in1,
-								fifo_mode);
+		damch = ch->damch[dam_ch_in1];
 
-		audio_switch_clear_rx_port(ch->ahubrx_index);
+		dam_free_dma_requestor(damch, dam_ch_in1, fifo_mode);
 
-		dam_free_controller(ch->damch[fifo_mode]);
+		dam_free_controller(damch, dam_ch_in1);
+
+		ch->damch[dam_ch_in1] = -1;
 
 	} else {
 		struct am_dev_fns *am_fn = &init_am_dev_fns[devinfo->dev_type];
@@ -393,7 +455,7 @@ int test_free_dam_connection(aud_dev_info *devinfo, int fifo_mode)
 		am_fn->aud_dev_free_dma_requestor(devinfo->dev_id, fifo_mode);
 		i2s_clock_disable(devinfo->dev_id, fifo_mode);
 	}
-	ch->damch[fifo_mode] = -1;
+	AM_DEBUG_PRINT("%s--\n", __func__);
 	return 0;
 }
 
@@ -422,8 +484,8 @@ int am_set_stream_state(aud_dev_info* devinfo, bool enable)
 	else if (devinfo->dev_type == AUDIO_SPDIF_DEVICE)
 		ch = &aud_manager->spdif_ch;
 
-	if (ch->damch[fifo_mode] >= 0)
-		dam_enable(ch->damch[fifo_mode], on_off, dam_ch_in1);
+	if (ch->damch[dam_ch_in1] >= 0)
+		dam_enable(ch->damch[dam_ch_in1], on_off, dam_ch_in1);
 
 	return am_fn->aud_dev_set_stream_state(dev_id, fifo_mode, on_off);
 }
@@ -515,12 +577,22 @@ int am_free_dma_requestor(aud_dev_info* devinfo)
 		ch->dmach_refcnt[fifo_mode]--;
 
 	if (ch->dmach_refcnt[fifo_mode] == 0) {
-		test_free_dam_connection(devinfo, fifo_mode);
+		free_dam_connection(devinfo);
 		ch->inuse[fifo_mode] = false;
 	}
 	AM_DEBUG_PRINT("%s++ %d  refcnt %d\n", __func__,
 			ch->dmach[fifo_mode],
 			ch->dmach_refcnt[fifo_mode]);
+	/*FIXME : dma is freed after the voice call is accepted.
+	This tear down the voice call connection- calling here to make
+	sure it is wired properly - Codec seems muted - need to add some
+	fix for that also*/
+
+/*	if (aud_manager->cur_conn == tegra_das_port_con_id_voicecall_no_bt) {
+		tegra_das_set_connection(tegra_das_port_con_id_hifi);
+		tegra_das_set_connection(tegra_das_port_con_id_voicecall_no_bt);
+	}
+*/
 	return 0;
 
 }
@@ -690,8 +762,185 @@ int am_device_init(aud_dev_info* devinfo, void *dev_fmt, void  *strm_fmt)
 	return 0;
 }
 
+int set_i2s_dev_prop(int dev_id,
+		struct am_ch_info *ch,
+		struct audio_dev_property *dev_prop)
+{
+	int bitsize = AUDIO_BIT_SIZE_16;
+
+	ch->outcif.audio_channels = dev_prop->num_channels - 1;
+	ch->outcif.client_channels = dev_prop->num_channels - 1;
+
+	switch (dev_prop->bits_per_sample) {
+	case 24:
+		bitsize = AUDIO_BIT_SIZE_24;
+		break;
+	case 32:
+		bitsize = AUDIO_BIT_SIZE_32;
+		break;
+	case 8:
+		bitsize = AUDIO_BIT_SIZE_8;
+		break;
+	default:
+		bitsize = AUDIO_BIT_SIZE_16;
+		break;
+	}
+
+	ch->outcif.audio_bits = bitsize;
+	ch->outcif.client_bits = bitsize;
+	ch->data_format = AUDIO_FRAME_FORMAT_I2S;
+
+	switch (dev_prop->dac_dap_data_comm_format) {
+	case dac_dap_data_format_dsp:
+		ch->data_format = AUDIO_FRAME_FORMAT_DSP;
+		break;
+	default:
+		ch->data_format = AUDIO_FRAME_FORMAT_I2S;
+		break;
+	}
+	ch->lrck_polarity = (dev_prop->lrck_high_left) ? 1 : 0;
+
+	i2s_set_samplerate(dev_id, dev_prop->rate);
+	i2s_set_bit_format(dev_id, ch->data_format);
+	i2s_set_left_right_control_polarity(dev_id, ch->lrck_polarity);
+	i2s_set_acif(dev_id, AUDIO_TX_MODE, &ch->outcif);
+	/* separate incif & outcif as needed */
+	i2s_set_acif(dev_id, AUDIO_RX_MODE, &ch->outcif);
+	return 0;
+}
+
+int setup_baseband_connection(int dev_id,
+				struct audio_dev_property *dev_prop)
+{
+	int damch = -1;
+	struct am_ch_info *ch = NULL;
+	ch = &aud_manager->i2s_ch[dev_id];
+
+	/* get dam with ch0 rx */
+	damch = dam_get_controller(dam_ch_in0);
+	ch->damch[dam_ch_in0] = damch;
+
+	set_i2s_dev_prop(dev_id, ch, dev_prop);
+
+	/* dam out is set to output device properties */
+	dam_set_samplerate(damch, dam_ch_out, dev_prop->rate);
+	AM_DEBUG_PRINT("damch %d  ch 0x%p rate %d\n",
+		damch, ch, dev_prop->rate);
+
+	/* set unity gain to damch0 */
+	dam_set_gain(damch, dam_ch_in0, LINEAR_UNITY_GAIN);
+
+	/* damx_tx -> i2sx_rx */
+	audio_switch_set_rx_port(dev_id + ahubrx_i2s0,
+				ahubtx_dam0 + damch);
+
+	/* get the properties of i2s and set to i2s and dam acif */
+	dam_set_acif(damch, dam_ch_out, &ch->outcif);
+
+	return 0;
+}
 int tegra_das_set_connection(enum tegra_das_port_con_id new_con_id)
 {
+	struct am_ch_info *ch1 = NULL, *ch2 = NULL;
+	int dev_id1 = 0, dev_id2 = 0;
+	int damch = 0;
+	struct audio_dev_property dev1_prop, dev2_prop;
+
+	AM_DEBUG_PRINT("%s++\n", __func__);
+
+	if (new_con_id == tegra_das_port_con_id_voicecall_no_bt) {
+
+		AM_DEBUG_PRINT("voice call connection\n");
+
+		memset(&dev1_prop, 0 , sizeof(struct audio_dev_property));
+		memset(&dev2_prop, 0 , sizeof(struct audio_dev_property));
+		tegra_das_get_device_property(tegra_audio_codec_type_hifi,
+						&dev1_prop);
+		tegra_das_get_device_property(tegra_audio_codec_type_baseband,
+						&dev2_prop);
+
+		dev_id1 = aud_manager->hifi_port_idx;
+		dev_id2 = aud_manager->bb_port_idx;
+
+		i2s_clock_enable(dev_id1, 0);
+		i2s_clock_enable(dev_id2, 0);
+
+		ch1 = &aud_manager->i2s_ch[dev_id1];
+		ch2 = &aud_manager->i2s_ch[dev_id2];
+
+		AM_DEBUG_PRINT("devid1 %d devid2 %d\n", dev_id1, dev_id2);
+
+		setup_baseband_connection(dev_id1, &dev1_prop);
+		setup_baseband_connection(dev_id2, &dev2_prop);
+
+		damch = ch1->damch[dam_ch_in0];
+		dam_set_samplerate(damch, dam_ch_in0, dev2_prop.rate);
+
+		/* i2s1_tx (48Khz) -> dam_ch0 rx (8k) */
+		audio_switch_set_rx_port(ahubrx0_dam0 + (damch << 1),
+					dev_id2 + ahubtx_i2s0); /* 16 -> 48 */
+
+		/* get the properties of i2s and set to i2s and dam acif */
+		dam_set_acif(damch, dam_ch_in0, &ch2->outcif);
+		dam_enable(damch, 1, dam_ch_in0);
+
+		damch = ch2->damch[dam_ch_in0];
+		dam_set_samplerate(damch, dam_ch_in0, dev1_prop.rate);
+
+		/* get the properties of i2s and set to i2s and dam acif */
+		dam_set_acif(damch, dam_ch_in0, &ch1->outcif);
+		audio_switch_set_rx_port(ahubrx0_dam0 + (damch << 1),
+					dev_id1 + ahubtx_i2s0);/* 48 -> 16 */
+
+		/* enable the dap and i2s as well */
+		dam_enable(damch, 1, dam_ch_in0);
+		i2s_fifo_enable(dev_id1, AUDIO_TX_MODE, 1);
+		i2s_fifo_enable(dev_id2, AUDIO_TX_MODE, 1);
+		i2s_fifo_enable(dev_id1, AUDIO_RX_MODE, 1);
+		i2s_fifo_enable(dev_id2, AUDIO_RX_MODE, 1);
+	} else if (new_con_id == tegra_das_port_con_id_voicecall_with_bt) {
+		/* TODO */
+	} else if (new_con_id == tegra_das_port_con_id_hifi) {
+		if (aud_manager->cur_conn ==
+				tegra_das_port_con_id_voicecall_no_bt) {
+			dev_id1 = aud_manager->hifi_port_idx;
+			ch1 = &aud_manager->i2s_ch[dev_id1];
+
+			AM_DEBUG_PRINT("devid1 %d\n", dev_id1);
+
+			dev_id2 = aud_manager->bb_port_idx;
+			ch2 = &aud_manager->i2s_ch[dev_id2];
+
+			AM_DEBUG_PRINT("devid2 %d\n", dev_id2);
+
+			i2s_fifo_enable(dev_id1, AUDIO_TX_MODE, 0);
+			i2s_fifo_enable(dev_id2, AUDIO_TX_MODE, 0);
+			i2s_fifo_enable(dev_id1, AUDIO_RX_MODE, 0);
+			i2s_fifo_enable(dev_id2, AUDIO_RX_MODE, 0);
+			dam_enable(ch1->damch[dam_ch_in0], 0, dam_ch_in0);
+			dam_enable(ch2->damch[dam_ch_in0], 0, dam_ch_in0);
+
+			audio_switch_clear_rx_port(dev_id1 + ahubrx_i2s0);
+			audio_switch_clear_rx_port(dev_id2 + ahubrx_i2s0);
+			audio_switch_clear_rx_port(ahubrx0_dam0 +
+						(ch1->damch[dam_ch_in0] << 1));
+			audio_switch_clear_rx_port(ahubrx0_dam0 +
+						(ch2->damch[dam_ch_in0] << 1));
+
+
+			dam_free_controller(ch1->damch[dam_ch_in0], dam_ch_in0);
+			ch1->damch[dam_ch_in0] = -1;
+
+			dam_free_controller(ch2->damch[dam_ch_in0], dam_ch_in0);
+			ch2->damch[dam_ch_in0] = -1;
+
+			i2s_clock_disable(dev_id1, 0);
+			i2s_clock_disable(dev_id2, 0);
+		}
+	}
+
+	aud_manager->cur_conn = new_con_id;
+	AM_DEBUG_PRINT("%s--\n", __func__);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(tegra_das_set_connection);
@@ -741,6 +990,14 @@ int tegra_das_open(void)
 		aud_manager->pmc_clk = 0;
 		goto fail_clock;
 	}
+	aud_manager->hifi_port_idx = tegra_das_get_device_i2s_port(
+					tegra_audio_codec_type_hifi);
+
+	aud_manager->bb_port_idx = tegra_das_get_device_i2s_port(
+					tegra_audio_codec_type_baseband);
+
+	aud_manager->bt_port_idx = tegra_das_get_device_i2s_port(
+					tegra_audio_codec_type_bluetooth);
 
 	return err;
 

@@ -34,7 +34,7 @@
 
 #define ENABLE_I2S_DEBUG_PRINT	0
 #if  ENABLE_I2S_DEBUG_PRINT
-#define I2S_DEBUG_PRINT(fmt, arg...)  printk(fmt, ## arg)
+#define I2S_DEBUG_PRINT(fmt, arg...) printk(fmt, ## arg)
 #else
 #define I2S_DEBUG_PRINT(fmt, arg...) do {} while (0)
 #endif
@@ -190,21 +190,32 @@ int i2s_fifo_enable(int ifc, int tx, int enable)
 
 	apbif_ifc = i2s_get_apbif_channel(ifc, tx);
 
-	apbif_channel_enable(apbif_ifc, tx, enable);
+	if (apbif_ifc >= 0)
+		apbif_channel_enable(apbif_ifc, tx, enable);
+	I2S_DEBUG_PRINT("%s: apbif channel %d\n", __func__, apbif_ifc);
 
 	val = i2s_readl(ifc, I2S_CTRL_0);
 
 	if (tx != AUDIO_TX_MODE) {
 		set_reg_mode(val, I2S_CTRL_XFER_EN_RX, enable);
-	} else  {
+	} else {
 		set_reg_mode(val, I2S_CTRL_XFER_EN_TX, enable);
 	}
 
-	if (enable)
+	if (enable) {
 		i2s_fifo_set_attention_level(ifc, tx,
 				info->i2s_ch_prop[tx].fifo_attn);
 
-	i2s_writel(ifc, val, I2S_CTRL_0);
+		info->i2s_ch_prop[tx].enable_refcnt++;
+		i2s_writel(ifc, val, I2S_CTRL_0);
+	} else {
+		info->i2s_ch_prop[tx].enable_refcnt--;
+		if (info->i2s_ch_prop[tx].enable_refcnt == 0)
+			i2s_writel(ifc, val, I2S_CTRL_0);
+	}
+
+	I2S_DEBUG_PRINT("%s: refcnt %d\n", __func__,
+			info->i2s_ch_prop[tx].enable_refcnt);
 
 	return 0;
 }
@@ -599,7 +610,7 @@ int i2s_fifo_set_attention_level(int ifc, int fifo, unsigned level)
 {
 	int apbif_ifc = i2s_get_apbif_channel(ifc, fifo);
 
-	if (apbif_ifc != -ENOENT)
+	if (apbif_ifc >= 0)
 		return apbif_fifo_set_attention_level(apbif_ifc,
 							 fifo, (level - 1));
 	return 0;
@@ -609,7 +620,7 @@ int i2s_fifo_clear(int ifc, int fifo)
 {
 	int apbif_ifc = i2s_get_apbif_channel(ifc, fifo);
 
-	if (apbif_ifc != -ENOENT)
+	if (apbif_ifc >= 0)
 		apbif_soft_reset(apbif_ifc, fifo, 1);
 
 	return 0;
@@ -653,7 +664,7 @@ int i2s_fifo_write(int ifc, int fifo, u32 data)
 {
 	int apbif_ifc = i2s_get_apbif_channel(ifc, fifo);
 
-	if (apbif_ifc != -ENOENT)
+	if (apbif_ifc >= 0)
 		apbif_fifo_write(apbif_ifc, fifo, data);
 
 	return 0;
@@ -663,7 +674,7 @@ u32 i2s_fifo_read(int ifc, int fifo)
 {
 	int apbif_ifc = i2s_get_apbif_channel(ifc, fifo);
 
-	if (apbif_ifc != -ENOENT)
+	if (apbif_ifc >= 0)
 		return apbif_fifo_read(apbif_ifc, fifo);
 	return 0;
 }
@@ -673,7 +684,7 @@ u32 i2s_get_status(int ifc, int fifo)
 	int apbif_ifc = i2s_get_apbif_channel(ifc, fifo);
 	int regval = 0;
 
-	if (apbif_ifc != -ENOENT)
+	if (apbif_ifc >= 0)
 		regval = apbif_get_fifo_mode(apbif_ifc, fifo);
 
 	if (fifo == AUDIO_TX_MODE)
@@ -722,7 +733,7 @@ u32 i2s_get_fifo_full_empty_count(int ifc, int fifo)
 {
 	int apbif_ifc = i2s_get_apbif_channel(ifc, fifo);
 
-	if (apbif_ifc != -ENOENT)
+	if (apbif_ifc >= 0)
 		return apbif_get_fifo_freecount(apbif_ifc, fifo);
 
 	return 0;
@@ -776,6 +787,7 @@ struct clk *i2s_get_clock_by_name(const char *name)
 int i2s_set_acif(int ifc, int fifo_mode, struct audio_cif *cifInfo)
 {
 	struct i2s_controller_info *info = &i2s_cont_info[ifc];
+	int apbif_ifc = i2s_get_apbif_channel(ifc, fifo_mode);
 
 	if (fifo_mode == AUDIO_TX_MODE)
 		audio_switch_set_acif((unsigned int)i2s_base[ifc] +
@@ -784,11 +796,12 @@ int i2s_set_acif(int ifc, int fifo_mode, struct audio_cif *cifInfo)
 		audio_switch_set_acif((unsigned int)i2s_base[ifc] +
 			 I2S_AUDIOCIF_I2SRX_CTRL_0, cifInfo);
 
-	apbif_set_pack_mode(i2s_get_apbif_channel(ifc, fifo_mode),
-		fifo_mode, info->i2sprop.fifo_fmt);
+	if (apbif_ifc >= 0) {
+		apbif_set_pack_mode(apbif_ifc,
+					fifo_mode, info->i2sprop.fifo_fmt);
 
-	audio_apbif_set_acif(i2s_get_apbif_channel(ifc, fifo_mode),
-		fifo_mode, cifInfo);
+		audio_apbif_set_acif(apbif_ifc, fifo_mode, cifInfo);
+	}
 
 	return 0;
 }
@@ -937,7 +950,8 @@ int i2s_clock_enable(int ifc, int fifo_mode)
 		info->clk_refs++;
 	}
 
-	I2S_DEBUG_PRINT(" i2s enable clock count 0x%x \n", info->clk_refs);
+	I2S_DEBUG_PRINT("i2s%d enable clock count 0x%x\n",
+			ifc, info->clk_refs);
 	return err;
 }
 
@@ -979,7 +993,8 @@ int i2s_clock_disable(int ifc, int fifo_mode)
 	}
 
 	audio_switch_disable_clock();
-	I2S_DEBUG_PRINT(" i2s disable clock count 0x%x \n", info->clk_refs);
+	I2S_DEBUG_PRINT("i2s%d disable clock count 0x%x\n",
+			ifc, info->clk_refs);
 	return 0;
 }
 

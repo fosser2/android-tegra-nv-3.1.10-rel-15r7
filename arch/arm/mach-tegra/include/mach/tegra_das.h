@@ -80,6 +80,7 @@
 
 #define MAX_CONNECTIONLINES 8
 
+#ifdef CONFIG_ARCH_TEGRA_2x_SOC
 typedef enum tegra_das_port_t {
 	tegra_das_port_none = 0,
 	tegra_das_port_dap1,
@@ -94,6 +95,18 @@ typedef enum tegra_das_port_t {
 
 #define MAX_DAP_PORTS	(tegra_das_port_dap5 + 1)
 
+#else
+typedef enum tegra_das_port_t {
+	tegra_das_port_none = -1,
+	tegra_das_port_i2s0 = 0,
+	tegra_das_port_i2s1,
+	tegra_das_port_i2s2,
+	tegra_das_port_i2s3,
+	tegra_das_port_i2s4,
+} tegra_das_port;
+
+#define MAX_DAP_PORTS	(tegra_das_port_i2s4 + 1)
+#endif
 /* defines possible hardware connected to DAP */
 enum tegra_audio_codec_type {
 	tegra_audio_codec_type_none = 0,
@@ -135,6 +148,8 @@ struct audio_dev_property {
 	unsigned int num_channels;
 	unsigned int bits_per_sample;
 	unsigned int rate;
+	unsigned int master;
+	bool lrck_high_left;
 	unsigned int dac_dap_data_comm_format;
 };
 
