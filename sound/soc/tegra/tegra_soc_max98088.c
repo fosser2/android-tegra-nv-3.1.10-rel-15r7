@@ -241,12 +241,7 @@ void tegra_ext_control(struct snd_soc_codec *codec, int new_con)
 	else
 		snd_soc_dapm_disable_pin(codec, "Headphone");
 
-	if (new_con & (TEGRA_LINEOUT | TEGRA_EAR_SPK))
-		snd_soc_dapm_enable_pin(codec, "Lineout");
-	else
-		snd_soc_dapm_disable_pin(codec, "Lineout");
-
-	if (new_con & TEGRA_SPK)
+	if (new_con & (TEGRA_SPK | TEGRA_EAR_SPK))
 		snd_soc_dapm_enable_pin(codec, "Int Spk");
 	else
 		snd_soc_dapm_disable_pin(codec, "Int Spk");
@@ -361,52 +356,11 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{"Int Spk", NULL, "SPKL"},
 	{"Int Spk", NULL, "SPKR"},
 
-	/* Receiver connected to RECL and RECR */
-	{"Lineout", NULL, "RECL"},
-	{"Lineout", NULL, "RECR"},
-
 	/*
 	 * To be complete, add remained in/out devices such as built-in mic
 	 * and headset mic.
 	 */
 };
-#if 0
-/* Tegra machine audio map (connections to the codec pins) */
-static const struct snd_soc_dapm_route audio_map[] = {
-
-	/* headphone connected to LHPOUT1, RHPOUT1 */
-	{"Headphone", NULL, "HPOUTR"},
-	{"Headphone", NULL, "HPOUTL"},
-
-	/* headset Jack  - in = micin, out = HPOUT*/
-	{"Headset", NULL, "HPOUTR"},
-	{"Headset", NULL, "HPOUTL"},
-	{"IN1L", NULL, "Headset"},
-	{"IN1R", NULL, "Headset"},
-
-	/* lineout connected to LINEOUTR and LINEOUTL */
-	{"Lineout", NULL, "LINEOUTR"},
-	{"Lineout", NULL, "LINEOUTL"},
-
-	/* build-in speaker connected to LON/P RON/P */
-	{"Int Spk", NULL, "RON"},
-	{"Int Spk", NULL, "ROP"},
-	{"Int Spk", NULL, "LON"},
-	{"Int Spk", NULL, "LOP"},
-
-	/* internal mic is mono */
-	{"IN1R", NULL, "Int Mic"},
-
-	/* external mic is stero */
-	{"IN1L", NULL, "Ext Mic"},
-	{"IN1R", NULL, "Ext Mic"},
-
-	/* Line In */
-	{"IN3L", NULL, "Linein"},
-	{"IN3R", NULL, "Linein"},
-};
-#endif
-
 
 static int tegra_codec_init(struct snd_soc_codec *codec)
 {
