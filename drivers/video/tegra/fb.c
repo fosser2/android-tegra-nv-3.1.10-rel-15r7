@@ -79,7 +79,10 @@ static int tegra_fb_open(struct fb_info *info, int user)
 {
 	struct tegra_fb_info *tegra_fb = info->par;
 
-	atomic_inc(&tegra_fb->in_use);
+	if (atomic_xchg(&tegra_fb->in_use, 1))
+		return -EBUSY;
+
+	tegra_fb->user_nvmap = NULL;
 
 	return 0;
 }
@@ -88,9 +91,6 @@ static int tegra_fb_release(struct fb_info *info, int user)
 {
 	struct tegra_fb_info *tegra_fb = info->par;
 	struct fb_var_screeninfo *var = &info->var;
-
-	if (atomic_dec_return(&tegra_fb->in_use))
-		return 0;
 
 	flush_workqueue(tegra_fb->flip_wq);
 
@@ -115,6 +115,8 @@ static int tegra_fb_release(struct fb_info *info, int user)
 		nvmap_client_put(tegra_fb->user_nvmap);
 		tegra_fb->user_nvmap = NULL;
 	}
+
+	WARN_ON(!atomic_xchg(&tegra_fb->in_use, 0));
 
 	return 0;
 }
@@ -584,26 +586,6 @@ surf_err:
 	return err;
 }
 
-static int tegra_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
-{
-	struct tegra_fb_info *tegra_fb = info->par;
-	struct tegra_dc_win *win = tegra_fb->win;
-	unsigned long size = vma->vm_end - vma->vm_start;
-	unsigned long offset = vma->vm_pgoff << PAGE_SHIFT;
-
-	if (offset + size > win->size)
-		return -EINVAL;
-
-	offset += win->phys_addr + win->offset;
-
-	if (remap_pfn_range(vma, vma->vm_start, offset >> PAGE_SHIFT,
-			    size, PAGE_READONLY))
-		return -EAGAIN;
-
-	vma->vm_flags |= VM_RESERVED;
-	return 0;
-}
-
 /* TODO: implement private window ioctls to set overlay x,y */
 
 static int tegra_fb_ioctl(struct fb_info *info, unsigned int cmd, unsigned long arg)
@@ -692,7 +674,6 @@ static struct fb_ops tegra_fb_ops = {
 	.fb_fillrect = tegra_fb_fillrect,
 	.fb_copyarea = tegra_fb_copyarea,
 	.fb_imageblit = tegra_fb_imageblit,
-	.fb_mmap = tegra_fb_mmap,
 	.fb_ioctl = tegra_fb_ioctl,
 };
 

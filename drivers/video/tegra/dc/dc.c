@@ -544,7 +544,6 @@ int tegra_dc_update_windows(struct tegra_dc_win *windows[], int n)
 				V_PRESCALED_SIZE(win->h) |
 				H_PRESCALED_SIZE(win->w * tegra_dc_fmt_bpp(win->fmt) / 8),
 				DC_WIN_PRESCALED_SIZE);
-		win->size = win->out_h * win->stride * tegra_dc_fmt_bpp(win->fmt) / 8;
 
 		h_dda = ((win->w - 1) * 0x1000) / max_t(int, win->out_w - 1, 1);
 		v_dda = ((win->h - 1) * 0x1000) / max_t(int, win->out_h - 1, 1);
