@@ -184,15 +184,9 @@ int i2s_fifo_enable(int ifc, int tx, int enable)
 {
 	u32 val;
 	struct i2s_controller_info *info = &i2s_cont_info[ifc];
-	int apbif_ifc = 0;
+	int apbif_ifc = -1;
 
 	check_i2s_ifc(ifc, -EINVAL);
-
-	apbif_ifc = i2s_get_apbif_channel(ifc, tx);
-
-	if (apbif_ifc >= 0)
-		apbif_channel_enable(apbif_ifc, tx, enable);
-	I2S_DEBUG_PRINT("%s: apbif channel %d\n", __func__, apbif_ifc);
 
 	val = i2s_readl(ifc, I2S_CTRL_0);
 
@@ -212,6 +206,16 @@ int i2s_fifo_enable(int ifc, int tx, int enable)
 		info->i2s_ch_prop[tx].enable_refcnt--;
 		if (info->i2s_ch_prop[tx].enable_refcnt == 0)
 			i2s_writel(ifc, val, I2S_CTRL_0);
+	}
+
+	apbif_ifc = i2s_get_apbif_channel(ifc, tx);
+
+	I2S_DEBUG_PRINT("%s: apbif channel %d\n", __func__, apbif_ifc);
+	if (apbif_ifc >= 0) {
+		if (info->i2s_ch_prop[tx].enable_refcnt)
+			apbif_channel_enable(apbif_ifc, tx, 1);
+		else
+			apbif_channel_enable(apbif_ifc, tx, 0);
 	}
 
 	I2S_DEBUG_PRINT("%s: refcnt %d\n", __func__,

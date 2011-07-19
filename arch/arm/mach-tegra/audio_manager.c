@@ -920,7 +920,6 @@ int tegra_das_set_connection(enum tegra_das_port_con_id new_con_id)
 			dam_enable(ch1->damch[dam_ch_in0], 0, dam_ch_in0);
 			dam_enable(ch2->damch[dam_ch_in0], 0, dam_ch_in0);
 
-			audio_switch_clear_rx_port(dev_id1 + ahubrx_i2s0);
 			audio_switch_clear_rx_port(dev_id2 + ahubrx_i2s0);
 			audio_switch_clear_rx_port(ahubrx0_dam0 +
 						(ch1->damch[dam_ch_in0] << 1));
