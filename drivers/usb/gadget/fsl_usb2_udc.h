@@ -512,6 +512,7 @@ struct fsl_udc {
 	u32 ep0_dir;		/* Endpoint zero direction: can be
 				   USB_DIR_IN or USB_DIR_OUT */
 	u8 device_address;	/* Device USB address */
+	struct delayed_work work;	/* delayed work for charger detection */
 };
 
 /*-------------------------------------------------------------------------*/
@@ -593,6 +594,7 @@ void fsl_udc_clk_finalize(struct platform_device *pdev);
 void fsl_udc_clk_release(void);
 void fsl_udc_clk_suspend(bool is_dpd);
 void fsl_udc_clk_resume(bool is_dpd);
+bool fsl_udc_charger_detect(void);
 #else
 static inline int fsl_udc_clk_init(struct platform_device *pdev)
 {
@@ -609,6 +611,10 @@ static inline void fsl_udc_clk_suspend(bool is_dpd)
 }
 static inline void fsl_udc_clk_resume(bool is_dpd)
 {
+}
+static inline bool fsl_udc_charger_detect(void)
+{
+	return false;
 }
 #endif
 
