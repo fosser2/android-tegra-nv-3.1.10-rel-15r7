@@ -140,6 +140,7 @@ enum dac_dap_data_format {
 	dac_dap_data_format_dsp = 0x2,
 	dac_dap_data_format_rjm = 0x4,
 	dac_dap_data_format_ljm = 0x8,
+	dac_dap_data_format_tdm = 0x10,
 
 	dac_dap_data_format_all = 0x7FFFFFFF
 };

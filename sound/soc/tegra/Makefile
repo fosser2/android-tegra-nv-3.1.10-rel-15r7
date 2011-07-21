@@ -8,3 +8,4 @@ obj-$(CONFIG_TEGRA_GENERIC_CODEC)+= tegra_generic_codec.o
 obj-$(CONFIG_SND_SOC_WM8903)    += tegra_soc_wm8903.o
 obj-$(CONFIG_SND_SOC_WM8753)    += tegra_soc_wm8753.o
 obj-$(CONFIG_SND_SOC_MAX98088)  += tegra_soc_max98088.o
+obj-$(CONFIG_SND_SOC_AD193X)    += tegra_soc_ad193x.o

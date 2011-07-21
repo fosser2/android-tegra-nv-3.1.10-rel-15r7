@@ -497,8 +497,8 @@ static struct snd_soc_dai_link tegra_soc_dai[] = {
 				  &tegra_hifi_ops),
 
 #if defined(CONFIG_ARCH_TEGRA_2x_SOC)
-	TEGRA_CREATE_SOC_DAI_LINK("Tegra-generic", "Tegra Generic Voice",
-		&tegra_i2s_dai[1], &tegra_generic_codec_dai[1],
+	TEGRA_CREATE_SOC_DAI_LINK("Tegra-generic", "Tegra BT Voice",
+		&tegra_i2s_dai[1], &tegra_generic_codec_dai[2],
 		&tegra_voice_ops),
 #else
 	/*

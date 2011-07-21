@@ -726,7 +726,7 @@ static struct snd_soc_dai_link tegra_soc_dai[] = {
 		&tegra_spdif_dai, &tegra_generic_codec_dai[0],
 		&tegra_spdif_ops),
 	TEGRA_CREATE_SOC_DAI_LINK("Tegra-generic", "Tegra Generic Voice",
-		&tegra_i2s_dai[1], &tegra_generic_codec_dai[1],
+		&tegra_i2s_dai[1], &tegra_generic_codec_dai[2],
 		&tegra_voice_ops),
 #endif
 };

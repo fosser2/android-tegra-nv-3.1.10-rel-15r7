@@ -342,7 +342,6 @@ static int das_set_con_end_points(u32 src_idx, u32 dest_idx, bool is_src_master)
 	return 0;
 }
 
-
 int tegra_das_set_connection(enum tegra_das_port_con_id new_con_id)
 {
 	int i;

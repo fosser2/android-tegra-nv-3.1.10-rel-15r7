@@ -122,6 +122,18 @@ struct tegra_audio_data {
 	int codec_con;
 };
 
+/* i2s controller */
+struct tegra_i2s_info {
+	struct platform_device *pdev;
+	struct tegra_audio_platform_data *pdata;
+
+	unsigned int bit_format;
+	bool i2s_master;
+	int ref_count;
+	aud_dev_info  i2sdev_info;
+	struct das_regs_cache das_regs;
+};
+
 void tegra_ext_control(struct snd_soc_codec *codec, int new_con);
 int tegra_controls_init(struct snd_soc_codec *codec);
 

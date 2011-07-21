@@ -24,6 +24,7 @@
 #define PLAYBACK_STARTED true
 #define PLAYBACK_STOPPED false
 
+
 static const struct snd_pcm_hardware tegra_pcm_hardware = {
 	.info = SNDRV_PCM_INFO_INTERLEAVED |
 			SNDRV_PCM_INFO_PAUSE |
@@ -38,6 +39,24 @@ static const struct snd_pcm_hardware tegra_pcm_hardware = {
 	.period_bytes_max = (PAGE_SIZE),
 	.periods_min = 2,
 	.periods_max = 8,
+	.fifo_size   = 4,
+};
+
+/* The Latency (Period Size) for TDM can be changed below */
+static const struct snd_pcm_hardware tegra_pcm_tdm_hardware = {
+	.info = SNDRV_PCM_INFO_INTERLEAVED |
+			SNDRV_PCM_INFO_PAUSE |
+			SNDRV_PCM_INFO_RESUME |
+			SNDRV_PCM_INFO_MMAP |
+			SNDRV_PCM_INFO_MMAP_VALID ,
+	.formats = SNDRV_PCM_FMTBIT_S16_LE,
+	.channels_min = 8,
+	.channels_max = 16,
+	.buffer_bytes_max = 1024 * 16 * 4,
+	.period_bytes_min = 1024 * 16,
+	.period_bytes_max = 1024 * 16,
+	.periods_min = 4,
+	.periods_max = 4,
 	.fifo_size   = 4,
 };
 
@@ -185,9 +204,11 @@ static int tegra_pcm_open(struct snd_pcm_substream *substream)
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
 	struct tegra_runtime_data *prtd = 0;
+	struct tegra_i2s_info *info = cpu_dai->private_data;
 	int i, ret=0;
+	int dma_mode;
 
-	pr_debug("%s: Device %d, Stream %s, substream_name %s \n", __func__, \
+	pr_debug("%s: Device %d, Stream %s, substream_name %s\n", __func__, \
 		substream->pcm->device, \
 		(substream->stream == SNDRV_PCM_STREAM_PLAYBACK)?"Playback": \
 		"Capture", substream->name);
@@ -203,7 +224,7 @@ static int tegra_pcm_open(struct snd_pcm_substream *substream)
 
 	/* Ensure buffer size is multiple of period size */
 	ret = snd_pcm_hw_constraint_integer(runtime,
-					    SNDRV_PCM_HW_PARAM_PERIODS);
+						SNDRV_PCM_HW_PARAM_PERIODS);
 	if (ret < 0) {
 		pr_err("%s:snd_pcm_hw_constraint_integer failed: %d\n",
 			__func__, ret);
@@ -238,8 +259,11 @@ static int tegra_pcm_open(struct snd_pcm_substream *substream)
 		}
 	}
 
+	dma_mode = info->pdata->tdm_enable ? TEGRA_DMA_MODE_CONTINUOUS_DOUBLE :
+					TEGRA_DMA_MODE_CONTINUOUS_SINGLE;
+
 	prtd->dma_chan = tegra_dma_allocate_channel(
-				TEGRA_DMA_MODE_CONTINUOUS_SINGLE, "pcm");
+				dma_mode, "pcm");
 	if (prtd->dma_chan == NULL) {
 		pr_err("%s: could not allocate DMA channel for PCM:\n",
 				__func__);
@@ -257,7 +281,11 @@ static int tegra_pcm_open(struct snd_pcm_substream *substream)
 #endif
 
 	/* Set HW params now that initialization is complete */
-	snd_soc_set_runtime_hwparams(substream, &tegra_pcm_hardware);
+	if (!info->pdata->tdm_enable)
+		snd_soc_set_runtime_hwparams(substream, &tegra_pcm_hardware);
+	else
+		snd_soc_set_runtime_hwparams(substream,
+						&tegra_pcm_tdm_hardware);
 
 	goto end;
 
@@ -339,7 +367,10 @@ static int tegra_pcm_preallocate_dma_buffer(struct snd_pcm *pcm, int stream)
 {
 	struct snd_pcm_substream *substream = pcm->streams[stream].substream;
 	struct snd_dma_buffer *buf = &substream->dma_buffer;
-	size_t size = tegra_pcm_hardware.buffer_bytes_max;
+	size_t size;
+
+	size = max(tegra_pcm_hardware.buffer_bytes_max,
+				tegra_pcm_tdm_hardware.buffer_bytes_max);
 
 	buf->area = dma_alloc_writecombine(pcm->card->dev, size,
 						&buf->addr, GFP_KERNEL);

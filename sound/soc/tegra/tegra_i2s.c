@@ -21,18 +21,6 @@
 
 #include "tegra_soc.h"
 
-/* i2s controller */
-struct tegra_i2s_info {
-	struct platform_device *pdev;
-	struct tegra_audio_platform_data *pdata;
-
-	unsigned int bit_format;
-	bool i2s_master;
-	int ref_count;
-	aud_dev_info  i2sdev_info;
-	struct das_regs_cache das_regs;
-};
-
 extern int tegra_i2sloopback_func;
 
 void free_i2s_dma_request(struct snd_pcm_substream *substream)
@@ -230,11 +218,13 @@ static int tegra_i2s_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 
 	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
 	case SND_SOC_DAIFMT_DSP_A:
-		val1 = AUDIO_FRAME_FORMAT_DSP;
+	    val1 = info->pdata->tdm_enable ? AUDIO_FRAME_FORMAT_TDM :
+				AUDIO_FRAME_FORMAT_DSP;
 		val2 = AUDIO_LRCK_RIGHT_LOW;
 		break;
 	case SND_SOC_DAIFMT_DSP_B:
-		val1 = AUDIO_FRAME_FORMAT_DSP;
+	    val1 = info->pdata->tdm_enable ? AUDIO_FRAME_FORMAT_TDM :
+				AUDIO_FRAME_FORMAT_DSP;
 		val2 = AUDIO_LRCK_RIGHT_LOW;
 		break;
 	case SND_SOC_DAIFMT_I2S:
@@ -307,6 +297,15 @@ static int i2s_configure(struct tegra_i2s_info *info )
 	dev_fmt.audiomode = pdata->mode;
 	dev_fmt.clkrate = pdata->dev_clk_rate;
 	dev_fmt.fifofmt = pdata->fifo_fmt;
+	dev_fmt.total_slots = pdata->total_slots;
+	dev_fmt.rx_slot_enables = pdata->rx_slot_enables;
+	dev_fmt.tx_slot_enables = pdata->tx_slot_enables;
+	dev_fmt.tdm_bitsize = pdata->tdm_bitsize;
+	dev_fmt.total_slots  = pdata->total_slots;
+	dev_fmt.tx_bit_offset = pdata->tx_bit_offset;
+	dev_fmt.rx_bit_offset = pdata->rx_bit_offset;
+	dev_fmt.fsync_width = pdata->fsync_width;
+
 
 	memset(&strm_fmt, 0, sizeof(strm_fmt));
 	strm_fmt.bitsize = pdata->bit_size;
@@ -367,7 +366,7 @@ static void tegra_i2s_shutdown(struct snd_pcm_substream *substream,
 	struct tegra_i2s_info *info = dai->private_data;
 
 	if (info->ref_count > 0)
-	    info->ref_count--;
+		info->ref_count--;
 
 	if (!info->ref_count)
 		am_clock_disable(&info->i2sdev_info);
@@ -414,13 +413,13 @@ static struct snd_soc_dai_ops tegra_i2s_dai_ops = {
 
 struct snd_soc_dai tegra_i2s_dai[] = {
 #if defined(CONFIG_ARCH_TEGRA_2x_SOC)
-	TEGRA_I2S_CREATE_DAI(0, 1, 2, TEGRA_SAMPLE_RATES),
-	TEGRA_I2S_CREATE_DAI(1, 1, 2, TEGRA_SAMPLE_RATES),
+	TEGRA_I2S_CREATE_DAI(0, 1, 16, TEGRA_SAMPLE_RATES),
+	TEGRA_I2S_CREATE_DAI(1, 1, 16, TEGRA_SAMPLE_RATES),
 #else
-	TEGRA_I2S_CREATE_DAI(0, 2, 2, TEGRA_SAMPLE_RATES),
-	TEGRA_I2S_CREATE_DAI(1, 2, 2, TEGRA_SAMPLE_RATES),
-	TEGRA_I2S_CREATE_DAI(2, 1, 2, TEGRA_VOICE_SAMPLE_RATES),
-	TEGRA_I2S_CREATE_DAI(3, 1, 2, TEGRA_VOICE_SAMPLE_RATES),
+	TEGRA_I2S_CREATE_DAI(0, 2, 16, TEGRA_SAMPLE_RATES),
+	TEGRA_I2S_CREATE_DAI(1, 2, 16, TEGRA_SAMPLE_RATES),
+	TEGRA_I2S_CREATE_DAI(2, 1, 16, TEGRA_VOICE_SAMPLE_RATES),
+	TEGRA_I2S_CREATE_DAI(3, 1, 16, TEGRA_VOICE_SAMPLE_RATES),
 #endif
 };
 

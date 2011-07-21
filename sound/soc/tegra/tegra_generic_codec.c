@@ -99,15 +99,12 @@ static struct snd_soc_dai_ops tegra_generic_codec_stub_ops = {
 struct snd_soc_dai tegra_generic_codec_dai[] = {
 	TEGRA_CREATE_GENERIC_CODEC_DAI("tegra_generic_spdif_codec",
 			0, 2, 2, TEGRA_SAMPLE_RATES),
-#if defined(CONFIG_ARCH_TEGRA_2x_SOC)
-	TEGRA_CREATE_GENERIC_CODEC_DAI("tegra_generic_voice_codec",
-			1, 1, 1, TEGRA_VOICE_SAMPLE_RATES),
-#else
 	TEGRA_CREATE_GENERIC_CODEC_DAI("tegra_generic_BB_codec",
 			1, 1, 1, TEGRA_VOICE_SAMPLE_RATES),
 	TEGRA_CREATE_GENERIC_CODEC_DAI("tegra_generic_BT_codec",
 			2, 1, 1, TEGRA_VOICE_SAMPLE_RATES),
-#endif
+	TEGRA_CREATE_GENERIC_CODEC_DAI("tegra_generic_tdm_codec",
+			3, 1, 16, TEGRA_VOICE_SAMPLE_RATES),
 };
 
 EXPORT_SYMBOL_GPL(tegra_generic_codec_dai);
