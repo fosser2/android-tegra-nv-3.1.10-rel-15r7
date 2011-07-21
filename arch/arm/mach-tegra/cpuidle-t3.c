@@ -66,7 +66,7 @@ static struct {
 	unsigned int cpu_ready_count[5];
 	unsigned int tear_down_count[5];
 	unsigned long long cpu_wants_lp2_time[5];
-	unsigned long long in_lp2_time;
+	unsigned long long in_lp2_time[5];
 	unsigned int lp2_count;
 	unsigned int lp2_completed_count;
 	unsigned int lp2_count_bin[32];
@@ -254,7 +254,8 @@ void tegra_idle_enter_lp2_cpu_0(struct cpuidle_device *dev,
 
 		idle_stats.lp2_completed_count++;
 		idle_stats.lp2_completed_count_bin[bin]++;
-		idle_stats.in_lp2_time += ktime_to_us(ktime_sub(exit, enter));
+		idle_stats.in_lp2_time[cpu_number(dev->cpu)] +=
+			ktime_to_us(ktime_sub(exit, enter));
 
 		pr_debug("%lld %lld %d %d\n", request,
 			ktime_to_us(ktime_sub(exit, enter)),
@@ -270,6 +271,8 @@ void tegra_idle_enter_lp2_cpu_n(struct cpuidle_device *dev,
 	u32 twd_load;
 	s64 request;
 	s64 sleep_time;
+	ktime_t enter;
+	ktime_t exit;
 
 	if (need_resched())
 		return;
@@ -289,8 +292,10 @@ void tegra_idle_enter_lp2_cpu_n(struct cpuidle_device *dev,
 
 	trace_power_start(POWER_CSTATE, 2, dev->cpu);
 
+	enter = ktime_get();
+
 	/* Save time this CPU must be awakened by. */
-	tegra_cpu_wake_by_time[dev->cpu] = ktime_to_us(ktime_get()) + request;
+	tegra_cpu_wake_by_time[dev->cpu] = ktime_to_us(enter) + request;
 	smp_wmb();
 
 	/* Powergate CPUn. */
@@ -338,6 +343,10 @@ void tegra_idle_enter_lp2_cpu_n(struct cpuidle_device *dev,
 	 * and the requested sleep time has not passed?
 	 */
 
+	exit = ktime_get();
+	idle_stats.in_lp2_time[cpu_number(dev->cpu)] +=
+		ktime_to_us(ktime_sub(exit, enter));
+
 	return;
 }
 #endif
@@ -355,48 +364,53 @@ static int tegra_lp2_debug_show(struct seq_file *s, void *data)
 	int i;
 	seq_printf(s, "                                    cpu0     cpu1     cpu2     cpu3     cpulp\n");
 	seq_printf(s, "-----------------------------------------------------------------------------\n");
-	seq_printf(s, "cpu ready:                      %8u %8u %8u %8u %8u\n",
+	seq_printf(s, "lp2 ready count:                %8u %8u %8u %8u %8u\n",
 		idle_stats.cpu_ready_count[0],
 		idle_stats.cpu_ready_count[1],
 		idle_stats.cpu_ready_count[2],
 		idle_stats.cpu_ready_count[3],
 		idle_stats.cpu_ready_count[4]);
-	seq_printf(s, "tear down:                      %8u %8u %8u %8u %8u\n",
+	seq_printf(s, "tear down count:                %8u %8u %8u %8u %8u\n",
 		idle_stats.tear_down_count[0],
 		idle_stats.tear_down_count[1],
 		idle_stats.tear_down_count[2],
 		idle_stats.tear_down_count[3],
 		idle_stats.tear_down_count[4]);
-	seq_printf(s, "lp2:            %8u\n", idle_stats.lp2_count);
+	seq_printf(s, "\n");
+	seq_printf(s, "lp2 count:      %8u\n", idle_stats.lp2_count);
 	seq_printf(s, "lp2 completed:  %8u %7u%%\n",
 		idle_stats.lp2_completed_count,
 		idle_stats.lp2_completed_count * 100 /
 			(idle_stats.lp2_count ?: 1));
 
 	seq_printf(s, "\n");
-	seq_printf(s, "cpu ready time:                 %8llu %8llu %8llu %8llu %8llu ms\n",
+	seq_printf(s, "lp2 ready time:                 %8llu %8llu %8llu %8llu %8llu ms\n",
 		div64_u64(idle_stats.cpu_wants_lp2_time[0], 1000),
 		div64_u64(idle_stats.cpu_wants_lp2_time[1], 1000),
 		div64_u64(idle_stats.cpu_wants_lp2_time[2], 1000),
 		div64_u64(idle_stats.cpu_wants_lp2_time[3], 1000),
 		div64_u64(idle_stats.cpu_wants_lp2_time[4], 1000));
-
-	seq_printf(s, "lp2 time:       %8llu ms      %7d%% %7d%% %7d%% %7d%% %7d%%\n",
-		div64_u64(idle_stats.in_lp2_time, 1000),
+	seq_printf(s, "lp2 time:                       %8llu %8llu %8llu %8llu %8llu ms\n",
+		div64_u64(idle_stats.in_lp2_time[0], 1000),
+		div64_u64(idle_stats.in_lp2_time[1], 1000),
+		div64_u64(idle_stats.in_lp2_time[2], 1000),
+		div64_u64(idle_stats.in_lp2_time[3], 1000),
+		div64_u64(idle_stats.in_lp2_time[4], 1000));
+	seq_printf(s, "lp2 %:                          %7d%% %7d%% %7d%% %7d%% %7d%%\n",
 		(int)(idle_stats.cpu_wants_lp2_time[0] ?
-			div64_u64(idle_stats.in_lp2_time * 100,
+			div64_u64(idle_stats.in_lp2_time[0] * 100,
 			idle_stats.cpu_wants_lp2_time[0]) : 0),
 		(int)(idle_stats.cpu_wants_lp2_time[1] ?
-			div64_u64(idle_stats.in_lp2_time * 100,
+			div64_u64(idle_stats.in_lp2_time[1] * 100,
 			idle_stats.cpu_wants_lp2_time[1]) : 0),
 		(int)(idle_stats.cpu_wants_lp2_time[2] ?
-			div64_u64(idle_stats.in_lp2_time * 100,
+			div64_u64(idle_stats.in_lp2_time[2] * 100,
 			idle_stats.cpu_wants_lp2_time[2]) : 0),
 		(int)(idle_stats.cpu_wants_lp2_time[3] ?
-			div64_u64(idle_stats.in_lp2_time * 100,
+			div64_u64(idle_stats.in_lp2_time[3] * 100,
 			idle_stats.cpu_wants_lp2_time[3]) : 0),
 		(int)(idle_stats.cpu_wants_lp2_time[4] ?
-			div64_u64(idle_stats.in_lp2_time * 100,
+			div64_u64(idle_stats.in_lp2_time[4] * 100,
 			idle_stats.cpu_wants_lp2_time[4]) : 0));
 	seq_printf(s, "\n");
 
