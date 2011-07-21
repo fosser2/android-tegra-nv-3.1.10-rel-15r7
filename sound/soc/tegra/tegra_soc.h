@@ -59,6 +59,10 @@
 #include <asm/mach-types.h>
 #include <asm/hardware/scoop.h>
 
+#ifdef CONFIG_HAS_WAKELOCK
+#include <linux/wakelock.h>
+#endif
+
 #define STATE_INIT	0
 #define STATE_ABORT	1
 #define STATE_EXIT	2
@@ -100,6 +104,10 @@ struct tegra_runtime_data {
 	int dma_state;
 	struct tegra_dma_req dma_req[DMA_REQ_QCOUNT];
 	struct tegra_dma_channel *dma_chan;
+#ifdef CONFIG_HAS_WAKELOCK
+	struct wake_lock wake_lock;
+	char wake_lock_name[32];
+#endif
 };
 
 struct tegra_audio_data {

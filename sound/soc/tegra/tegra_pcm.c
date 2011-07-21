@@ -129,6 +129,9 @@ static int tegra_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	case SNDRV_PCM_TRIGGER_RESUME:
 	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 
+#ifdef CONFIG_HAS_WAKELOCK
+		wake_lock(&prtd->wake_lock);
+#endif
 		prtd->dma_state = STATE_INIT;
 		tegra_pcm_queue_dma(prtd); /* dma enqueue req1 */
 		tegra_pcm_queue_dma(prtd); /* dma enqueue req2 */
@@ -148,6 +151,9 @@ static int tegra_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		prtd->dma_head_idx = 0;
 		prtd->dma_tail_idx = DMA_REQ_QCOUNT - 1;
 		}
+#ifdef CONFIG_HAS_WAKELOCK
+		wake_unlock(&prtd->wake_lock);
+#endif
 		break;
 
 	default:
@@ -241,6 +247,15 @@ static int tegra_pcm_open(struct snd_pcm_substream *substream)
 		goto fail;
 	}
 
+#ifdef CONFIG_HAS_WAKELOCK
+	snprintf(prtd->wake_lock_name, sizeof(prtd->wake_lock_name),
+		"tegra-pcm-%s-%d",
+		(substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? "out" : "in",
+		substream->pcm->device);
+	wake_lock_init(&prtd->wake_lock, WAKE_LOCK_SUSPEND,
+		prtd->wake_lock_name);
+#endif
+
 	/* Set HW params now that initialization is complete */
 	snd_soc_set_runtime_hwparams(substream, &tegra_pcm_hardware);
 
@@ -274,6 +289,9 @@ static int tegra_pcm_close(struct snd_pcm_substream *substream)
 		return 0;
 	}
 
+#ifdef CONFIG_HAS_WAKELOCK
+	wake_lock_destroy(&prtd->wake_lock);
+#endif
 	if (prtd->dma_chan) {
 		prtd->dma_state = STATE_EXIT;
 		for (i = 0; i < DMA_REQ_QCOUNT; i++) {
