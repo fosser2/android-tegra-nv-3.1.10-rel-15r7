@@ -464,7 +464,7 @@ int free_dam_connection(aud_dev_info *devinfo)
 		struct am_dev_fns *am_fn = &init_am_dev_fns[devinfo->dev_type];
 
 		am_fn->aud_dev_free_dma_requestor(devinfo->dev_id, fifo_mode);
-		i2s_clock_disable(devinfo->dev_id, fifo_mode);
+		am_fn->aud_dev_clock_disable(devinfo->dev_id, fifo_mode);
 	}
 	AM_DEBUG_PRINT("%s--\n", __func__);
 	return 0;
@@ -549,8 +549,9 @@ int am_get_dma_requestor(aud_dev_info* devinfo)
 						fifo_mode, (void *)&ch->inacif);
 			}
 		} else {
-			if (devinfo->dev_type == AUDIO_I2S_DEVICE)
-				i2s_clock_enable(dev_id, fifo_mode);
+			struct am_dev_fns *am_fn = &init_am_dev_fns[devinfo->dev_type];
+
+			am_fn->aud_dev_clock_enable(devinfo->dev_id, fifo_mode);
 			ch->dmach[fifo_mode] =
 				default_record_connection(devinfo);
 		}
@@ -976,9 +977,26 @@ int tegra_das_power_mode(bool is_normal)
 }
 EXPORT_SYMBOL_GPL(tegra_das_power_mode);
 
+inline static int get_bit_size(int nbits)
+{
+	switch (nbits) {
+	case 24:
+		return AUDIO_BIT_SIZE_24;
+	case 32:
+		return AUDIO_BIT_SIZE_32;
+	case 8:
+		return AUDIO_BIT_SIZE_8;
+	default:
+		return AUDIO_BIT_SIZE_16;
+	}
+}
+
 int tegra_das_open(void)
 {
 	int err = 0;
+
+	struct audio_dev_property dev_prop;
+	struct am_ch_info *ch = NULL;
 
 	aud_manager = kzalloc(sizeof(struct audio_manager_context), GFP_KERNEL);
 	if (!aud_manager)
@@ -1008,6 +1026,14 @@ int tegra_das_open(void)
 
 	aud_manager->bt_port_idx = tegra_das_get_device_i2s_port(
 					tegra_audio_codec_type_bluetooth);
+
+	memset(&dev_prop, 0 , sizeof(struct audio_dev_property));
+	tegra_das_get_device_property(tegra_audio_codec_type_hifi,
+						&dev_prop);
+	ch = &aud_manager->i2s_ch[aud_manager->hifi_port_idx];
+	ch->sfmt.bitsize = get_bit_size(dev_prop.bits_per_sample);
+	ch->sfmt.channels = dev_prop.num_channels - 1;
+	ch->sfmt.samplerate = dev_prop.rate;
 
 	return err;
 
