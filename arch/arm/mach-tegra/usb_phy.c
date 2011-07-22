@@ -76,6 +76,11 @@
 #define   USB_SUSP_SET		(1 << 14)
 #define   USB_WAKEUP_DEBOUNCE_COUNT(x)	(((x) & 0x7) << 16)
 
+#define USB_PHY_VBUS_WAKEUP_ID	0x408
+#define   VDAT_DET_INT_EN	(1 << 16)
+#define   VDAT_DET_CHG_DET	(1 << 17)
+#define   VDAT_DET_STS		(1 << 18)
+
 #define USB1_LEGACY_CTRL	0x410
 #define   USB1_NO_LEGACY_MODE			(1 << 0)
 #define   USB1_VBUS_SENSE_CTL_MASK		(3 << 1)
@@ -163,6 +168,8 @@
 
 #define UTMIP_BAT_CHRG_CFG0	0x830
 #define   UTMIP_PD_CHRG			(1 << 0)
+#define   UTMIP_ON_SINK_EN		(1 << 2)
+#define   UTMIP_OP_SRC_EN		(1 << 3)
 
 #define UTMIP_SPARE_CFG0	0x834
 #define   FUSE_SETUP_SEL		(1 << 3)
@@ -224,6 +231,10 @@
 #define   UHSIC_CONNECT_DETECT			(1 << 0)
 
 #define UHSIC_SPARE_CFG0			0x82c
+
+/* These values (in milli second) are taken from the battery charging spec */
+#define TDP_SRC_ON_MS	 100
+#define TDPSRC_CON_MS	 40
 
 static DEFINE_SPINLOCK(utmip_pad_lock);
 static int utmip_pad_count;
@@ -1462,6 +1473,49 @@ bool tegra_usb_phy_is_device_connected(struct tegra_usb_phy *phy)
 		}
 	}
 	return true;
+}
+
+bool tegra_usb_phy_charger_detect(struct tegra_usb_phy *phy)
+{
+	unsigned long val;
+	void __iomem *base = phy->regs;
+	bool status;
+
+	if (phy_is_ulpi(phy)) {
+		/* Charger detection is not there for ULPI
+		 * return Charger not available */
+		return false;
+	}
+
+	/* Enable charger detection logic */
+	val = readl(base + UTMIP_BAT_CHRG_CFG0);
+	val |= UTMIP_OP_SRC_EN | UTMIP_ON_SINK_EN;
+	writel(val, base + UTMIP_BAT_CHRG_CFG0);
+
+	/* Source should be on for 100 ms as per USB charging spec */
+	msleep(TDP_SRC_ON_MS);
+
+	val = readl(base + USB_PHY_VBUS_WAKEUP_ID);
+	/* If charger is not connected disable the interrupt */
+	val &= ~VDAT_DET_INT_EN;
+	val |= VDAT_DET_CHG_DET;
+	writel(val,base + USB_PHY_VBUS_WAKEUP_ID);
+
+	val = readl(base + USB_PHY_VBUS_WAKEUP_ID);
+	if (val & VDAT_DET_STS)
+		status = true;
+	else
+		status = false;
+
+	/* Disable charger detection logic */
+	val = readl(base + UTMIP_BAT_CHRG_CFG0);
+	val &= ~(UTMIP_OP_SRC_EN | UTMIP_ON_SINK_EN);
+	writel(val, base + UTMIP_BAT_CHRG_CFG0);
+
+	/* Delay of 40 ms before we pull the D+ as per battery charger spec */
+	msleep(TDPSRC_CON_MS);
+
+	return status;
 }
 
 int __init tegra_usb_phy_init(struct usb_phy_plat_data *pdata, int size)
