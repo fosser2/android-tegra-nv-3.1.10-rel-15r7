@@ -151,6 +151,8 @@
 #define PMC_BLINK_TIMER_DATA_OFF_SHIFT	16
 #define PMC_BLINK_TIMER_DATA_OFF_MASK	0xffff
 
+#define AP25_EMC_BRIDGE_RATE		380000000
+
 static void __iomem *reg_clk_base = IO_ADDRESS(TEGRA_CLK_RESET_BASE);
 static void __iomem *reg_pmc_base = IO_ADDRESS(TEGRA_PMC_BASE);
 
@@ -1306,7 +1308,9 @@ static struct clk_ops tegra_cdev_clk_ops = {
 static void tegra2_clk_shared_bus_update(struct clk *bus)
 {
 	struct clk *c;
+	unsigned long old_rate;
 	unsigned long rate = bus->min_rate;
+	int sku_id = tegra_sku_id();
 
 	list_for_each_entry(c, &bus->shared_bus_list,
 			u.shared_bus_user.node) {
@@ -1314,7 +1318,18 @@ static void tegra2_clk_shared_bus_update(struct clk *bus)
 			rate = max(c->u.shared_bus_user.rate, rate);
 	}
 
-	if (rate != clk_get_rate_locked(bus))
+	old_rate = clk_get_rate_locked(bus);
+
+	/* WAR: For AP25 EMC scaling */
+	if ((sku_id == 0x17) && (bus->flags & PERIPH_EMC_ENB)) {
+		if (((old_rate > AP25_EMC_BRIDGE_RATE) &&
+		    (rate < AP25_EMC_BRIDGE_RATE)) ||
+		    ((old_rate < AP25_EMC_BRIDGE_RATE) &&
+		    (rate > AP25_EMC_BRIDGE_RATE)))
+			clk_set_rate_locked(bus, AP25_EMC_BRIDGE_RATE);
+	}
+
+	if (rate != old_rate)
 		clk_set_rate_locked(bus, rate);
 };
 
