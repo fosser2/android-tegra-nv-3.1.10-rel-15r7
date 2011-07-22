@@ -754,6 +754,7 @@ static bool tegra_dc_hdmi_detect(struct tegra_dc *dc)
 	return true;
 
 fail:
+	hdmi->eld_retrieved = false;
 	switch_set_state(&hdmi->hpd_switch, 0);
 	tegra_nvhdcp_set_plug(hdmi->nvhdcp, 0);
 	return false;
@@ -1664,7 +1665,6 @@ static void tegra_dc_hdmi_disable(struct tegra_dc *dc)
 	clk_disable(hdmi->hda2codec_clk);
 	clk_disable(hdmi->hda_clk);
 #endif
-	hdmi->eld_retrieved = false;
 	tegra_periph_reset_assert(hdmi->clk);
 	hdmi->clk_enabled = false;
 	clk_disable(hdmi->clk);
