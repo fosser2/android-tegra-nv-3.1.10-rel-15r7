@@ -63,6 +63,7 @@ struct max98088_priv {
 	unsigned int mic1pre;
 	unsigned int mic2pre;
 	unsigned int extmic_mode;
+	int irq;
 	struct snd_soc_jack *headset_jack;
 };
 
@@ -2063,15 +2064,6 @@ static int max98088_resume(struct platform_device *pdev)
 #define max98088_resume NULL
 #endif
 
-int max98088_headset_detect(struct snd_soc_codec *codec,
-		struct snd_soc_jack *jack)
-{
-	struct max98088_priv *max98088 = snd_soc_codec_get_drvdata(codec);
-	max98088->headset_jack = jack;
-	return 0;
-}
-EXPORT_SYMBOL_GPL(max98088_headset_detect);
-
 static int max98088_probe(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
@@ -2233,6 +2225,18 @@ static irqreturn_t max98088_jack_handler(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
+int max98088_headset_detect(struct snd_soc_codec *codec,
+		struct snd_soc_jack *jack)
+{
+	struct max98088_priv *max98088 = snd_soc_codec_get_drvdata(codec);
+	max98088->headset_jack = jack;
+
+	max98088_jack_handler(max98088->irq, codec);
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(max98088_headset_detect);
+
 static int max98088_remove(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
@@ -2302,6 +2306,7 @@ static int max98088_i2c_probe(struct i2c_client *i2c,
 	codec->reg_cache = &max98088->reg_cache;
 	codec->volatile_register = max98088_volatile_register;
 
+	max98088->irq = i2c->irq;
 	if (i2c->irq) {
 		/* audio interrupt */
 		ret = request_threaded_irq(i2c->irq, NULL,

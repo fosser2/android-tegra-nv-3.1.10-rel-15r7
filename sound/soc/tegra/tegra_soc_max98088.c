@@ -303,8 +303,6 @@ void tegra_ext_control(struct snd_soc_codec *codec, int new_con)
 
 	audio_data->codec_con = new_con;
 
-	snd_soc_dapm_enable_pin(codec, "Headphone");
-
 	/* signal a DAPM event */
 	snd_soc_dapm_sync(codec);
 
