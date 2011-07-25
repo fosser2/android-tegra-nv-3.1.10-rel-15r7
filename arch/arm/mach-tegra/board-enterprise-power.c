@@ -27,6 +27,7 @@
 #include <linux/regulator/tps80031-regulator.h>
 #include <linux/gpio.h>
 #include <mach/suspend.h>
+#include <mach/edp.h>
 #include <linux/io.h>
 
 #include <mach/iomap.h>
@@ -441,3 +442,12 @@ int __init enterprise_suspend_init(void)
 	tegra_init_suspend(&enterprise_suspend_data);
 	return 0;
 }
+
+#ifdef CONFIG_TEGRA_EDP_LIMITS
+
+int __init enterprise_edp_init(void)
+{
+	tegra_init_cpu_edp_limits(2500); /* 2.5A regulator */
+	return 0;
+}
+#endif

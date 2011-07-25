@@ -851,6 +851,9 @@ static void __init tegra_enterprise_init(void)
 	enterprise_sdhci_init();
 	touch_init();
 	enterprise_usb_init();
+#ifdef CONFIG_TEGRA_EDP_LIMITS
+	enterprise_edp_init();
+#endif
 	enterprise_kbc_init();
 	enterprise_gps_init();
 	enterprise_baseband_init();
