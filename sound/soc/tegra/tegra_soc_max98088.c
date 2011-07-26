@@ -209,6 +209,7 @@ static int tegra_spdif_hw_params(struct snd_pcm_substream *substream,
 
 int tegra_codec_startup(struct snd_pcm_substream *substream)
 {
+	tegra_das_enable_mclk();
 	tegra_das_power_mode(true);
 
 	return 0;
@@ -217,10 +218,12 @@ int tegra_codec_startup(struct snd_pcm_substream *substream)
 void tegra_codec_shutdown(struct snd_pcm_substream *substream)
 {
 	tegra_das_power_mode(false);
+	tegra_das_disable_mclk();
 }
 
 int tegra_soc_suspend_pre(struct platform_device *pdev, pm_message_t state)
 {
+	tegra_das_enable_mclk();
 	return 0;
 }
 
@@ -240,7 +243,29 @@ int tegra_soc_resume_pre(struct platform_device *pdev)
 
 int tegra_soc_resume_post(struct platform_device *pdev)
 {
+	tegra_das_disable_mclk();
 	return 0;
+}
+
+static int tegra_soc_set_bias_level(struct snd_soc_card *card,
+					enum snd_soc_bias_level level)
+{
+	struct tegra_audio_data* audio_data = card->socdev->codec_data;
+
+	if (audio_data->bias_level == SND_SOC_BIAS_OFF) {
+		 tegra_das_enable_mclk();
+	}
+	audio_data->bias_level = level;
+	return 0;
+}
+
+static int tegra_soc_set_bias_level_post(struct snd_soc_card *card,
+					enum snd_soc_bias_level level)
+{
+	if (level == SND_SOC_BIAS_OFF) {
+		tegra_das_disable_mclk();
+	}
+	return 0 ;
 }
 
 static struct snd_soc_ops tegra_hifi_ops = {
@@ -405,13 +430,7 @@ static int tegra_codec_init(struct snd_soc_codec *codec)
 			goto max98088_init_fail;
 		}
 
-		err = tegra_das_enable_mclk();
-		if (err) {
-			pr_err(" Failed to enable dap mclk\n");
-			err = -ENODEV;
-			goto max98088_init_fail;
-		}
-
+		codec->idle_bias_off = 1;
 		/* Add tegra specific widgets */
 		snd_soc_dapm_new_controls(codec, tegra_dapm_widgets,
 					ARRAY_SIZE(tegra_dapm_widgets));
@@ -517,6 +536,7 @@ static struct snd_soc_dai_link tegra_soc_dai[] = {
 
 static struct tegra_audio_data audio_data = {
 	.init_done = 0,
+	.bias_level = SND_SOC_BIAS_OFF,
 	.play_device = TEGRA_AUDIO_DEVICE_NONE,
 	.capture_device = TEGRA_AUDIO_DEVICE_NONE,
 	.is_call_mode = false,
@@ -532,6 +552,8 @@ static struct snd_soc_card tegra_snd_soc = {
 	.suspend_post = tegra_soc_suspend_post,
 	.resume_pre = tegra_soc_resume_pre,
 	.resume_post = tegra_soc_resume_post,
+	.set_bias_level = tegra_soc_set_bias_level,
+	.set_bias_level_post = tegra_soc_set_bias_level_post,
 };
 
 static struct snd_soc_device tegra_snd_devdata = {

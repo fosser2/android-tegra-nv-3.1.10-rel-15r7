@@ -114,6 +114,7 @@ struct tegra_audio_data {
 	struct snd_soc_codec *codec;
 	struct clk *dap_mclk;
 	bool init_done;
+	enum snd_soc_bias_level bias_level;
 
 	int play_device;
 	int capture_device;
