@@ -332,6 +332,9 @@ static enum tegra_revision tegra_decode_revision(const struct tegra_id *id)
 	case 3:
 		return (*(id->priv) == 'p') ? TEGRA_REVISION_A03p
 					    : TEGRA_REVISION_A03;
+#else
+	case 3:
+		return TEGRA_REVISION_A03;
 #endif
 	default:
 		return TEGRA_REVISION_UNKNOWN;
