@@ -24,6 +24,7 @@ obj-y                                   += suspend.o
 obj-y                                   += fuse.o
 obj-y                                   += kfuse.o
 obj-y                                   += tegra_odm_fuses.o
+obj-y                                   += i2c_error_recovery.o
 ifeq ($(CONFIG_TEGRA_ALSA),y)
 obj-$(CONFIG_ARCH_TEGRA_2x_SOC)         += tegra2_i2s.o
 obj-$(CONFIG_ARCH_TEGRA_3x_SOC)         += tegra3_i2s.o
