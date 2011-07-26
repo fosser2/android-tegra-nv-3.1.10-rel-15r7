@@ -161,6 +161,35 @@ static void nvhdmi_free(struct hda_codec *codec)
 	kfree(spec);
 }
 
+static void nvhdmi_unsol_event(struct hda_codec *codec, unsigned int res)
+{
+	struct hdmi_spec *spec = codec->spec;
+	int tag = res >> AC_UNSOL_RES_TAG_SHIFT;
+	int index = hda_node_index(spec->pin, tag);
+	int sink_state_old = spec->sink_eld[index].monitor_present &
+					spec->sink_eld[index].eld_valid;
+	int sink_state_new;
+	struct snd_pcm_substream *s;
+
+	hdmi_unsol_event(codec, res);
+	sink_state_new = spec->sink_eld[index].monitor_present &
+					spec->sink_eld[index].eld_valid;
+
+	if (sink_state_old == sink_state_new)
+		return;
+
+	if (!codec->pcm_info || !codec->pcm_info->pcm)
+		return;
+
+	s = codec->pcm_info->pcm->streams[SNDRV_PCM_STREAM_PLAYBACK].substream;
+	if (s && s->runtime) {
+		if (snd_pcm_running(s)) {
+			snd_pcm_stop(s, SNDRV_PCM_STATE_XRUN);
+			snd_pcm_start(s);
+		}
+	}
+}
+
 static void nvhdmi_shutup(struct hda_codec *codec)
 {
 	nv_tegra_enable_hda_clks(true);
@@ -463,7 +492,7 @@ static struct hda_codec_ops nvhdmi_patch_ops_8ch_89 = {
 	.build_pcms = nvhdmi_build_pcms_8ch_89,
 	.init = nvhdmi_init,
 	.free = nvhdmi_free,
-	.unsol_event = hdmi_unsol_event,
+	.unsol_event = nvhdmi_unsol_event,
 	.reboot_notify = nvhdmi_shutup,
 };
 
