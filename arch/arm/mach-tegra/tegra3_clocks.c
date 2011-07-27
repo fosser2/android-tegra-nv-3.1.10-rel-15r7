@@ -1348,12 +1348,6 @@ static int tegra3_pll_clk_enable(struct clk *c)
 	val |= PLL_BASE_ENABLE;
 	clk_writel(val, c->reg + PLL_BASE);
 
-	if (c->flags & PLLD) {
-		val = clk_readl(c->reg + PLL_MISC(c) + PLL_BASE);
-		val |= PLLD_MISC_CLKENABLE;
-		clk_writel(val, c->reg + PLL_MISC(c) + PLL_BASE);
-	}
-
 	if (c->flags & PLLM) {
 		val = pmc_readl(PMC_PLLP_WB0_OVERRIDE_0);
 		val |= PMC_PLLP_WB0_OVERRIDE_0_PLLM_ENABLE;
@@ -1374,11 +1368,6 @@ static void tegra3_pll_clk_disable(struct clk *c)
 	val &= ~(PLL_BASE_BYPASS | PLL_BASE_ENABLE);
 	clk_writel(val, c->reg);
 
-	if (c->flags & PLLD) {
-		val = clk_readl(c->reg + PLL_MISC(c) + PLL_BASE);
-		val &= ~PLLD_MISC_CLKENABLE;
-		clk_writel(val, c->reg + PLL_MISC(c) + PLL_BASE);
-	}
 	if (c->flags & PLLM) {
 		val = pmc_readl(PMC_PLLP_WB0_OVERRIDE_0);
 		val &= ~PMC_PLLP_WB0_OVERRIDE_0_PLLM_ENABLE;
