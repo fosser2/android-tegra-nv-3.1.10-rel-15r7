@@ -116,6 +116,8 @@ void tegra_ehci_phy_restore_start(struct tegra_usb_phy *phy,
 
 void tegra_ehci_phy_restore_end(struct tegra_usb_phy *phy);
 
+int tegra_usb_set_phy_clock(struct tegra_usb_phy *phy, char clock_on);
+
 void tegra_usb_phy_close(struct tegra_usb_phy *phy);
 
 int tegra_usb_phy_bus_connect(struct tegra_usb_phy *phy);
