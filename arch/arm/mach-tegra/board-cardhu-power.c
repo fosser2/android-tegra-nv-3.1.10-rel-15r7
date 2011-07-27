@@ -935,9 +935,9 @@ static struct tegra_suspend_platform_data cardhu_suspend_data = {
 	.corereq_high	= true,
 	.sysclkreq_high	= true,
 	.wake_enb	= TEGRA_WAKE_KBC_EVENT | TEGRA_WAKE_GPIO_PV0 |
-			  TEGRA_WAKE_PWR_INT | TEGRA_WAKE_RTC_ALARM,
+			  TEGRA_WAKE_PWR_INT | TEGRA_WAKE_RTC_ALARM | TEGRA_WAKE_GPIO_PB6,
 	.wake_high	= TEGRA_WAKE_RTC_ALARM,
-	.wake_low	= TEGRA_WAKE_GPIO_PV0 | TEGRA_WAKE_PWR_INT,
+	.wake_low	= TEGRA_WAKE_GPIO_PV0 | TEGRA_WAKE_PWR_INT | TEGRA_WAKE_GPIO_PB6 ,
 	.wake_any	= TEGRA_WAKE_KBC_EVENT,
 	.cpu_lp2_min_residency = 2000,
 	.board_suspend = cardhu_board_suspend,
