@@ -318,7 +318,7 @@ static void tegra_overlay_flip_worker(struct work_struct *work)
 		tegra_dc_sync_windows(wins, nr_win);
 	}
 
-		tegra_dc_incr_syncpt_min(overlay->dc, data->syncpt_max);
+	tegra_dc_incr_syncpt_min(overlay->dc, data->syncpt_max);
 
 	/* unpin and deref previous front buffers */
 	for (i = 0; i < nr_unpin; i++) {
@@ -779,5 +779,6 @@ void tegra_overlay_disable(struct tegra_overlay_info *overlay_info)
 {
 	mutex_lock(&tegra_flip_lock);
 	flush_workqueue(overlay_info->flip_wq);
+
 	mutex_unlock(&tegra_flip_lock);
 }
