@@ -95,6 +95,8 @@ static u32 tegra_ahci_idle_time = TEGRA_AHCI_DEFAULT_IDLE_TIME;
 #define POWER_GATE_SSTS_RESTORED_YES		(1 << 23)
 #define POWER_GATE_SSTS_RESTORED_NO		(0 << 23)
 
+#define T_SATA0_DBG0_OFFSET			0x550
+
 #define T_SATA0_INDEX_OFFSET			0x680
 #define SATA0_NONE_SELECTED			0
 #define SATA0_CH1_SELECTED			(1 << 0)
@@ -713,6 +715,16 @@ static int tegra_ahci_controller_init(struct tegra_ahci_host_priv *tegra_hpriv)
 	val &= ~PHY_USE_7BIT_ALIGN_DET_FOR_SPD_MASK;
 	scfg_writel(val, T_SATA0_CFG_PHY_REG);
 
+	/*
+	 * WAR: Before enabling SATA PLL shutdown, lockdet needs to be ignored.
+	 *      To ignore lockdet, T_SATA0_DBG0_OFFSET register bit 10 needs to
+	 *      be 1, and bit 8 needs to be 0.
+	 */
+	val = scfg_readl(T_SATA0_DBG0_OFFSET);
+	val |= (1 << 10);
+	val &= ~(1 << 8);
+	scfg_writel(val, T_SATA0_DBG0_OFFSET);
+
 	/* program class code and programming interface for AHCI */
 	val = scfg_readl(TEGRA_PRIVATE_AHCI_CC_BKDR_OVERRIDE);
 	val |= TEGRA_PRIVATE_AHCI_CC_BKDR_OVERRIDE_EN;
@@ -1011,6 +1023,7 @@ static u16 pg_save_config_registers[] = {
 	0x4B0,	/* T_SATA0_CFG_GLUE */
 	0x534,	/* T_SATA0_PHY_CTRL */
 	0x540,	/* T_SATA0_CTRL */
+	0x550,	/* T_SATA0_DBG0 */
 	0x554	/* T_SATA0_LOW_POWER_COUNT */
 };
 
