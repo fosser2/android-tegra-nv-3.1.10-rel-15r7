@@ -30,6 +30,7 @@ config SND_SOC_ALL_CODECS
 	select SND_SOC_MAX9877 if I2C
 	select SND_SOC_PCM3008
 	select SND_SOC_SPDIF
+	select SND_SOC_GENERIC_CODEC
 	select SND_SOC_SSM2602 if I2C
 	select SND_SOC_STAC9766 if SND_SOC_AC97_BUS
 	select SND_SOC_TLV320AIC23 if I2C
@@ -159,6 +160,9 @@ config SND_SOC_PCM3008
 
 config SND_SOC_SPDIF
 	tristate
+
+config SND_SOC_GENERIC_CODEC
+	tristate "Generic Codec"
 
 config SND_SOC_SSM2602
 	tristate
