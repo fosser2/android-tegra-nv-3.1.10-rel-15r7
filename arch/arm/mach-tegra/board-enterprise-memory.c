@@ -21,7 +21,7 @@
 
 #include "board-enterprise.h"
 #include "tegra3_emc.h"
-
+#include "fuse.h"
 
 static const struct tegra_emc_table enterprise_emc_tables_h5tc2g[] = {
 	{
@@ -623,7 +623,9 @@ static const struct tegra_emc_table enterprise_emc_tables_h5tc2g[] = {
 
 int enterprise_emc_init(void)
 {
-	tegra_init_emc(enterprise_emc_tables_h5tc2g,
-		ARRAY_SIZE(enterprise_emc_tables_h5tc2g));
+	if (tegra_get_revision() >= TEGRA_REVISION_A02) {
+		tegra_init_emc(enterprise_emc_tables_h5tc2g,
+			       ARRAY_SIZE(enterprise_emc_tables_h5tc2g));
+	}
 	return 0;
 }

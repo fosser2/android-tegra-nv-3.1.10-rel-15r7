@@ -22,6 +22,8 @@
 #include <linux/kobject.h>
 #include <linux/err.h>
 
+#include <generated/mach-types.h>
+
 #include "clock.h"
 #include "dvfs.h"
 #include "fuse.h"
@@ -436,6 +438,11 @@ void __init tegra_soc_init_dvfs(void)
 #ifndef CONFIG_TEGRA_CPU_DVFS
 	tegra_dvfs_cpu_disabled = true;
 #endif
+
+	if (machine_is_tegra_enterprise() && tegra_get_revision() < TEGRA_REVISION_A02) {
+		printk("disabling core dvfs due to enterprise revision\n");
+		tegra_dvfs_core_disabled = true;
+	}
 
 	BUG_ON(VDD_SAFE_STEP > (cpu_below_core + core_below_cpu));
 
