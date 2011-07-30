@@ -460,24 +460,19 @@ static struct tegra_dsi_cmd dsi_early_suspend_cmd[] = {
 #if(DC_CTRL_MODE == TEGRA_DC_OUT_ONE_SHOT_MODE)
 	DSI_CMD_SHORT(0x05, 0x34, 0x00),
 #endif
+	DSI_CMD_SHORT(0x05, 0x10, 0x00),
+	DSI_DLY_MS(5),
 };
 
+
 static struct tegra_dsi_cmd dsi_late_resume_cmd[] = {
+	DSI_CMD_SHORT(0x05, 0x11, 0x00),
+	DSI_DLY_MS(150),
 #if(DC_CTRL_MODE == TEGRA_DC_OUT_ONE_SHOT_MODE)
 	DSI_CMD_SHORT(0x15, 0x35, 0x00),
 #endif
 	DSI_CMD_SHORT(0x05, 0x29, 0x00),
 	DSI_DLY_MS(20),
-};
-
-static struct tegra_dsi_cmd dsi_suspend_cmd[] = {
-	DSI_CMD_SHORT(0x05, 0x28, 0x00),
-	DSI_DLY_MS(20),
-#if(DC_CTRL_MODE == TEGRA_DC_OUT_ONE_SHOT_MODE)
-	DSI_CMD_SHORT(0x05, 0x34, 0x00),
-#endif
-	DSI_CMD_SHORT(0x05, 0x10, 0x00),
-	DSI_DLY_MS(5),
 };
 
 struct tegra_dsi_out enterprise_dsi = {
@@ -499,9 +494,6 @@ struct tegra_dsi_out enterprise_dsi = {
 
 	.n_late_resume_cmd = ARRAY_SIZE(dsi_late_resume_cmd),
 	.dsi_late_resume_cmd = dsi_late_resume_cmd,
-
-	.n_suspend_cmd = ARRAY_SIZE(dsi_suspend_cmd),
-	.dsi_suspend_cmd = dsi_suspend_cmd,
 
 	.video_data_type = TEGRA_DSI_VIDEO_TYPE_COMMAND_MODE,
 	.lp_cmd_mode_freq_khz = 20000,

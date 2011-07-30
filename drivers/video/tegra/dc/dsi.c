@@ -38,7 +38,7 @@
 #include "dsi_regs.h"
 #include "dsi.h"
 
-#define DSI_USE_SYNC_POINTS 1
+#define DSI_USE_SYNC_POINTS 0
 
 #define DSI_STOP_DC_DURATION_MSEC 1000
 
@@ -1079,6 +1079,11 @@ static int tegra_dsi_init_hw(struct tegra_dc *dc,
 {
 	u32 val;
 	u32 i;
+
+	val = DSI_POWER_CONTROL_LEG_DSI_ENABLE(TEGRA_DSI_DISABLE);
+	tegra_dsi_writel(dsi, val, DSI_POWER_CONTROL);
+
+	udelay(5);
 
 	tegra_dsi_set_dsi_clk(dc, dsi, dsi->target_lp_clk_khz);
 	if (dsi->info.dsi_instance) {
