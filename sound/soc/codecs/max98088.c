@@ -2164,6 +2164,10 @@ static int max98088_probe(struct platform_device *pdev)
 	snd_soc_update_bits(codec, M98088_REG_0F_IRQ_ENABLE,
 		M98088_REG_0F_IRQ_ENABLE_IJDET,
 		M98088_REG_0F_IRQ_ENABLE_IJDET);
+	/* Setting Debounce time to 200msec */
+	snd_soc_update_bits(codec, M98088_REG_4B_CFG_JACKDET,
+		M98088_REG_4B_CFG_JACKDET_JDEB,
+		M98088_REG_4B_CFG_JACKDET_JDEB);
 
 	max98088_handle_pdata(codec);
 
