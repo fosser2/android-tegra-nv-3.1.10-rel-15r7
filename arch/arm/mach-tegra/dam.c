@@ -410,15 +410,8 @@ void dam_ch0_set_datasync(int ifc,int datasync)
 
 void dam_ch0_set_gain(int ifc, int gain)
 {
-	u32 val;
-
 	check_dam_ifc(ifc);
-
-	val = dam_readl(ifc, DAM_CH0_CONV_0);
-
-	val |= gain << DAM_GAIN_SHIFT;
-
-	dam_writel(ifc, val, DAM_CH0_CONV_0);
+	dam_writel(ifc, gain, DAM_CH0_CONV_0);
 }
 
 void dam_ch1_enable(int ifc,int on)
@@ -449,15 +442,8 @@ void dam_ch1_set_datasync(int ifc,int datasync)
 
 void dam_ch1_set_gain(int ifc,int gain)
 {
-	u32 val;
-
 	check_dam_ifc(ifc);
-
-	val = dam_readl(ifc, DAM_CH1_CONV_0);
-
-	val |= gain << DAM_GAIN_SHIFT;
-
-	dam_writel(ifc, val, DAM_CH1_CONV_0);
+	dam_writel(ifc, gain, DAM_CH1_CONV_0);
 }
 
 void dam_save_ctrl_registers(int ifc)
