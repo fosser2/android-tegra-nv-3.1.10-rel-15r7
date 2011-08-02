@@ -41,6 +41,7 @@
 #include <mach/dma.h>
 #include <mach/powergate.h>
 #include <mach/system.h>
+#include <mach/pinmux.h>
 
 #include "apbio.h"
 #include "board.h"
@@ -437,6 +438,7 @@ void __init tegra_common_init(void)
 #ifndef CONFIG_ARCH_TEGRA_2x_SOC
 	tegra_tsensor_init();
 #endif
+	tegra_pinmux_init();
 }
 
 static int __init tegra_bootloader_fb_arg(char *options)
