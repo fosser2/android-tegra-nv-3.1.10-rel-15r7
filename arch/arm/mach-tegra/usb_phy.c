@@ -1225,49 +1225,6 @@ err0:
 	return ERR_PTR(err);
 }
 
-static void pulse_writel(int bit, void __iomem *addr)
-{
-	int val;
-
-	val = readl(addr);
-	writel(val | bit, addr);
-	udelay(10);
-	writel(val & (~bit), addr);
-}
-
-int tegra_usb_set_phy_clock(struct tegra_usb_phy *phy, char clock_on)
-{
-	int ret = 0;
-	int val;
-	void __iomem *base = phy->regs;
-
-	BUG_ON(phy == NULL);
-
-	if (clock_on) {
-		pulse_writel(USB_SUSP_CLR, base + USB_SUSP_CTRL);
-	} else  {
-		switch(phy->instance) {
-		case 0:
-			pulse_writel(USB_SUSP_SET, base + USB_SUSP_CTRL);
-			break;
-		case 1:
-		case 2:
-			val = readl(base + USB_PORTSC1);
-			writel(val | USB_PORTSC1_PHCD, base + USB_PORTSC1);
-			break;
-		default:
-			pr_err("unknow USB instance: %d\n", phy->instance);
-		}
-	}
-
-	ret = utmi_wait_register(base + USB_SUSP_CTRL, USB_PHY_CLK_VALID,
-			clock_on ? USB_PHY_CLK_VALID : 0);
-	if (ret)
-		pr_err("failed turn %s EHCI port PHY clock\n",
-				clock_on ? "on" : "off");
-	return ret;
-}
-
 int tegra_usb_phy_power_on(struct tegra_usb_phy *phy, bool is_dpd)
 {
 	if (!phy->regulator_on) {

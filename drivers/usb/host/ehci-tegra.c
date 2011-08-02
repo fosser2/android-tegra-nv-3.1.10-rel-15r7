@@ -47,15 +47,13 @@ struct tegra_ehci_hcd {
 	struct ehci_hcd *ehci;
 	struct tegra_usb_phy *phy;
 	struct clk *clk;
-	struct clk *clk_min;
 	struct clk *emc_clk;
 	struct clk *sclk_clk;
 	struct otg_transceiver *transceiver;
-	int hub_suspend_req;
 	int host_resumed;
-	int bus_is_power_down;
+	int bus_suspended;
 	int port_resuming;
-	int require_power_down_on_bus_suspend;
+	int power_down_on_bus_suspend;
 	struct delayed_work work;
 	enum tegra_usb_phy_port_speed port_speed;
 };
@@ -71,7 +69,6 @@ static void tegra_ehci_power_up(struct usb_hcd *hcd, bool is_dpd)
 #endif
 	tegra_usb_phy_power_on(tegra->phy, is_dpd);
 	tegra->host_resumed = 1;
-	tegra->bus_is_power_down = 0;
 }
 
 static void tegra_ehci_power_down(struct usb_hcd *hcd, bool is_dpd)
@@ -80,16 +77,11 @@ static void tegra_ehci_power_down(struct usb_hcd *hcd, bool is_dpd)
 
 	tegra->host_resumed = 0;
 	tegra_usb_phy_power_off(tegra->phy, is_dpd);
-	if (tegra->bus_is_power_down)  {
-		clk_disable(tegra->clk_min);
-		return;
-	}
 #ifndef CONFIG_USB_HOTPLUG
 	clk_disable(tegra->clk);
 #endif
-	clk_disable(tegra->sclk_clk);
 	clk_disable(tegra->emc_clk);
-	tegra->hub_suspend_req = 0;
+	clk_disable(tegra->sclk_clk);
 }
 
 static irqreturn_t tegra_ehci_irq (struct usb_hcd *hcd)
@@ -192,9 +184,6 @@ static int tegra_ehci_hub_control(
 			pr_err("%s: timeout waiting for SUSPEND\n", __func__);
 
 		set_bit((wIndex & 0xff) - 1, &ehci->suspended_ports);
-
-		tegra->hub_suspend_req = 1;
-
 		goto done;
 	}
 
@@ -540,51 +529,24 @@ static int tegra_ehci_setup(struct usb_hcd *hcd)
 #ifdef CONFIG_PM
 static int tegra_ehci_bus_suspend(struct usb_hcd *hcd)
 {
-	int ret = 0;
 	struct tegra_ehci_hcd *tegra = dev_get_drvdata(hcd->self.controller);
+	int error_status = 0;
 
-	if (0 != (ret = ehci_bus_suspend(hcd)))
-		return ret;
-
-	if (tegra->require_power_down_on_bus_suspend &&
-	    tegra->hub_suspend_req) {
-		tegra_usb_set_phy_clock(tegra->phy, 0);
-
-		if (0 != (ret = clk_enable(tegra->clk_min))) {
-			pr_err("HSIC USB core clk enable failed\n");
-			return ret;
-		}
-
-		clk_disable(tegra->clk);
-
-		clk_disable(tegra->emc_clk);
-
-		tegra->hub_suspend_req = 0;
-		tegra->bus_is_power_down = 1;
+	error_status = ehci_bus_suspend(hcd);
+	if (!error_status && tegra->power_down_on_bus_suspend) {
+		tegra_usb_suspend(hcd, false);
+		tegra->bus_suspended = 1;
 	}
-	return ret;
+	return error_status;
 }
 
 static int tegra_ehci_bus_resume(struct usb_hcd *hcd)
 {
 	struct tegra_ehci_hcd *tegra = dev_get_drvdata(hcd->self.controller);
-	int ret;
 
-	if (tegra->require_power_down_on_bus_suspend &&
-	    tegra->bus_is_power_down) {
-		if (0 != (ret = clk_enable(tegra->clk)))
-			pr_err("HSIC usb PHY clk enable failed\n");
-
-		if (0 != (ret = clk_enable(tegra->emc_clk)))
-			pr_err("HSIC USB EMC clk enable failed\n");
-
-		clk_disable(tegra->clk_min);
-
-		tegra_usb_set_phy_clock(tegra->phy, 1);
-
-		msleep(50);
-
-		tegra->bus_is_power_down = 0;
+	if (tegra->bus_suspended && tegra->power_down_on_bus_suspend) {
+		tegra_usb_resume(hcd, false);
+		tegra->bus_suspended = 0;
 	}
 
 	return ehci_bus_resume(hcd);
@@ -890,7 +852,7 @@ static int tegra_ehci_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, tegra);
 
-	tegra->clk = clk_get(&pdev->dev, "usb2");
+	tegra->clk = clk_get(&pdev->dev, NULL);
 	if (IS_ERR(tegra->clk)) {
 		dev_err(&pdev->dev, "Can't get ehci clock\n");
 		err = PTR_ERR(tegra->clk);
@@ -901,15 +863,6 @@ static int tegra_ehci_probe(struct platform_device *pdev)
 	if (err)
 		goto fail_clken;
 
-	tegra->clk_min = clk_get(&pdev->dev, "usb2min");
-	if (IS_ERR(tegra->clk_min)) {
-		dev_err(&pdev->dev, "Can't get ehci clock fast\n");
-		err = PTR_ERR(tegra->clk_min);
-		goto fail_clk_min;
-	}
-	/* only need enable usb2min at the USB suspend time to ensure the
-	 * VDD core at least is 1.1v
-	 */
 
 	tegra->sclk_clk = clk_get(&pdev->dev, "sclk");
 	if (IS_ERR(tegra->sclk_clk)) {
@@ -963,9 +916,7 @@ static int tegra_ehci_probe(struct platform_device *pdev)
 	}
 
 	tegra->host_resumed = 1;
-
-	tegra->require_power_down_on_bus_suspend =
-		pdata->power_down_on_bus_suspend;
+	tegra->power_down_on_bus_suspend = pdata->power_down_on_bus_suspend;
 	tegra->ehci = hcd_to_ehci(hcd);
 
 	irq = platform_get_irq(pdev, 0);
@@ -1022,8 +973,6 @@ fail_emc_clk:
 fail_sclk_clk:
 	clk_disable(tegra->clk);
 fail_clken:
-	clk_put(tegra->clk_min);
-fail_clk_min:
 	clk_put(tegra->clk);
 fail_clk:
 	usb_put_hcd(hcd);
@@ -1038,6 +987,9 @@ static int tegra_ehci_resume(struct platform_device *pdev)
 	struct tegra_ehci_hcd *tegra = platform_get_drvdata(pdev);
 	struct usb_hcd *hcd = ehci_to_hcd(tegra->ehci);
 
+	if ((tegra->bus_suspended) && (tegra->power_down_on_bus_suspend))
+		return 0;
+
 	return tegra_usb_resume(hcd, true);
 }
 
@@ -1045,6 +997,9 @@ static int tegra_ehci_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	struct tegra_ehci_hcd *tegra = platform_get_drvdata(pdev);
 	struct usb_hcd *hcd = ehci_to_hcd(tegra->ehci);
+
+	if ((tegra->bus_suspended) && (tegra->power_down_on_bus_suspend))
+		return 0;
 
 	if (time_before(jiffies, tegra->ehci->next_statechange))
 		msleep(10);
