@@ -432,7 +432,7 @@ static int __devinit tps6591x_rtc_probe(struct platform_device *pdev)
 
 	if (pdata->irq < 0)
 		dev_err(&pdev->dev, "\n no IRQ specified, wakeup is disabled\n");
-
+	device_init_wakeup(&pdev->dev, 1);
 	rtc->rtc = rtc_device_register(pdev->name, &pdev->dev,
 				       &tps6591x_rtc_ops, THIS_MODULE);
 
