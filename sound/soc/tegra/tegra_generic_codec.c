@@ -100,7 +100,7 @@ struct snd_soc_dai tegra_generic_codec_dai[] = {
 	TEGRA_CREATE_GENERIC_CODEC_DAI("tegra_generic_spdif_codec",
 			0, 2, 2, TEGRA_SAMPLE_RATES),
 	TEGRA_CREATE_GENERIC_CODEC_DAI("tegra_generic_BB_codec",
-			1, 1, 1, TEGRA_VOICE_SAMPLE_RATES),
+			1, 1, 2, TEGRA_SAMPLE_RATES),
 	TEGRA_CREATE_GENERIC_CODEC_DAI("tegra_generic_BT_codec",
 			2, 1, 1, TEGRA_VOICE_SAMPLE_RATES),
 	TEGRA_CREATE_GENERIC_CODEC_DAI("tegra_generic_tdm_codec",

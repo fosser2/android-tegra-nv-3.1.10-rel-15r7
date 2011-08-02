@@ -78,19 +78,23 @@
 #define TEGRA_SAMPLE_RATES (SNDRV_PCM_RATE_8000_96000)
 #define TEGRA_VOICE_SAMPLE_RATES SNDRV_PCM_RATE_8000
 
-#define DMA_STEP_SIZE_MIN 8
-#define DMA_REQ_QCOUNT 2
+#define DMA_STEP_SIZE_MIN	8
+#define DMA_REQ_QCOUNT		2
 
 #define TEGRA_AUDIO_OFF		0x0
 #define TEGRA_HEADPHONE		0x1
 #define TEGRA_LINEOUT		0x2
-#define TEGRA_SPK		0x4
+#define TEGRA_SPK			0x4
 #define TEGRA_EAR_SPK		0x8
 #define TEGRA_INT_MIC		0x10
 #define TEGRA_EXT_MIC		0x20
 #define TEGRA_LINEIN		0x40
 #define TEGRA_HEADSET_OUT	0x80
 #define TEGRA_HEADSET_IN	0x100
+
+#define TEGRA_BT_CODEC_ID		0
+#define TEGRA_BB_CODEC_ID		1
+#define TEGRA_SPDIF_CODEC_ID	2
 
 struct tegra_dma_channel;
 

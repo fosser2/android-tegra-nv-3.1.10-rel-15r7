@@ -133,61 +133,6 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 static int tegra_voice_hw_params(struct snd_pcm_substream *substream,
 					struct snd_pcm_hw_params *params)
 {
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
-	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
-	int dai_flag = 0, sys_clk;
-	int err;
-	enum dac_dap_data_format data_fmt;
-	struct audio_dev_property dev_prop;
-
-#ifdef CONFIG_ARCH_TEGRA_2x_SOC
-	if (tegra_das_is_port_master(tegra_audio_codec_type_bluetooth))
-#else
-	if(tegra_das_is_device_master(tegra_audio_codec_type_bluetooth))
-#endif
-		dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
-	else
-		dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
-
-
-#ifdef CONFIG_ARCH_TEGRA_2x_SOC
-	data_fmt = tegra_das_get_codec_data_fmt(tegra_audio_codec_type_bluetooth);
-#else
-	tegra_das_get_device_property(tegra_audio_codec_type_bluetooth,&dev_prop);
-	data_fmt = dev_prop.dac_dap_data_comm_format;
-#endif
-	/* We are supporting DSP and I2s format for now */
-	if (data_fmt & dac_dap_data_format_i2s)
-		dai_flag |= SND_SOC_DAIFMT_I2S;
-	else
-		dai_flag |= SND_SOC_DAIFMT_DSP_A;
-
-	err = snd_soc_dai_set_fmt(codec_dai, dai_flag);
-	if (err < 0) {
-		pr_err("codec_dai fmt not set\n");
-		return err;
-	}
-
-	err = snd_soc_dai_set_fmt(cpu_dai, dai_flag);
-	if (err < 0) {
-		pr_err("cpu_dai fmt not set\n");
-		return err;
-	}
-
-	sys_clk = tegra_das_get_mclk_rate();
-	err = snd_soc_dai_set_sysclk(codec_dai, 0, sys_clk, SND_SOC_CLOCK_IN);
-	if (err < 0) {
-		pr_err("cpu_dai clock not set\n");
-		return err;
-	}
-
-	err = snd_soc_dai_set_sysclk(cpu_dai, 0, sys_clk, SND_SOC_CLOCK_IN);
-	if (err < 0) {
-		pr_err("cpu_dai clock not set\n");
-		return err;
-	}
-
 	return 0;
 }
 
@@ -296,16 +241,6 @@ void tegra_ext_control(struct snd_soc_codec *codec, int new_con)
 	else
 		snd_soc_dapm_disable_pin(codec, "Int Mic");
 
-	if (new_con & TEGRA_EXT_MIC)
-		snd_soc_dapm_enable_pin(codec, "Ext Mic");
-	else
-		snd_soc_dapm_disable_pin(codec, "Ext Mic");
-
-	if (new_con & TEGRA_LINEIN)
-		snd_soc_dapm_enable_pin(codec, "Linein");
-	else
-		snd_soc_dapm_disable_pin(codec, "Linein");
-
 	if (new_con & TEGRA_HEADSET_OUT)
 		snd_soc_dapm_enable_pin(codec, "Headset Out");
 	else
@@ -323,67 +258,13 @@ void tegra_ext_control(struct snd_soc_codec *codec, int new_con)
 
 }
 
-static int tegra_dapm_event_int_spk(struct snd_soc_dapm_widget *w,
-				    struct snd_kcontrol *k, int event)
-{
-	if (tegra_wired_jack_conf.en_spkr != -1) {
-		if (tegra_wired_jack_conf.amp_reg) {
-			if (SND_SOC_DAPM_EVENT_ON(event) &&
-				!tegra_wired_jack_conf.amp_reg_enabled) {
-				regulator_enable(tegra_wired_jack_conf.amp_reg);
-				tegra_wired_jack_conf.amp_reg_enabled = 1;
-			} else if (!SND_SOC_DAPM_EVENT_ON(event) &&
-				tegra_wired_jack_conf.amp_reg_enabled) {
-				regulator_disable(tegra_wired_jack_conf.amp_reg);
-				tegra_wired_jack_conf.amp_reg_enabled = 0;
-			}
-		}
-
-		gpio_set_value_cansleep(tegra_wired_jack_conf.en_spkr,
-			SND_SOC_DAPM_EVENT_ON(event) ? 1 : 0);
-	}
-
-	return 0;
-}
-
-static int tegra_dapm_event_int_mic(struct snd_soc_dapm_widget *w,
-				    struct snd_kcontrol *k, int event)
-{
-	if (tegra_wired_jack_conf.en_mic_int != -1)
-		gpio_set_value_cansleep(tegra_wired_jack_conf.en_mic_int,
-			SND_SOC_DAPM_EVENT_ON(event) ? 1 : 0);
-
-	if (tegra_wired_jack_conf.en_mic_ext != -1)
-		gpio_set_value_cansleep(tegra_wired_jack_conf.en_mic_ext,
-			SND_SOC_DAPM_EVENT_ON(event) ? 0 : 1);
-
-	return 0;
-}
-
-static int tegra_dapm_event_ext_mic(struct snd_soc_dapm_widget *w,
-				    struct snd_kcontrol *k, int event)
-{
-	if (tegra_wired_jack_conf.en_mic_ext != -1)
-		gpio_set_value_cansleep(tegra_wired_jack_conf.en_mic_ext,
-			SND_SOC_DAPM_EVENT_ON(event) ? 1 : 0);
-
-	if (tegra_wired_jack_conf.en_mic_int != -1)
-		gpio_set_value_cansleep(tegra_wired_jack_conf.en_mic_int,
-			SND_SOC_DAPM_EVENT_ON(event) ? 0 : 1);
-
-	return 0;
-}
-
 /*tegra machine dapm widgets */
 static const struct snd_soc_dapm_widget tegra_dapm_widgets[] = {
 	SND_SOC_DAPM_HP("Headphone", NULL),
 	SND_SOC_DAPM_HP("Headset Out", NULL),
 	SND_SOC_DAPM_MIC("Headset In", NULL),
-	SND_SOC_DAPM_SPK("Lineout", NULL),
 	SND_SOC_DAPM_SPK("Int Spk", NULL),
-	SND_SOC_DAPM_MIC("Ext Mic", NULL),
 	SND_SOC_DAPM_MIC("Int Mic", NULL),
-	SND_SOC_DAPM_LINE("Linein", NULL),
 };
 
 static const struct snd_soc_dapm_route audio_map[] = {
@@ -513,15 +394,14 @@ static struct snd_soc_dai_link tegra_soc_dai[] = {
 		&tegra_i2s_dai[1], &tegra_generic_codec_dai[2],
 		&tegra_voice_ops),
 #else
-	/*
-	TEGRA_CREATE_SOC_DAI_LINK("Tegra-generic-0", "Tegra BB Voice",
-		&tegra_i2s_dai[1], &tegra_generic_codec_dai[1],
+	TEGRA_CREATE_SOC_DAI_LINK("Tegra-generic", "Tegra Generic Voice",
+		&tegra_i2s_dai[0], &max98088_dai[0],
 		&tegra_voice_ops),
-	TEGRA_CREATE_SOC_DAI_LINK("Tegra-generic-1", "Tegra BT Voice",
-		&tegra_i2s_dai[2], &tegra_generic_codec_dai[2],
-		&tegra_voice_ops),
-	*/
 
+	TEGRA_CREATE_SOC_DAI_LINK("Tegra-voice-call",
+		"Tegra Voice Call Max HiFi",
+		&tegra_generic_codec_dai[1],
+		&max98088_dai[0], &tegra_voice_ops),
 #endif
 
 	TEGRA_CREATE_SOC_DAI_LINK("Tegra-spdif", "Tegra Spdif",

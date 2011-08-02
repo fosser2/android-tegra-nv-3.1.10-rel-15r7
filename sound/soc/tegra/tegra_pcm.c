@@ -67,7 +67,7 @@ static void tegra_pcm_queue_dma(struct tegra_runtime_data *prtd)
 	struct snd_dma_buffer *buf = &substream->dma_buffer;
 	struct tegra_dma_req *dma_req;
 
-	if (runtime->dma_addr) {
+	if (runtime->dma_addr && prtd->dma_chan) {
 		prtd->size = frames_to_bytes(runtime, runtime->period_size);
 
 		if (prtd->dma_state != STATE_ABORT) {
@@ -161,14 +161,14 @@ static int tegra_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 
 		prtd->dma_state = STATE_ABORT;
-		tegra_dma_cancel(prtd->dma_chan);
 
 		if (prtd->dma_chan) {
+			tegra_dma_cancel(prtd->dma_chan);
 			for (i = 0; i < DMA_REQ_QCOUNT; i++)
 				tegra_dma_dequeue_req(prtd->dma_chan,
 						&prtd->dma_req[i]);
-		prtd->dma_head_idx = 0;
-		prtd->dma_tail_idx = DMA_REQ_QCOUNT - 1;
+			prtd->dma_head_idx = 0;
+			prtd->dma_tail_idx = DMA_REQ_QCOUNT - 1;
 		}
 #ifdef CONFIG_HAS_WAKELOCK
 		wake_unlock(&prtd->wake_lock);
@@ -186,10 +186,10 @@ static snd_pcm_uframes_t tegra_pcm_pointer(struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct tegra_runtime_data *prtd = runtime->private_data;
-	int size;
+	int size = prtd->period_index * runtime->period_size;
 
-	size = (prtd->period_index * runtime->period_size) +
-		 bytes_to_frames(runtime,
+	if (prtd->dma_chan)
+		size += bytes_to_frames(runtime,
 				tegra_dma_get_transfer_count(
 					prtd->dma_chan,
 					&prtd->dma_req[prtd->dma_head_idx],
@@ -205,13 +205,15 @@ static int tegra_pcm_open(struct snd_pcm_substream *substream)
 	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
 	struct tegra_runtime_data *prtd = 0;
 	struct tegra_i2s_info *info = cpu_dai->private_data;
-	int i, ret=0;
+	int i, ret = 0;
 	int dma_mode;
+	int need_dma_ch = 0;
 
-	pr_debug("%s: Device %d, Stream %s, substream_name %s\n", __func__, \
-		substream->pcm->device, \
-		(substream->stream == SNDRV_PCM_STREAM_PLAYBACK)?"Playback": \
-		"Capture", substream->name);
+	pr_debug("%s: cpu_dai %s, codec_dai %s, Device %d, Stream %s\n",
+		 __func__, cpu_dai->name, rtd->dai->codec_dai->name,
+		substream->pcm->device,
+		(substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ?
+		"Playback" : "Capture");
 
 	/* Ensure period size is multiple of minimum DMA step size */
 	ret = snd_pcm_hw_constraint_step(runtime, 0,
@@ -240,7 +242,7 @@ static int tegra_pcm_open(struct snd_pcm_substream *substream)
 
 	prtd->dma_state = STATE_INVALID;
 
-	if (strcmp(cpu_dai->name, "tegra-spdif") == 0)
+	if (!strcmp(cpu_dai->name, "tegra-spdif"))
 	{
 		for (i = 0; i < DMA_REQ_QCOUNT; i++) {
 			setup_spdif_dma_request(substream,
@@ -248,27 +250,30 @@ static int tegra_pcm_open(struct snd_pcm_substream *substream)
 					dma_complete_callback,
 					prtd);
 		}
-	}
-	else
-	{
+		need_dma_ch = 1;
+	} else if (strstr(cpu_dai->name, "tegra-i2s")) {
 		for (i = 0; i < DMA_REQ_QCOUNT; i++) {
 			setup_i2s_dma_request(substream,
 					&prtd->dma_req[i],
 					dma_complete_callback,
 					prtd);
 		}
+		need_dma_ch = 1;
 	}
 
-	dma_mode = info->pdata->tdm_enable ? TEGRA_DMA_MODE_CONTINUOUS_DOUBLE :
-					TEGRA_DMA_MODE_CONTINUOUS_SINGLE;
+	if (need_dma_ch) {
+		if (info && info->pdata->tdm_enable)
+			dma_mode = TEGRA_DMA_MODE_CONTINUOUS_DOUBLE;
+		else
+			dma_mode = TEGRA_DMA_MODE_CONTINUOUS_SINGLE;
 
-	prtd->dma_chan = tegra_dma_allocate_channel(
-				dma_mode, "pcm");
-	if (prtd->dma_chan == NULL) {
-		pr_err("%s: could not allocate DMA channel for PCM:\n",
+		prtd->dma_chan = tegra_dma_allocate_channel(dma_mode, "pcm");
+		if (prtd->dma_chan == NULL) {
+			pr_err("%s: could not allocate DMA channel for PCM:\n",
 				__func__);
-		ret = -ENOMEM;
-		goto fail;
+			ret = -ENOMEM;
+			goto fail;
+		}
 	}
 
 #ifdef CONFIG_HAS_WAKELOCK
@@ -281,11 +286,11 @@ static int tegra_pcm_open(struct snd_pcm_substream *substream)
 #endif
 
 	/* Set HW params now that initialization is complete */
-	if (!info->pdata->tdm_enable)
-		snd_soc_set_runtime_hwparams(substream, &tegra_pcm_hardware);
-	else
+	if (info && info->pdata->tdm_enable)
 		snd_soc_set_runtime_hwparams(substream,
-						&tegra_pcm_tdm_hardware);
+					&tegra_pcm_tdm_hardware);
+	else
+		snd_soc_set_runtime_hwparams(substream, &tegra_pcm_hardware);
 
 	goto end;
 
@@ -296,6 +301,7 @@ fail:
 		if (prtd->dma_chan) {
 			tegra_dma_flush(prtd->dma_chan);
 			tegra_dma_free_channel(prtd->dma_chan);
+			prtd->dma_chan = NULL;
 		}
 		kfree(prtd);
 	}
@@ -311,6 +317,12 @@ static int tegra_pcm_close(struct snd_pcm_substream *substream)
 	struct tegra_runtime_data *prtd = runtime->private_data;
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
+
+	pr_debug("%s: cpu_dai %s, codec_dai %s, Device %d, Stream %s\n",
+		 __func__, cpu_dai->name, rtd->dai->codec_dai->name,
+		substream->pcm->device,
+		(substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ?
+		"Playback" : "Capture");
 
 	if (!prtd) {
 		printk(KERN_ERR "tegra_pcm_close called with prtd == NULL\n");
