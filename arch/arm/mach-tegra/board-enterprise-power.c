@@ -401,6 +401,11 @@ static void enterprise_power_off(void)
 	while(1);
 }
 
+void __init tegra_tsensor_init(void)
+{
+/* To be implemented */
+}
+
 int __init enterprise_regulator_init(void)
 {
 	void __iomem *pmc = IO_ADDRESS(TEGRA_PMC_BASE);

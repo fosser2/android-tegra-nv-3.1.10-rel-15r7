@@ -40,6 +40,7 @@
 #include "board-cardhu.h"
 #include "power.h"
 #include "wakeups-t3.h"
+#include "mach/tsensor.h"
 
 #define PMC_CTRL		0x0
 #define PMC_CTRL_INTR_LOW	(1 << 17)
@@ -999,6 +1000,22 @@ int __init cardhu_power_off_init(void)
 {
 	pm_power_off = cardhu_power_off;
 	return 0;
+}
+
+static struct tegra_tsensor_pmu_data  tpdata = {
+	.poweroff_reg_addr = 0x3F,
+	.poweroff_reg_data = 0x80,
+	.reset_tegra = 1,
+	.controller_type = 0,
+	.i2c_controller_id = 4,
+	.pinmux = 0,
+	.pmu_16bit_ops = 0,
+	.pmu_i2c_addr = 0x2D,
+};
+
+void __init tegra_tsensor_init(void)
+{
+	tegra3_tsensor_init(&tpdata);
 }
 
 #ifdef CONFIG_TEGRA_EDP_LIMITS
