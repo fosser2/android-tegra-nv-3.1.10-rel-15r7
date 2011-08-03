@@ -145,7 +145,6 @@ static void tegra_sdhci_configure_capabilities(struct sdhci_host *sdhci)
 	/* Enable support for SD 3.0 */
 	ctrl = sdhci_readl(sdhci, SDMMC_VENDOR_MISC_CNTRL);
 	ctrl |= SDMMC_VENDOR_MISC_CNTRL_SDMMC_SPARE0_ENABLE_SDR104;
-	ctrl |= SDMMC_VENDOR_MISC_CNTRL_SDMMC_SPARE0_ENABLE_SDR50;
 	ctrl |= SDMMC_VENDOR_MISC_CNTRL_SDMMC_SPARE0_ENABLE_SD3_0_SUPPORT;
 	sdhci_writel(sdhci, ctrl, SDMMC_VENDOR_MISC_CNTRL);
 
