@@ -410,7 +410,7 @@ void tegra_codec_shutdown(struct snd_pcm_substream *substream)
 
 int tegra_soc_suspend_pre(struct platform_device *pdev, pm_message_t state)
 {
-	tegra_jack_suspend();
+	disable_irq(gpio_to_irq(wm8753_jack->gpio));
 	return 0;
 }
 
@@ -436,7 +436,7 @@ int tegra_soc_resume_pre(struct platform_device *pdev)
 
 int tegra_soc_resume_post(struct platform_device *pdev)
 {
-	tegra_jack_resume();
+	enable_irq(gpio_to_irq(wm8753_jack->gpio));
 	return 0;
 }
 
