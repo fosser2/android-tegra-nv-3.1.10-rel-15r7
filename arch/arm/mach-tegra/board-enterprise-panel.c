@@ -66,14 +66,22 @@ static struct regulator *enterprise_hdmi_vddio;
 
 static atomic_t sd_brightness = ATOMIC_INIT(255);
 
+/*
+ * In case which_pwm is TEGRA_PWM_PM0,
+ * gpio_conf_to_sfio should be TEGRA_GPIO_PW0: set LCD_CS1_N pin to SFIO
+ * In case which_pwm is TEGRA_PWM_PM1,
+ * gpio_conf_to_sfio should be TEGRA_GPIO_PW1: set LCD_M1 pin to SFIO
+ */
 static struct platform_tegra_pwm_backlight_data enterprise_disp1_backlight_data = {
-	.which_dc	= 0,
-	.which_pwm	= TEGRA_PWM_PM1,
-	.max_brightness	= 255,
-	.dft_brightness	= 224,
-	.period		= 0x3F,
-	.clk_div	= 1,
-	.clk_select	= 2,
+	.which_dc		= 0,
+	.which_pwm		= TEGRA_PWM_PM1,
+	.gpio_conf_to_sfio	= TEGRA_GPIO_PW1,
+	.switch_to_sfio		= &tegra_gpio_disable,
+	.max_brightness		= 255,
+	.dft_brightness		= 224,
+	.period			= 0x3F,
+	.clk_div		= 1,
+	.clk_select		= 2,
 };
 
 static struct platform_device enterprise_disp1_backlight_device = {
@@ -673,8 +681,6 @@ int __init enterprise_panel_init(void)
 	enterprise_panel_early_suspender.level = EARLY_SUSPEND_LEVEL_DISABLE_FB;
 	register_early_suspend(&enterprise_panel_early_suspender);
 #endif
-
-	tegra_gpio_disable(TEGRA_GPIO_PW1);
 
 	err = platform_add_devices(enterprise_gfx_devices,
 				ARRAY_SIZE(enterprise_gfx_devices));
