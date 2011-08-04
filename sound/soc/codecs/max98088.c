@@ -2030,7 +2030,9 @@ static int max98088_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = socdev->card->codec;
-
+	struct max98088_priv *max98088 = snd_soc_codec_get_drvdata(codec);
+	if (max98088)
+		disable_irq(max98088->irq);
 	max98088_set_bias_level(codec, SND_SOC_BIAS_OFF);
 
 	return 0;
@@ -2040,10 +2042,12 @@ static int max98088_resume(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = socdev->card->codec;
+	struct max98088_priv *max98088 = snd_soc_codec_get_drvdata(codec);
 	int i;
 	u8 *cache = codec->reg_cache;
 
-	max98088_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
+	if (max98088)
+		max98088_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
 
 	/* Sync reg_cache with the hardware */
 	for (i = 0; i < M98088_REG_CNT; i++) {
@@ -2058,6 +2062,7 @@ static int max98088_resume(struct platform_device *pdev)
 
 	max98088_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
 
+	enable_irq(max98088->irq);
 	return 0;
 }
 #else
@@ -2226,7 +2231,6 @@ static irqreturn_t max98088_jack_handler(int irq, void *data)
 		snd_soc_jack_report(max98088->headset_jack,
 				SND_JACK_HEADSET, SND_JACK_HEADSET);
 	}
-
 	return IRQ_HANDLED;
 }
 
