@@ -150,6 +150,11 @@ obj-${CONFIG_MACH_CARDHU}               += board-touch.o
 obj-${CONFIG_MACH_CARDHU}               += board-cardhu-memory.o
 obj-${CONFIG_MACH_CARDHU}               += board-cardhu-powermon.o
 
+obj-${CONFIG_MACH_P1852}               += board-p1852.o
+obj-${CONFIG_MACH_P1852}               += board-p1852-panel.o
+obj-${CONFIG_MACH_P1852}               += board-p1852-pinmux.o
+obj-${CONFIG_MACH_P1852}               += board-p1852-sdhci.o
+
 obj-${CONFIG_MACH_TEGRA_ENTERPRISE}     += board-enterprise.o
 obj-${CONFIG_MACH_TEGRA_ENTERPRISE}     += board-enterprise-panel.o
 obj-${CONFIG_MACH_TEGRA_ENTERPRISE}     += board-enterprise-pinmux.o
