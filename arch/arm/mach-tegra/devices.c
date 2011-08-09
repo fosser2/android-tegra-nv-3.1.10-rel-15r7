@@ -22,7 +22,6 @@
 
 
 #include <linux/resource.h>
-#include <linux/platform_device.h>
 #include <linux/dma-mapping.h>
 #include <linux/fsl_devices.h>
 #include <linux/serial_8250.h>
@@ -31,6 +30,7 @@
 #include <mach/irqs.h>
 #include <mach/iomap.h>
 #include <mach/dma.h>
+#include "devices.h"
 
 #if !defined(CONFIG_ARCH_TEGRA_2x_SOC)
 #define UART_SOURCE_RATE 408000000
@@ -1431,3 +1431,47 @@ struct platform_device tegra_se_device = {
 };
 #endif
 
+static struct resource tegra_disp1_resources[] = {
+	{
+		.name	= "irq",
+		.start	= INT_DISPLAY_GENERAL,
+		.end	= INT_DISPLAY_GENERAL,
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		.name	= "regs",
+		.start	= TEGRA_DISPLAY_BASE,
+		.end	= TEGRA_DISPLAY_BASE + TEGRA_DISPLAY_SIZE-1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.name	= "fbmem",
+		.start	= 0,
+		.end	= 0,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.name	= "dsi_regs",
+		.start	= TEGRA_DSI_BASE,
+		.end	= TEGRA_DSI_BASE + TEGRA_DSI_SIZE - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+};
+
+struct nvhost_device tegra_disp1_device = {
+	.name		= "tegradc",
+	.id		= 0,
+	.resource	= tegra_disp1_resources,
+	.num_resources	= ARRAY_SIZE(tegra_disp1_resources),
+	.dev = {
+		.platform_data = 0,
+	},
+};
+
+struct platform_device tegra_nvmap_device = {
+	.name	= "tegra-nvmap",
+	.id	= -1,
+	.dev	= {
+		.platform_data = 0,
+	},
+};
