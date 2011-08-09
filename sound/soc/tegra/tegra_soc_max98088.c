@@ -122,6 +122,51 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
+#ifndef CONFIG_ARCH_TEGRA_2x_SOC
+static int tegra_bt_hw_params(struct snd_pcm_substream *substream,
+					struct snd_pcm_hw_params *params)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
+	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
+	int sys_clk;
+	int err;
+	int dai_flag = SND_SOC_DAIFMT_NB_NF;
+	enum dac_dap_data_format data_fmt;
+	struct audio_dev_property dev_prop;
+
+       if (tegra_das_is_device_master(tegra_audio_codec_type_bluetooth))
+		dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
+	else
+		dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
+
+	tegra_das_get_device_property(tegra_audio_codec_type_bluetooth,
+		&dev_prop);
+
+	data_fmt = dev_prop.dac_dap_data_comm_format;
+
+	/* We are supporting DSP and I2s format for now */
+	if (data_fmt & dac_dap_data_format_dsp)
+		dai_flag |= SND_SOC_DAIFMT_DSP_A;
+	else
+		dai_flag |= SND_SOC_DAIFMT_I2S;
+
+	err = snd_soc_dai_set_fmt(codec_dai, dai_flag);
+	if (err < 0) {
+		pr_err("codec_dai fmt not set\n");
+		return err;
+	}
+
+	err = snd_soc_dai_set_fmt(cpu_dai, dai_flag);
+	if (err < 0) {
+		pr_err("cpu_dai fmt not set\n");
+		return err;
+	}
+
+	return 0;
+}
+#endif
+
 static int tegra_voice_hw_params(struct snd_pcm_substream *substream,
 					struct snd_pcm_hw_params *params)
 {
@@ -203,6 +248,12 @@ static struct snd_soc_ops tegra_hifi_ops = {
 
 static struct snd_soc_ops tegra_voice_ops = {
 	.hw_params = tegra_voice_hw_params,
+	.startup = tegra_codec_startup,
+	.shutdown = tegra_codec_shutdown,
+};
+
+static struct snd_soc_ops tegra_bt_ops = {
+	.hw_params = tegra_bt_hw_params,
 	.startup = tegra_codec_startup,
 	.shutdown = tegra_codec_shutdown,
 };
@@ -386,9 +437,9 @@ static struct snd_soc_dai_link tegra_soc_dai[] = {
 		&tegra_i2s_dai[1], &tegra_generic_codec_dai[2],
 		&tegra_voice_ops),
 #else
-	TEGRA_CREATE_SOC_DAI_LINK("Tegra-generic", "Tegra Generic Voice",
-		&tegra_i2s_dai[0], &max98088_dai[0],
-		&tegra_voice_ops),
+	TEGRA_CREATE_SOC_DAI_LINK("Tegra-generic", "Tegra BT Voice",
+		&tegra_i2s_dai[3], &tegra_generic_codec_dai[2],
+		&tegra_bt_ops),
 
 	TEGRA_CREATE_SOC_DAI_LINK("Tegra-voice-call",
 		"Tegra Voice Call Max HiFi",

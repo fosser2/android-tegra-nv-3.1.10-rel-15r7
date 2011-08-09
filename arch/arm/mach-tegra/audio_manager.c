@@ -389,6 +389,15 @@ int default_record_connection(aud_dev_info *devinfo)
 
 }
 
+int default_playback_bt_connection(aud_dev_info *devinfo)
+{
+	struct am_dev_fns *am_fn = &init_am_dev_fns[devinfo->dev_type];
+	return am_fn->aud_dev_get_dma_requestor(devinfo->dev_id,
+					AUDIO_TX_MODE);
+
+}
+
+
 int default_playback_connection(struct am_ch_info *ch, int ifc, int fifo_mode)
 {
 	/* get unused dam channel first */
@@ -442,6 +451,7 @@ conn_fail:
 	AM_DEBUG_PRINT("%s-- failed\n", __func__);
 	return -ENOENT;
 }
+
 
 int free_dam_connection(aud_dev_info *devinfo)
 {
@@ -537,24 +547,36 @@ int am_get_dma_requestor(aud_dev_info* devinfo)
 			ch->ahubtx_index = ahubindex;
 
 		if (fifo_mode == AUDIO_TX_MODE) {
+			if (dev_id != aud_manager->bt_port_idx) {
+				err = default_playback_connection(ch,
+						dev_id, fifo_mode);
+				if (err)
+					goto fail_conn;
 
-			err = default_playback_connection(ch,
-							dev_id, fifo_mode);
-			if (err)
-				goto fail_conn;
+				if (devinfo->dev_type == AUDIO_I2S_DEVICE) {
+					i2s_set_dma_channel(dev_id,
+					 fifo_mode, (ch->dmach[fifo_mode] - 1));
+					i2s_set_acif(dev_id, fifo_mode,
+					 &ch->inacif);
+				} else if (devinfo->dev_type
+					== AUDIO_SPDIF_DEVICE) {
+					spdif_set_dma_channel(dev_id,
+					 fifo_mode, (ch->dmach[fifo_mode] - 1));
+					spdif_set_acif(dev_id,
+					 fifo_mode, (void *)&ch->inacif);
+				}
+			} else {
+				struct am_dev_fns *am_fn =
+					&init_am_dev_fns[devinfo->dev_type];
 
-			if (devinfo->dev_type == AUDIO_I2S_DEVICE) {
-				i2s_set_dma_channel(dev_id,
-					fifo_mode, (ch->dmach[fifo_mode] - 1));
-				i2s_set_acif(dev_id, fifo_mode, &ch->inacif);
-			} else if (devinfo->dev_type == AUDIO_SPDIF_DEVICE) {
-				spdif_set_dma_channel(dev_id,
-					fifo_mode, (ch->dmach[fifo_mode] - 1));
-				spdif_set_acif(dev_id,
-						fifo_mode, (void *)&ch->inacif);
+				am_fn->aud_dev_clock_enable(devinfo->dev_id,
+				 fifo_mode);
+				ch->dmach[fifo_mode] =
+					default_playback_bt_connection(devinfo);
 			}
 		} else {
-			struct am_dev_fns *am_fn = &init_am_dev_fns[devinfo->dev_type];
+			struct am_dev_fns *am_fn =
+				&init_am_dev_fns[devinfo->dev_type];
 
 			am_fn->aud_dev_clock_enable(devinfo->dev_id, fifo_mode);
 			ch->dmach[fifo_mode] =
