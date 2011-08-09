@@ -471,13 +471,13 @@ static struct tegra_audio_platform_data tegra_i2s_pdata[] = {
 		.i2s_bus_width	= 32,
 		.dsp_bus_width	= 16,
 	},
-	[2] = {
+	[2] = { /*I2S config for BT-Sco*/
 		.i2s_master	= true,
 		.dma_on		= true,  /* use dma by default */
-		.i2s_master_clk = 16000,
+		.i2s_master_clk = 8000,
 		.dev_clk_rate	= 2048000,
 		.mode		= AUDIO_FRAME_FORMAT_DSP,
-		.fifo_fmt	= AUDIO_FIFO_NOP,
+		.fifo_fmt	= AUDIO_FIFO_PACK_16,
 		.bit_size	= AUDIO_BIT_SIZE_16,
 		.i2s_bus_width	= 32,
 		.dsp_bus_width	= 16,
