@@ -108,14 +108,13 @@ static int sdio_read_cccr(struct mmc_card *card)
 
 	cccr_vsn = data & 0x0f;
 
-	if (cccr_vsn > SDIO_CCCR_REV_1_20) {
+	if (cccr_vsn > SDIO_CCCR_REV_3_00) {
 		printk(KERN_ERR "%s: unrecognised CCCR structure version %d\n",
 			mmc_hostname(card->host), cccr_vsn);
 		return -EINVAL;
 	}
 
 	card->cccr.sdio_vsn = (data & 0xf0) >> 4;
-
 	ret = mmc_io_rw_direct(card, 0, 0, SDIO_CCCR_CAPS, 0, &data);
 	if (ret)
 		goto out;
@@ -136,13 +135,33 @@ static int sdio_read_cccr(struct mmc_card *card)
 			card->cccr.high_power = 1;
 	}
 
-	if (cccr_vsn >= SDIO_CCCR_REV_1_20) {
+	if (cccr_vsn >= SDIO_CCCR_REV_2_00) {
 		ret = mmc_io_rw_direct(card, 0, 0, SDIO_CCCR_SPEED, 0, &data);
 		if (ret)
 			goto out;
 
 		if (data & SDIO_SPEED_SHS)
 			card->cccr.high_speed = 1;
+	}
+
+	if (cccr_vsn >= SDIO_CCCR_REV_3_00) {
+#ifdef CONFIG_MMC_EMBEDDED_SDIO
+		ret = mmc_io_rw_direct(card, 0, 0, SDIO_CCCR_IF, 0, &data);
+		if (ret)
+			goto out;
+		if (ret & SDIO_CCCR_IF_CAP_8BIT)
+			card->cccr.wide_8bitbus = 1;
+#endif
+		ret = mmc_io_rw_direct(card, 0, 0, SDIO_CCCR_UHS_SUPPORT, 0, &data);
+		if (ret)
+			goto out;
+
+		if (data & SDIO_UHS_SUPPORT_SDR104)
+			card->cccr.uhs_sdr104 = 1;
+		if (data & SDIO_UHS_SUPPORT_DDR50)
+			card->cccr.uhs_ddr50 = 1;
+		if (data & SDIO_UHS_SUPPORT_SDR50)
+			card->cccr.uhs_sdr50 = 1;
 	}
 
 out:
@@ -164,11 +183,21 @@ static int sdio_enable_wide(struct mmc_card *card)
 	if (ret)
 		return ret;
 
-	ctrl |= SDIO_BUS_WIDTH_4BIT;
+#ifdef CONFIG_MMC_EMBEDDED_SDIO
+	if (card->cccr.wide_8bitbus && (card->host->caps & MMC_CAP_8_BIT_DATA))
+		ctrl |= SDIO_BUS_WIDTH_8BIT;
+	else
+#endif
+		ctrl |= SDIO_BUS_WIDTH_4BIT;
 
 	ret = mmc_io_rw_direct(card, 1, 0, SDIO_CCCR_IF, ctrl, NULL);
 	if (ret)
 		return ret;
+
+	if (ret & SDIO_BUS_WIDTH_8BIT)
+		card->bus_width = SDIO_BUS_WIDTH_8BIT;
+	else
+		card->bus_width = SDIO_BUS_WIDTH_4BIT;
 
 	return 1;
 }
@@ -218,7 +247,12 @@ static int sdio_disable_wide(struct mmc_card *card)
 	if (!(ctrl & SDIO_BUS_WIDTH_4BIT))
 		return 0;
 
-	ctrl &= ~SDIO_BUS_WIDTH_4BIT;
+#ifdef CONFIG_MMC_EMBEDDED_SDIO
+	if (ctrl & SDIO_BUS_WIDTH_8BIT)
+		ctrl &= ~SDIO_BUS_WIDTH_8BIT;
+	else
+#endif
+		ctrl &= ~SDIO_BUS_WIDTH_4BIT;
 	ctrl |= SDIO_BUS_ASYNC_INT;
 
 	ret = mmc_io_rw_direct(card, 1, 0, SDIO_CCCR_IF, ctrl, NULL);
@@ -231,7 +265,7 @@ static int sdio_disable_wide(struct mmc_card *card)
 }
 
 
-static int sdio_enable_4bit_bus(struct mmc_card *card)
+static int sdio_enable_wide_bus(struct mmc_card *card)
 {
 	int err;
 
@@ -243,6 +277,7 @@ static int sdio_enable_4bit_bus(struct mmc_card *card)
 		err = mmc_app_set_bus_width(card, MMC_BUS_WIDTH_4);
 		if (err)
 			return err;
+		card->bus_width = MMC_BUS_WIDTH_4;
 	} else
 		return 0;
 
@@ -274,10 +309,32 @@ static int mmc_sdio_switch_hs(struct mmc_card *card, int enable)
 	if (ret)
 		return ret;
 
-	if (enable)
-		speed |= SDIO_SPEED_EHS;
-	else
-		speed &= ~SDIO_SPEED_EHS;
+	if (card->host->is_voltage_switched) {
+		if (card->cccr.uhs_sdr104 && (card->host->caps & MMC_CAP_SDR104)) {
+			card->bus_speed = MMC_BUS_SPEED_MODE_SDR104;
+		} else if (card->cccr.uhs_ddr50 && (card->host->caps & MMC_CAP_DDR50)) {
+			card->bus_speed = MMC_BUS_SPEED_MODE_DDR50;
+		} else if (card->cccr.uhs_sdr50) {
+			if (card->host->caps & MMC_CAP_SDR50)
+				card->bus_speed = MMC_BUS_SPEED_MODE_SDR50;
+			else
+				card->bus_speed = MMC_BUS_SPEED_MODE_SDR25;
+		}
+	}
+
+	if (card->bus_speed) {
+		if (enable) {
+			speed &= ~SDIO_UHS_SUPPORT_MASK;
+			speed |= (card->bus_speed << 1);
+		} else {
+			speed &= ~SDIO_UHS_SUPPORT_MASK;
+		}
+	} else {
+		if (enable)
+			speed |= SDIO_SPEED_EHS;
+		else
+			speed &= ~SDIO_SPEED_EHS;
+	}
 
 	ret = mmc_io_rw_direct(card, 1, 0, SDIO_CCCR_SPEED, speed, NULL);
 	if (ret)
@@ -315,7 +372,12 @@ static unsigned mmc_sdio_get_max_clock(struct mmc_card *card)
 		 * high-speed, but it seems that 50 MHz is
 		 * mandatory.
 		 */
-		max_dtr = 50000000;
+		if (card->bus_speed == MMC_BUS_SPEED_MODE_SDR104)
+			max_dtr = 208000000;
+		else if (card->bus_speed == MMC_BUS_SPEED_MODE_SDR50)
+			max_dtr = 104000000;
+		else
+			max_dtr = 50000000;
 	} else {
 		max_dtr = card->cis.max_dtr;
 	}
@@ -324,6 +386,69 @@ static unsigned mmc_sdio_get_max_clock(struct mmc_card *card)
 		max_dtr = min(max_dtr, mmc_sd_get_max_clock(card));
 
 	return max_dtr;
+}
+
+static int mmc_sdio_execute_tuning(struct mmc_card *card)
+{
+	int err;
+	u8 resp;
+
+	mmc_start_tuning(card->host);
+
+	err = mmc_send_tuning_pattern(card, &resp);
+	if (err)
+		goto out;
+
+	mmc_get_tuning_status(card->host, MMC_QUERY_TUNING_STATUS);
+	if (card->host->tuning_status != MMC_SD_TUNING_COMPLETED)
+		err = -EAGAIN;
+
+	/* If the sampling clock select is set, tuning is successful */
+	mmc_get_tuning_status(card->host, MMC_SAMPLING_CLOCK_SELECT);
+	if (card->host->tuning_status != MMC_SD_SAMPLING_CLOCK_SELECT_SET) {
+		printk(KERN_ERR "%s: frequency tuning failed\n",
+			mmc_hostname(card->host));
+		err = -EAGAIN;
+	}
+out:
+	card->host->tuning_status = 0;
+	return err;
+}
+
+static int mmc_sdio_frequency_tuning(struct mmc_card *card)
+{
+	int err = 0;
+	unsigned int count = 0;
+	unsigned char tuning_done = 0;
+	unsigned int retries = 3;
+
+	/* Tuning needs to be done only in SDR104 and SDR50 modes */
+	if ((card->bus_speed != MMC_BUS_SPEED_MODE_SDR104) ||
+		(card->bus_speed != MMC_BUS_SPEED_MODE_SDR50))
+		return err;
+
+	do {
+		err = mmc_sdio_execute_tuning(card);
+		if (err) {
+			count++;
+			continue;
+		} else {
+			if (count >= 40) {
+				if (retries > 0) {
+					mmc_reset_tuning_circuit(card->host);
+					count = 0;
+					retries--;
+					continue;
+				} else {
+					err = -EIO;
+					break;
+				}
+			} else {
+				tuning_done = 1;
+			}
+		}
+	} while (!tuning_done);
+	return err;
 }
 
 /*
@@ -345,9 +470,23 @@ static int mmc_sdio_init_card(struct mmc_host *host, u32 ocr,
 	 * Inform the card of the voltage
 	 */
 	if (!powered_resume) {
+		/*
+		 * Check voltage switching capability of the card if the host also supports it.
+		 */
+		if ((host->caps & MMC_CAP_VOLTAGE_SWITCHING) && (!mmc_host_is_spi(host)))
+			host->ocr |= (1 << 24);
 		err = mmc_send_io_op_cond(host, host->ocr, &ocr);
 		if (err)
 			goto err;
+
+		/* If cards supports 1.8V, switch signalling voltage to 1.8V */
+		if ((ocr >> 24) & 1) {
+			err = mmc_send_voltage_switch(host);
+			if (!err) {
+				mmc_switch_signalling_voltage(host, MMC_1_8_VOLT_SIGNALLING);
+				host->is_voltage_switched = 1;
+			}
+		}
 	}
 
 	/*
@@ -379,7 +518,6 @@ static int mmc_sdio_init_card(struct mmc_host *host, u32 ocr,
 		}
 	} else {
 		card->type = MMC_TYPE_SDIO;
-
 		if (oldcard && oldcard->type != MMC_TYPE_SDIO) {
 			mmc_remove_card(card);
 			return -ENOENT;
@@ -519,10 +657,17 @@ static int mmc_sdio_init_card(struct mmc_host *host, u32 ocr,
 	/*
 	 * Switch to wider bus (if supported).
 	 */
-	err = sdio_enable_4bit_bus(card);
+	err = sdio_enable_wide_bus(card);
 	if (err > 0)
-		mmc_set_bus_width(card->host, MMC_BUS_WIDTH_4);
+		mmc_set_bus_width(card->host, card->bus_width);
 	else if (err)
+		goto remove;
+
+	/*
+	 * Perform frequency tuning if required
+	 */
+	err = mmc_sdio_frequency_tuning(card);
+	if (err)
 		goto remove;
 
 finish:
@@ -639,9 +784,9 @@ static int mmc_sdio_resume(struct mmc_host *host)
 				 (host->pm_flags & MMC_PM_KEEP_POWER));
 	if (!err) {
 		/* We may have switched to 1-bit mode during suspend. */
-		err = sdio_enable_4bit_bus(host->card);
+		err = sdio_enable_wide_bus(host->card);
 		if (err > 0) {
-			mmc_set_bus_width(host, MMC_BUS_WIDTH_4);
+			mmc_set_bus_width(host, host->card->bus_width);
 			err = 0;
 		}
 	}
@@ -858,10 +1003,17 @@ int sdio_reset_comm(struct mmc_card *card)
 	 */
 	mmc_set_clock(host, mmc_sdio_get_max_clock(card));
 
-	err = sdio_enable_4bit_bus(card);
+	err = sdio_enable_wide_bus(card);
 	if (err > 0)
-		mmc_set_bus_width(host, MMC_BUS_WIDTH_4);
+		mmc_set_bus_width(host, card->bus_width);
 	else if (err)
+		goto err;
+
+	/*
+	 * Perform frequency tuning if required
+	 */
+	err = mmc_sdio_frequency_tuning(card);
+	if (err)
 		goto err;
 
 	mmc_release_host(host);

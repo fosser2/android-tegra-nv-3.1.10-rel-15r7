@@ -80,9 +80,13 @@ struct sdio_cccr {
 	unsigned int		multi_block:1,
 				low_speed:1,
 				wide_bus:1,
+				wide_8bitbus:1,
 				high_power:1,
 				high_speed:1,
-				disable_cd:1;
+				disable_cd:1,
+				uhs_sdr104:1,
+				uhs_sdr50:1,
+				uhs_ddr50:1;
 };
 
 struct sdio_cis {
@@ -123,6 +127,7 @@ struct mmc_card {
 						/* (missing CIA registers) */
 #define MMC_QUIRK_INAND_CMD38	(1<<3)		/* iNAND devices have broken CMD38 */
 
+	unsigned char		bus_width;	/* bus width configured */
 	unsigned char		bus_speed;	/* bus speed mode */
 	unsigned int		erase_size;	/* erase size in sectors */
  	unsigned int		erase_shift;	/* if erase unit is power 2 */
