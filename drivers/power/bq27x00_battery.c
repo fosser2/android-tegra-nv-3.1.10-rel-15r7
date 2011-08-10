@@ -63,6 +63,8 @@
 
 /* Define battery poll period to 30ms */
 #define BATTERY_POLL_PERIOD		30000
+#define BATTERY_FAST_POLL_PERIOD	100
+#define BATTERY_FAST_POLL_MAX_COUNT	200
 
 /* If the system has several batteries we need a different name for each
  * of them...
@@ -77,6 +79,7 @@ struct bq27x00_access_methods {
 };
 
 enum bq27x00_chip { BQ27000, BQ27500, BQ27510 };
+enum bq27x00_status { CHARGING, DISCHARGING };
 
 struct bq27x00_device_info {
 	struct device			*dev;
@@ -90,6 +93,9 @@ struct bq27x00_device_info {
 	bool				battery_present;
 	struct i2c_client		*client;
 	struct bq27x00_platform_data	*plat_data;
+	bool				battery_status_changed;
+	enum bq27x00_status		battery_status;
+	int				fast_poll_count;
 };
 
 static enum power_supply_property bq27x00_battery_props[] = {
@@ -254,12 +260,21 @@ static int bq27x00_battery_status(struct bq27x00_device_info *di,
 	}
 
 	if ((di->chip == BQ27500) || (di->chip == BQ27510)) {
+		if (flags & BQ27500_FLAG_DSC) {
+			status = POWER_SUPPLY_STATUS_DISCHARGING;
+			if (di->battery_status != DISCHARGING) {
+				di->battery_status = DISCHARGING;
+				di->battery_status_changed = false;
+			}
+		} else {
+			status = POWER_SUPPLY_STATUS_CHARGING;
+			if (di->battery_status != CHARGING) {
+				di->battery_status = CHARGING;
+				di->battery_status_changed = false;
+			}
+		}
 		if (flags & BQ27500_FLAG_FC)
 			status = POWER_SUPPLY_STATUS_FULL;
-		else if (flags & BQ27500_FLAG_DSC)
-			status = POWER_SUPPLY_STATUS_DISCHARGING;
-		else
-			status = POWER_SUPPLY_STATUS_CHARGING;
 	} else {
 		if (flags & BQ27000_FLAG_CHGS)
 			status = POWER_SUPPLY_STATUS_CHARGING;
@@ -550,6 +565,10 @@ static irqreturn_t ac_present_irq(int irq, void *data)
 {
 	struct bq27x00_device_info *di = data;
 	power_supply_changed(&di->ac);
+	di->battery_status_changed = true;
+	di->fast_poll_count = 0;
+	mod_timer(&di->battery_poll_timer,
+		jiffies + msecs_to_jiffies(BATTERY_FAST_POLL_PERIOD));
 	return IRQ_HANDLED;
 }
 
@@ -557,8 +576,22 @@ static void battery_poll_timer_func(unsigned long pdi)
 {
 	struct bq27x00_device_info *di = (void *)pdi;
 	power_supply_changed(&di->bat);
-	mod_timer(&di->battery_poll_timer,
-		jiffies + msecs_to_jiffies(BATTERY_POLL_PERIOD));
+	if (di->battery_status_changed) {
+		if (di->fast_poll_count < BATTERY_FAST_POLL_MAX_COUNT) {
+			mod_timer(&di->battery_poll_timer,
+				jiffies +
+				msecs_to_jiffies(BATTERY_FAST_POLL_PERIOD));
+			di->fast_poll_count++;
+		} else {
+			mod_timer(&di->battery_poll_timer,
+				jiffies +
+				msecs_to_jiffies(BATTERY_POLL_PERIOD));
+			di->battery_status_changed = false;
+		}
+	} else {
+		mod_timer(&di->battery_poll_timer,
+			jiffies + msecs_to_jiffies(BATTERY_POLL_PERIOD));
+	}
 }
 
 static int bq27x00_battery_probe(struct i2c_client *client,
@@ -589,6 +622,8 @@ static int bq27x00_battery_probe(struct i2c_client *client,
 	}
 	di->id = num;
 	di->chip = id->driver_data;
+	di->battery_status_changed = false;
+	di->battery_status = DISCHARGING;
 
 	bus = kzalloc(sizeof(*bus), GFP_KERNEL);
 	if (!bus) {
