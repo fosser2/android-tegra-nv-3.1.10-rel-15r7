@@ -370,9 +370,9 @@ static int power_up_cpu(unsigned int cpu)
 	 * for confirmation that cpu is powered and remove clamps.
 	 * On first boot entry do not wait - go to direct ungate.
 	 */
-	if (cpu_isset(cpu,*(cpumask_t*)&tegra_cpu_init_map))
+	if (cpu_isset(cpu, *((cpumask_t *) &tegra_cpu_init_map)))
 	{
-		timeout = jiffies + HZ;
+		timeout = jiffies + 5;
 		do {
 			if (is_cpu_powered(cpu))
 				goto remove_clamps;
