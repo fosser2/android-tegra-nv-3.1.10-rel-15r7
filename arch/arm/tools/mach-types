@@ -3048,3 +3048,4 @@ aruba			MACH_ARUBA		ARUBA			3437
 cardhu			MACH_CARDHU		CARDHU			3436
 tegra_enterprise	MACH_TEGRA_ENTERPRISE	TEGRA_ENTERPRISE	3512
 whistler                MACH_WHISTLER           WHISTLER                3241
+p852			MACH_P852		P852			3667
