@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2006-2010 Trusted Logic S.A.
+/**
+ * Copyright (c) 2011 Trusted Logic S.A.
  * All Rights Reserved.
  *
  * This program is free software; you can redistribute it and/or
@@ -17,8 +17,8 @@
  * MA 02111-1307 USA
  */
 
-#ifndef __SCXLNX_DEFS_H__
-#define __SCXLNX_DEFS_H__
+#ifndef __TF_DEFS_H__
+#define __TF_DEFS_H__
 
 #include <asm/atomic.h>
 #include <linux/version.h>
@@ -27,7 +27,6 @@
 #include <linux/completion.h>
 #include <linux/list.h>
 #include <linux/spinlock.h>
-#include <linux/sysdev.h>
 #include <linux/sysfs.h>
 #include <linux/sched.h>
 #include <linux/semaphore.h>
@@ -35,7 +34,7 @@
 #include <linux/wakelock.h>
 #endif
 
-#include "scx_protocol.h"
+#include "tf_protocol.h"
 
 /*----------------------------------------------------------------------------*/
 
@@ -44,77 +43,77 @@
 /*
  * Maximum number of shared memory blocks that can be reigsters in a connection
  */
-#define SCXLNX_SHMEM_MAX_COUNT   (64)
+#define TF_SHMEM_MAX_COUNT   (64)
 
 /*
  * Describes the possible types of shared memories
  *
- * SCXLNX_SHMEM_TYPE_PREALLOC_REGISTERED_SHMEM :
+ * TF_SHMEM_TYPE_PREALLOC_REGISTERED_SHMEM :
  *    The descriptor describes a registered shared memory.
  *    Its coarse pages are preallocated when initializing the
  *    connection
- * SCXLNX_SHMEM_TYPE_REGISTERED_SHMEM :
+ * TF_SHMEM_TYPE_REGISTERED_SHMEM :
  *    The descriptor describes a registered shared memory.
  *    Its coarse pages are not preallocated
- * SCXLNX_SHMEM_TYPE_PM_HIBERNATE :
+ * TF_SHMEM_TYPE_PM_HIBERNATE :
  *    The descriptor describes a power management shared memory.
  */
-enum SCXLNX_SHMEM_TYPE {
-	SCXLNX_SHMEM_TYPE_PREALLOC_REGISTERED_SHMEM = 0,
-	SCXLNX_SHMEM_TYPE_REGISTERED_SHMEM,
-	SCXLNX_SHMEM_TYPE_PM_HIBERNATE,
+enum TF_SHMEM_TYPE {
+	TF_SHMEM_TYPE_PREALLOC_REGISTERED_SHMEM = 0,
+	TF_SHMEM_TYPE_REGISTERED_SHMEM,
+	TF_SHMEM_TYPE_PM_HIBERNATE,
 };
 
 
 /*
  * This structure contains a pointer on a coarse page table
  */
-struct SCXLNX_COARSE_PAGE_TABLE {
+struct tf_coarse_page_table {
 	/*
 	 * Identifies the coarse page table descriptor in
-	 * sFreeCoarsePageTables list
+	 * free_coarse_page_tables list
 	 */
 	struct list_head list;
 
 	/*
 	 * The address of the coarse page table
 	 */
-	u32 *pDescriptors;
+	u32 *descriptors;
 
 	/*
 	 * The address of the array containing this coarse page table
 	 */
-	struct SCXLNX_COARSE_PAGE_TABLE_ARRAY *pParent;
+	struct tf_coarse_page_table_array *parent;
 };
 
 
-#define SCXLNX_PAGE_DESCRIPTOR_TYPE_NORMAL       0
-#define SCXLNX_PAGE_DESCRIPTOR_TYPE_PREALLOCATED 1
+#define TF_PAGE_DESCRIPTOR_TYPE_NORMAL       0
+#define TF_PAGE_DESCRIPTOR_TYPE_PREALLOCATED 1
 
 /*
  * This structure describes an array of up to 4 coarse page tables
  * allocated within a single 4KB page.
  */
-struct SCXLNX_COARSE_PAGE_TABLE_ARRAY {
+struct tf_coarse_page_table_array {
 	/*
-	 * identifies the element in the sCoarsePageTableArrays list
+	 * identifies the element in the coarse_page_table_arrays list
 	 */
 	struct list_head list;
 
 	/*
 	 * Type of page descriptor
-	 * can take any of SCXLNX_PAGE_DESCRIPTOR_TYPE_XXX value
+	 * can take any of TF_PAGE_DESCRIPTOR_TYPE_XXX value
 	 */
-	u32 nType;
+	u32 type;
 
-	struct SCXLNX_COARSE_PAGE_TABLE sCoarsePageTables[4];
+	struct tf_coarse_page_table coarse_page_tables[4];
 
 	/*
 	 * A counter of the number of coarse pages currently used
 	 * the max value should be 4 (one coarse page table is 1KB while one
 	 * page is 4KB)
 	 */
-	u8 nReferenceCount;
+	u8 ref_count;
 };
 
 
@@ -124,7 +123,7 @@ struct SCXLNX_COARSE_PAGE_TABLE_ARRAY {
  * when the driver needs to allocate a new coarse page
  * table.
  */
-struct SCXLNX_COARSE_PAGE_TABLE_ALLOCATION_CONTEXT {
+struct tf_coarse_page_table_allocation_context {
 	/*
 	 * The spin lock protecting concurrent access to the structure.
 	 */
@@ -133,19 +132,19 @@ struct SCXLNX_COARSE_PAGE_TABLE_ALLOCATION_CONTEXT {
 	/*
 	 * The list of allocated coarse page table arrays
 	 */
-	struct list_head sCoarsePageTableArrays;
+	struct list_head coarse_page_table_arrays;
 
 	/*
 	 * The list of free coarse page tables
 	 */
-	struct list_head sFreeCoarsePageTables;
+	struct list_head free_coarse_page_tables;
 };
 
 
 /*
  * Fully describes a shared memory block
  */
-struct SCXLNX_SHMEM_DESC {
+struct tf_shmem_desc {
 	/*
 	 * Identifies the shared memory descriptor in the list of free shared
 	 * memory descriptors
@@ -155,25 +154,25 @@ struct SCXLNX_SHMEM_DESC {
 	/*
 	 * Identifies the type of shared memory descriptor
 	 */
-	enum SCXLNX_SHMEM_TYPE nType;
+	enum TF_SHMEM_TYPE type;
 
 	/*
 	 * The identifier of the block of shared memory, as returned by the
 	 * Secure World.
-	 * This identifier is hBlock field of a REGISTER_SHARED_MEMORY answer
+	 * This identifier is block field of a REGISTER_SHARED_MEMORY answer
 	 */
-	u32 hIdentifier;
+	u32 block_identifier;
 
 	/* Client buffer */
-	u8 *pBuffer;
+	u8 *client_buffer;
 
 	/* Up to eight coarse page table context */
-	struct SCXLNX_COARSE_PAGE_TABLE *pCoarsePageTable[SCX_MAX_COARSE_PAGES];
+	struct tf_coarse_page_table *coarse_pg_table[TF_MAX_COARSE_PAGES];
 
-	u32 nNumberOfCoarsePageTables;
+	u32 coarse_pg_table_count;
 
 	/* Reference counter */
-	atomic_t nRefCnt;
+	atomic_t ref_count;
 };
 
 
@@ -184,7 +183,7 @@ struct SCXLNX_SHMEM_DESC {
  *
  * Note that this driver supports only one instance of the Secure World
  */
-struct SCXLNX_COMM {
+struct tf_comm {
 	/*
 	 * The spin lock protecting concurrent access to the structure.
 	 */
@@ -192,89 +191,78 @@ struct SCXLNX_COMM {
 
 	/*
 	 * Bit vector with the following possible flags:
-	 *    - SCXLNX_COMM_FLAG_IRQ_REQUESTED: If set, indicates that
+	 *    - TF_COMM_FLAG_IRQ_REQUESTED: If set, indicates that
 	 *      the IRQ has been successfuly requested.
-	 *    - SCXLNX_COMM_FLAG_TERMINATING: If set, indicates that the
+	 *    - TF_COMM_FLAG_TERMINATING: If set, indicates that the
 	 *      communication with the Secure World is being terminated.
 	 *      Transmissions to the Secure World are not permitted
-	 *    - SCXLNX_COMM_FLAG_W3B_ALLOCATED: If set, indicates that the
+	 *    - TF_COMM_FLAG_W3B_ALLOCATED: If set, indicates that the
 	 *      W3B buffer has been allocated.
 	 *
 	 * This bit vector must be accessed with the kernel's atomic bitwise
 	 * operations.
 	 */
-	unsigned long nFlags;
+	unsigned long flags;
 
 	/*
 	 * The virtual address of the L1 shared buffer.
 	 */
-	struct SCHANNEL_C1S_BUFFER *pBuffer;
+	struct tf_l1_shared_buffer *l1_buffer;
 
 	/*
 	 * The wait queue the client threads are waiting on.
 	 */
-	wait_queue_head_t waitQueue;
+	wait_queue_head_t wait_queue;
 
 #ifdef CONFIG_TF_TRUSTZONE
 	/*
 	 * The interrupt line used by the Secure World.
 	 */
-	int nSoftIntIrq;
+	int soft_int_irq;
 
 	/* ----- W3B ----- */
 	/* shared memory descriptor to identify the W3B */
-	struct SCXLNX_SHMEM_DESC sW3BShmemDesc;
+	struct tf_shmem_desc w3b_shmem_desc;
 
 	/* Virtual address of the kernel allocated shared memory */
-	u32 nW3BShmemVAddr;
+	u32 w3b;
 
 	/* offset of data in shared memory coarse pages */
-	u32 nW3BShmemOffset;
+	u32 w3b_shmem_offset;
 
-	u32 nW3BShmemSize;
+	u32 w3b_shmem_size;
 
-	struct SCXLNX_COARSE_PAGE_TABLE_ALLOCATION_CONTEXT
-		sW3BAllocationContext;
+	struct tf_coarse_page_table_allocation_context
+		w3b_cpt_alloc_context;
 #endif
 #ifdef CONFIG_TF_ZEBRA
 	/*
 	 * The SE SDP can only be initialized once...
 	 */
-	int bSEInitialized;
-
-	/* Virtual address of the L0 communication buffer */
-	void *pInitSharedBuffer;
+	int se_initialized;
 
 	/*
 	 * Lock to be held by a client when executing an RPC
 	 */
-	struct mutex sRPCLock;
+	struct mutex rpc_mutex;
 
 	/*
 	 * Lock to protect concurrent accesses to DMA channels
 	 */
-	struct mutex sDMALock;
+	struct mutex dma_mutex;
 #endif
 };
 
 
-#define SCXLNX_COMM_FLAG_IRQ_REQUESTED		(0)
-#define SCXLNX_COMM_FLAG_PA_AVAILABLE		(1)
-#define SCXLNX_COMM_FLAG_TERMINATING		(2)
-#define SCXLNX_COMM_FLAG_W3B_ALLOCATED		(3)
-#define SCXLNX_COMM_FLAG_L1_SHARED_ALLOCATED	(4)
+#define TF_COMM_FLAG_IRQ_REQUESTED		(0)
+#define TF_COMM_FLAG_PA_AVAILABLE		(1)
+#define TF_COMM_FLAG_TERMINATING		(2)
+#define TF_COMM_FLAG_W3B_ALLOCATED		(3)
+#define TF_COMM_FLAG_L1_SHARED_ALLOCATED	(4)
 
 /*----------------------------------------------------------------------------*/
 
-struct SCXLNX_DEVICE_STATS {
-	struct kobject kobj;
-
-	struct kobj_type kobj_type;
-
-	struct attribute kobj_stat_attribute;
-
-	struct attribute *kobj_attribute_list[2];
-
+struct tf_device_stats {
 	atomic_t stat_pages_allocated;
 	atomic_t stat_memories_allocated;
 	atomic_t stat_pages_locked;
@@ -283,23 +271,28 @@ struct SCXLNX_DEVICE_STATS {
 /*
  * This structure describes the information about one device handled by the
  * driver. Note that the driver supports only a single device. see the global
- * variable g_SCXLNXDevice
+ * variable g_tf_dev
+
  */
-struct SCXLNX_DEVICE {
+struct tf_device {
+	/*
+	 * The kernel object for the device
+	 */
+	struct kobject kobj;
+
 	/*
 	 * The device number for the device.
 	 */
-	dev_t nDevNum;
-
-	/*
-	 * Interfaces the system device with the kernel.
-	 */
-	struct sys_device sysdev;
+	dev_t dev_number;
 
 	/*
 	 * Interfaces the char device with the kernel.
 	 */
 	struct cdev cdev;
+
+#ifdef CONFIG_TF_TEEC
+	struct cdev cdev_teec;
+#endif
 
 #ifdef CONFIG_TF_ZEBRA
 	struct cdev cdev_ctrl;
@@ -308,56 +301,53 @@ struct SCXLNX_DEVICE {
 	 * Globals for CUS
 	 */
 	/* Current key handles loaded in HWAs */
-	u32 hAES1SecureKeyContext;
-	u32 hDESSecureKeyContext;
-	bool bSHAM1IsPublic;
+	u32 aes1_key_context;
+	u32 des_key_context;
+	bool sham1_is_public;
 
-	/* Semaphores used to serialize HWA accesses */
-	struct semaphore sAES1CriticalSection;
-	struct mutex sDESCriticalSection;
-	struct mutex sSHACriticalSection;
+	/* Object used to serialize HWA accesses */
+	struct semaphore aes1_sema;
+	struct semaphore des_sema;
+	struct semaphore sha_sema;
 
 	/*
 	 * An aligned and correctly shaped pre-allocated buffer used for DMA
 	 * transfers
 	 */
-	u32 nDMABufferLength;
-	u8 *pDMABuffer;
-	dma_addr_t pDMABufferPhys;
+	u32 dma_buffer_length;
+	u8 *dma_buffer;
+	dma_addr_t dma_buffer_phys;
 
 	/* Workspace allocated at boot time and reserved to the Secure World */
-	u32 nWorkspaceAddr;
-	u32 nWorkspaceSize;
+	u32 workspace_addr;
+	u32 workspace_size;
+
+	/*
+	* A Mutex to provide exclusive locking of the ioctl()
+	*/
+	struct mutex dev_mutex;
 #endif
 
 	/*
 	 * Communications with the SM.
 	 */
-	struct SCXLNX_COMM sm;
+	struct tf_comm sm;
 
 	/*
 	 * Lists the connections attached to this device.  A connection is
 	 * created each time a user space application "opens" a file descriptor
 	 * on the driver
 	 */
-	struct list_head conns;
+	struct list_head connection_list;
 
 	/*
 	 * The spin lock used to protect concurrent access to the connection
 	 * list.
 	 */
-	spinlock_t connsLock;
+	spinlock_t connection_list_lock;
 
-	struct SCXLNX_DEVICE_STATS sDeviceStats;
+	struct tf_device_stats stats;
 };
-
-/* the bits of the nFlags field of the SCXLNX_DEVICE structure */
-#define SCXLNX_DEVICE_FLAG_CDEV_INITIALIZED              (0)
-#define SCXLNX_DEVICE_FLAG_SYSDEV_CLASS_REGISTERED       (1)
-#define SCXLNX_DEVICE_FLAG_SYSDEV_REGISTERED             (2)
-#define SCXLNX_DEVICE_FLAG_CDEV_REGISTERED               (3)
-#define SCXLNX_DEVICE_FLAG_CDEV_ADDED                    (4)
-#define SCXLNX_DEVICE_SYSFS_REGISTERED                   (5)
 
 /*----------------------------------------------------------------------------*/
 /*
@@ -368,24 +358,24 @@ struct SCXLNX_DEVICE {
  * Messages may be invalidated between the start of the ioctl call and the
  * moment the message is sent to the Secure World.
  *
- * SCXLNX_CONN_STATE_NO_DEVICE_CONTEXT :
+ * TF_CONN_STATE_NO_DEVICE_CONTEXT :
  *    The connection has no DEVICE_CONTEXT created and no
  *    CREATE_DEVICE_CONTEXT being processed by the Secure World
- * SCXLNX_CONN_STATE_CREATE_DEVICE_CONTEXT_SENT :
+ * TF_CONN_STATE_CREATE_DEVICE_CONTEXT_SENT :
  *    The connection has a CREATE_DEVICE_CONTEXT being processed by the Secure
  *    World
- * SCXLNX_CONN_STATE_VALID_DEVICE_CONTEXT :
+ * TF_CONN_STATE_VALID_DEVICE_CONTEXT :
  *    The connection has a DEVICE_CONTEXT created and no
  *    DESTROY_DEVICE_CONTEXT is being processed by the Secure World
- * SCXLNX_CONN_STATE_DESTROY_DEVICE_CONTEXT_SENT :
+ * TF_CONN_STATE_DESTROY_DEVICE_CONTEXT_SENT :
  *    The connection has a DESTROY_DEVICE_CONTEXT being processed by the Secure
  *    World
  */
-enum SCXLNX_CONN_STATE {
-	SCXLNX_CONN_STATE_NO_DEVICE_CONTEXT = 0,
-	SCXLNX_CONN_STATE_CREATE_DEVICE_CONTEXT_SENT,
-	SCXLNX_CONN_STATE_VALID_DEVICE_CONTEXT,
-	SCXLNX_CONN_STATE_DESTROY_DEVICE_CONTEXT_SENT
+enum TF_CONN_STATE {
+	TF_CONN_STATE_NO_DEVICE_CONTEXT = 0,
+	TF_CONN_STATE_CREATE_DEVICE_CONTEXT_SENT,
+	TF_CONN_STATE_VALID_DEVICE_CONTEXT,
+	TF_CONN_STATE_DESTROY_DEVICE_CONTEXT_SENT
 };
 
 
@@ -401,10 +391,22 @@ enum SCXLNX_CONN_STATE {
  *     Note that this only covers the case where some other thread
  *     sent a DESTROY_DEVICE_CONTEXT command.
  */
-enum SCXLNX_COMMAND_STATE {
-	SCXLNX_COMMAND_STATE_PENDING = 0,
-	SCXLNX_COMMAND_STATE_SENT,
-	SCXLNX_COMMAND_STATE_ABORTED
+enum TF_COMMAND_STATE {
+	TF_COMMAND_STATE_PENDING = 0,
+	TF_COMMAND_STATE_SENT,
+	TF_COMMAND_STATE_ABORTED
+};
+
+/*
+ * The origin of connection parameters such as login data and
+ * memory reference pointers.
+ *
+ * PROCESS: the calling process. All arguments must be validated.
+ * KERNEL: kernel code. All arguments can be trusted by this driver.
+ */
+enum TF_CONNECTION_OWNER {
+	TF_CONNECTION_OWNER_PROCESS = 0,
+	TF_CONNECTION_OWNER_KERNEL,
 };
 
 
@@ -413,7 +415,7 @@ enum SCXLNX_COMMAND_STATE {
  * A connection is created each time an application opens a file descriptor on
  * the driver
  */
-struct SCXLNX_CONNECTION {
+struct tf_connection {
 	/*
 	 * Identifies the connection in the list of the connections attached to
 	 * the same device.
@@ -423,80 +425,84 @@ struct SCXLNX_CONNECTION {
 	/*
 	 * State of the connection.
 	 */
-	enum SCXLNX_CONN_STATE nState;
+	enum TF_CONN_STATE state;
 
 	/*
 	 * A pointer to the corresponding device structure
 	 */
-	struct SCXLNX_DEVICE *pDevice;
+	struct tf_device *dev;
 
 	/*
-	 * A spinlock to use to access nState
+	 * A spinlock to use to access state
 	 */
-	spinlock_t stateLock;
+	spinlock_t state_lock;
 
 	/*
 	 * Counts the number of operations currently pending on the connection.
 	 * (for debug only)
 	 */
-	atomic_t nPendingOpCounter;
+	atomic_t pending_op_count;
 
 	/*
 	 * A handle for the device context
 	 */
-	 u32 hDeviceContext;
+	 u32 device_context;
 
 	/*
 	 * Lists the used shared memory descriptors
 	 */
-	struct list_head sUsedSharedMemoryList;
+	struct list_head used_shmem_list;
 
 	/*
 	 * Lists the free shared memory descriptors
 	 */
-	struct list_head sFreeSharedMemoryList;
+	struct list_head free_shmem_list;
 
 	/*
 	 * A mutex to use to access this structure
 	 */
-	struct mutex sharedMemoriesMutex;
+	struct mutex shmem_mutex;
 
 	/*
 	 * Counts the number of shared memories registered.
 	 */
-	atomic_t nShmemAllocated;
+	atomic_t shmem_count;
 
 	/*
 	 * Page to retrieve memory properties when
 	 * registering shared memory through REGISTER_SHARED_MEMORY
 	 * messages
 	 */
-	struct vm_area_struct **ppVmas;
+	struct vm_area_struct **vmas;
 
 	/*
 	 * coarse page table allocation context
 	 */
-	struct SCXLNX_COARSE_PAGE_TABLE_ALLOCATION_CONTEXT sAllocationContext;
+	struct tf_coarse_page_table_allocation_context cpt_alloc_context;
+
+	/* The origin of connection parameters such as login data and
+	   memory reference pointers. */
+	enum TF_CONNECTION_OWNER owner;
 
 #ifdef CONFIG_TF_ZEBRA
 	/* Lists all the Cryptoki Update Shortcuts */
-	struct list_head ShortcutList;
+	struct list_head shortcut_list;
 
-	/* Lock to protect concurrent accesses to ShortcutList */
-	spinlock_t shortcutListCriticalSectionLock;
+	/* Lock to protect concurrent accesses to shortcut_list */
+	spinlock_t shortcut_list_lock;
 #endif
 };
 
 /*----------------------------------------------------------------------------*/
 
 /*
- * The nOperationID field of a message points to this structure.
+ * The operation_id field of a message points to this structure.
  * It is used to identify the thread that triggered the message transmission
  * Whoever reads an answer can wake up that thread using the completion event
  */
-struct SCXLNX_ANSWER_STRUCT {
-	bool bAnswerCopied;
-	union SCX_ANSWER_MESSAGE *pAnswer;
+struct tf_answer_struct {
+	bool answer_copied;
+	union tf_answer *answer;
 };
 
 /*----------------------------------------------------------------------------*/
@@ -505,16 +511,16 @@ struct SCXLNX_ANSWER_STRUCT {
  * The ASCII-C string representation of the base name of the devices managed by
  * this driver.
  */
-#define SCXLNX_DEVICE_BASE_NAME	"tf_driver"
+#define TF_DEVICE_BASE_NAME	"tf_driver"
 
 
 /**
  * The major and minor numbers of the registered character device driver.
  * Only 1 instance of the driver is supported.
  */
-#define SCXLNX_DEVICE_MINOR_NUMBER	(0)
+#define TF_DEVICE_MINOR_NUMBER	(0)
 
-struct SCXLNX_DEVICE *SCXLNXGetDevice(void);
+struct tf_device *tf_get_device(void);
 
 #define CLEAN_CACHE_CFG_MASK	(~0xC) /* 1111 0011 */
 
@@ -529,4 +535,4 @@ struct SCXLNX_DEVICE *SCXLNXGetDevice(void);
 #define GROUP_INFO		(current->group_info)
 #endif
 
-#endif  /* !defined(__SCXLNX_DEFS_H__) */
+#endif  /* !defined(__TF_DEFS_H__) */

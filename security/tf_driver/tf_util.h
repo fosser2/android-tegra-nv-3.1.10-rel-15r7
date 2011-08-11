@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2006-2010 Trusted Logic S.A.
+/**
+ * Copyright (c) 2011 Trusted Logic S.A.
  * All Rights Reserved.
  *
  * This program is free software; you can redistribute it and/or
@@ -16,8 +16,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  * MA 02111-1307 USA
  */
-#ifndef __SCXLNX_UTIL_H__
-#define __SCXLNX_UTIL_H__
+
+#ifndef __TF_UTIL_H__
+#define __TF_UTIL_H__
 
 #include <linux/spinlock.h>
 #include <linux/errno.h>
@@ -30,8 +31,8 @@
 #include <linux/vmalloc.h>
 #include <asm/byteorder.h>
 
-#include "scx_protocol.h"
-#include "scxlnx_defs.h"
+#include "tf_protocol.h"
+#include "tf_defs.h"
 
 /*----------------------------------------------------------------------------
  * Debug printing routines
@@ -39,29 +40,33 @@
 
 #ifdef CONFIG_TF_DRIVER_DEBUG_SUPPORT
 
-void addressCacheProperty(unsigned long va);
+void address_cache_property(unsigned long va);
 
 #define dprintk  printk
+#define dpr_info pr_info
+#define dpr_err pr_err
 
-void SCXLNXDumpL1SharedBuffer(struct SCHANNEL_C1S_BUFFER *pBuf);
+void tf_dump_l1_shared_buffer(struct tf_l1_shared_buffer *buffer);
 
-void SCXLNXDumpMessage(union SCX_COMMAND_MESSAGE *pMessage);
+void tf_dump_command(union tf_command *command);
 
-void SCXLNXDumpAnswer(union SCX_ANSWER_MESSAGE *pAnswer);
+void tf_dump_answer(union tf_answer *answer);
 
 #ifdef CONFIG_BENCH_SECURE_CYCLE
-void setupCounters(void);
-void runBogoMIPS(void);
-int runCodeSpeed(unsigned int nLoop);
-int runDataSpeed(unsigned int nLoop, unsigned long nVA);
+void setup_counters(void);
+void run_bogo_mips(void);
+int run_code_speed(unsigned int loop);
+int run_data_speed(unsigned int loop, unsigned long va);
 #endif /* CONFIG_BENCH_SECURE_CYCLE */
 
 #else /* defined(CONFIG_TF_DRIVER_DEBUG_SUPPORT) */
 
 #define dprintk(args...)  do { ; } while (0)
-#define SCXLNXDumpL1SharedBuffer(pBuf)  ((void) 0)
-#define SCXLNXDumpMessage(pMessage)  ((void) 0)
-#define SCXLNXDumpAnswer(pAnswer)  ((void) 0)
+#define dpr_info(args...)  do { ; } while (0)
+#define dpr_err(args...)  do { ; } while (0)
+#define tf_dump_l1_shared_buffer(buffer)  ((void) 0)
+#define tf_dump_command(command)  ((void) 0)
+#define tf_dump_answer(answer)  ((void) 0)
 
 #endif /* defined(CONFIG_TF_DRIVER_DEBUG_SUPPORT) */
 
@@ -71,22 +76,23 @@ int runDataSpeed(unsigned int nLoop, unsigned long nVA);
  * Process identification
  *----------------------------------------------------------------------------*/
 
-int SCXLNXConnGetCurrentProcessHash(void *pHash);
+int tf_get_current_process_hash(void *hash);
 
-int SCXLNXConnHashApplicationPathAndData(char *pBuffer, void *pData,
-	u32 nDataLen);
+#ifndef CONFIG_ANDROID
+int tf_hash_application_path_and_data(char *buffer, void *data, u32 data_len);
+#endif /* !CONFIG_ANDROID */
 
 /*----------------------------------------------------------------------------
  * Statistic computation
  *----------------------------------------------------------------------------*/
 
-void *internal_kmalloc(size_t nSize, int nPriority);
-void internal_kfree(void *pMemory);
-void internal_vunmap(void *pMemory);
-void *internal_vmalloc(size_t nSize);
-void internal_vfree(void *pMemory);
-unsigned long internal_get_zeroed_page(int nPriority);
-void internal_free_page(unsigned long pPage);
+void *internal_kmalloc(size_t size, int priority);
+void internal_kfree(void *ptr);
+void internal_vunmap(void *ptr);
+void *internal_vmalloc(size_t size);
+void internal_vfree(void *ptr);
+unsigned long internal_get_zeroed_page(int priority);
+void internal_free_page(unsigned long addr);
 int internal_get_user_pages(
 		struct task_struct *tsk,
 		struct mm_struct *mm,
@@ -98,5 +104,5 @@ int internal_get_user_pages(
 		struct vm_area_struct **vmas);
 void internal_get_page(struct page *page);
 void internal_page_cache_release(struct page *page);
-#endif  /* __SCXLNX_UTIL_H__ */
+#endif  /* __TF_UTIL_H__ */
 

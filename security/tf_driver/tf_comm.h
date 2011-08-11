@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2006-2010 Trusted Logic S.A.
+/**
+ * Copyright (c) 2011 Trusted Logic S.A.
  * All Rights Reserved.
  *
  * This program is free software; you can redistribute it and/or
@@ -17,45 +17,45 @@
  * MA 02111-1307 USA
  */
 
-#ifndef __SCXLNX_COMM_H__
-#define __SCXLNX_COMM_H__
+#ifndef __TF_COMM_H__
+#define __TF_COMM_H__
 
-#include "scxlnx_defs.h"
-#include "scx_protocol.h"
+#include "tf_defs.h"
+#include "tf_protocol.h"
 
 /*----------------------------------------------------------------------------
  * Misc
  *----------------------------------------------------------------------------*/
 
-void SCXLNXCommSetCurrentTime(struct SCXLNX_COMM *pComm);
+void tf_set_current_time(struct tf_comm *comm);
 
 /*
  * Atomic accesses to 32-bit variables in the L1 Shared buffer
  */
-static inline u32 SCXLNXCommReadReg32(const u32 *pCommBuffer)
+static inline u32 tf_read_reg32(const u32 *comm_buffer)
 {
 	u32 result;
 
-	__asm__ __volatile__("@ SCXLNXCommReadReg32\n"
+	__asm__ __volatile__("@ tf_read_reg32\n"
 		"ldrex %0, [%1]\n"
 		: "=&r" (result)
-		: "r" (pCommBuffer)
+		: "r" (comm_buffer)
 	);
 
 	return result;
 }
 
-static inline void SCXLNXCommWriteReg32(void *pCommBuffer, u32 nValue)
+static inline void tf_write_reg32(void *comm_buffer, u32 value)
 {
 	u32 tmp;
 
-	__asm__ __volatile__("@ SCXLNXCommWriteReg32\n"
+	__asm__ __volatile__("@ tf_write_reg32\n"
 		"1:	ldrex %0, [%2]\n"
 		"	strex %0, %1, [%2]\n"
 		"	teq   %0, #0\n"
 		"	bne   1b"
 		: "=&r" (tmp)
-		: "r" (nValue), "r" (pCommBuffer)
+		: "r" (value), "r" (comm_buffer)
 		: "cc"
 	);
 }
@@ -63,30 +63,30 @@ static inline void SCXLNXCommWriteReg32(void *pCommBuffer, u32 nValue)
 /*
  * Atomic accesses to 64-bit variables in the L1 Shared buffer
  */
-static inline u64 SCXLNXCommReadReg64(void *pCommBuffer)
+static inline u64 tf_read_reg64(void *comm_buffer)
 {
 	u64 result;
 
-	__asm__ __volatile__("@ SCXLNXCommReadReg64\n"
+	__asm__ __volatile__("@ tf_read_reg64\n"
 		"ldrexd %0, [%1]\n"
 		: "=&r" (result)
-		: "r" (pCommBuffer)
+		: "r" (comm_buffer)
 	);
 
 	return result;
 }
 
-static inline void SCXLNXCommWriteReg64(void *pCommBuffer, u64 nValue)
+static inline void tf_write_reg64(void *comm_buffer, u64 value)
 {
 	u64 tmp;
 
-	__asm__ __volatile__("@ SCXLNXCommWriteReg64\n"
+	__asm__ __volatile__("@ tf_write_reg64\n"
 		"1:	ldrexd %0, [%2]\n"
 		"	strexd %0, %1, [%2]\n"
 		"	teq    %0, #0\n"
 		"	bne    1b"
 		: "=&r" (tmp)
-		: "r" (nValue), "r" (pCommBuffer)
+		: "r" (value), "r" (comm_buffer)
 		: "cc"
 	);
 }
@@ -100,7 +100,7 @@ static inline void SCXLNXCommWriteReg64(void *pCommBuffer, u64 nValue)
 #define RPC_YIELD	0x01	/* Yield RPC */
 #define RPC_NON_YIELD	0x02	/* non-Yield RPC */
 
-int SCXLNXCommExecuteRPCCommand(struct SCXLNX_COMM *pComm);
+int tf_rpc_execute(struct tf_comm *comm);
 
 /*----------------------------------------------------------------------------
  * Shared memory related operations
@@ -114,41 +114,41 @@ int SCXLNXCommExecuteRPCCommand(struct SCXLNX_COMM *pComm);
 #define DESCRIPTOR_V13_12_MASK      (0x3 << PAGE_SHIFT)
 #define DESCRIPTOR_V13_12_GET(a)    ((a & DESCRIPTOR_V13_12_MASK) >> PAGE_SHIFT)
 
-struct SCXLNX_COARSE_PAGE_TABLE *SCXLNXAllocateCoarsePageTable(
-	struct SCXLNX_COARSE_PAGE_TABLE_ALLOCATION_CONTEXT *pAllocationContext,
-	u32 nType);
+struct tf_coarse_page_table *tf_alloc_coarse_page_table(
+	struct tf_coarse_page_table_allocation_context *alloc_context,
+	u32 type);
 
-void SCXLNXFreeCoarsePageTable(
-	struct SCXLNX_COARSE_PAGE_TABLE_ALLOCATION_CONTEXT *pAllocationContext,
-	struct SCXLNX_COARSE_PAGE_TABLE *pCoarsePageTable,
-	int nForce);
+void tf_free_coarse_page_table(
+	struct tf_coarse_page_table_allocation_context *alloc_context,
+	struct tf_coarse_page_table *coarse_pg_table,
+	int force);
 
-void SCXLNXInitializeCoarsePageTableAllocator(
-	struct SCXLNX_COARSE_PAGE_TABLE_ALLOCATION_CONTEXT *pAllocationContext);
+void tf_init_coarse_page_table_allocator(
+	struct tf_coarse_page_table_allocation_context *alloc_context);
 
-void SCXLNXReleaseCoarsePageTableAllocator(
-	struct SCXLNX_COARSE_PAGE_TABLE_ALLOCATION_CONTEXT *pAllocationContext);
+void tf_release_coarse_page_table_allocator(
+	struct tf_coarse_page_table_allocation_context *alloc_context);
 
-struct page *SCXLNXCommL2PageDescriptorToPage(u32 nL2PageDescriptor);
+struct page *tf_l2_page_descriptor_to_page(u32 l2_page_descriptor);
 
-u32 SCXLNXCommGetL2DescriptorCommon(u32 nVirtAddr, struct mm_struct *mm);
+u32 tf_get_l2_descriptor_common(u32 vaddr, struct mm_struct *mm);
 
-void SCXLNXCommReleaseSharedMemory(
-	struct SCXLNX_COARSE_PAGE_TABLE_ALLOCATION_CONTEXT *pAllocationContext,
-	struct SCXLNX_SHMEM_DESC *pShmemDesc,
-	u32 nFullCleanup);
+void tf_cleanup_shared_memory(
+	struct tf_coarse_page_table_allocation_context *alloc_context,
+	struct tf_shmem_desc *shmem_desc,
+	u32 full_cleanup);
 
-int SCXLNXCommFillDescriptorTable(
-	struct SCXLNX_COARSE_PAGE_TABLE_ALLOCATION_CONTEXT *pAllocationContext,
-	struct SCXLNX_SHMEM_DESC *pShmemDesc,
-	u32 nBufferVAddr,
-	struct vm_area_struct **ppVmas,
-	u32 pDescriptors[SCX_MAX_COARSE_PAGES],
-	u32 *pBufferSize,
-	u32 *pBufferStartOffset,
-	bool bInUserSpace,
-	u32 nFlags,
-	u32 *pnDescriptorCount);
+int tf_fill_descriptor_table(
+	struct tf_coarse_page_table_allocation_context *alloc_context,
+	struct tf_shmem_desc *shmem_desc,
+	u32 buffer,
+	struct vm_area_struct **vmas,
+	u32 descriptors[TF_MAX_COARSE_PAGES],
+	u32 buffer_size,
+	u32 *buffer_start_offset,
+	bool in_user_space,
+	u32 flags,
+	u32 *descriptor_count);
 
 /*----------------------------------------------------------------------------
  * Standard communication operations
@@ -156,13 +156,13 @@ int SCXLNXCommFillDescriptorTable(
 
 #define STATUS_PENDING 0x00000001
 
-int tf_schedule_secure_world(struct SCXLNX_COMM *pComm, bool prepare_exit);
+int tf_schedule_secure_world(struct tf_comm *comm, bool prepare_exit);
 
-int SCXLNXCommSendReceive(
-	struct SCXLNX_COMM *pComm,
-	union SCX_COMMAND_MESSAGE *pMessage,
-	union SCX_ANSWER_MESSAGE *pAnswer,
-	struct SCXLNX_CONNECTION *pConn,
+int tf_send_receive(
+	struct tf_comm *comm,
+	union tf_command *command,
+	union tf_answer *answer,
+	struct tf_connection *connection,
 	bool bKillable);
 
 
@@ -172,33 +172,33 @@ int SCXLNXCommSendReceive(
  * and is valid only once the communication has
  * been initialized
  **/
-u8 *SCXLNXCommGetDescription(struct SCXLNX_COMM *pComm);
+u8 *tf_get_description(struct tf_comm *comm);
 
 /*----------------------------------------------------------------------------
  * Power management
  *----------------------------------------------------------------------------*/
 
-enum SCXLNX_POWER_OPERATION {
-	SCXLNX_POWER_OPERATION_HIBERNATE = 1,
-	SCXLNX_POWER_OPERATION_SHUTDOWN = 2,
-	SCXLNX_POWER_OPERATION_RESUME = 3,
+enum TF_POWER_OPERATION {
+	TF_POWER_OPERATION_HIBERNATE = 1,
+	TF_POWER_OPERATION_SHUTDOWN = 2,
+	TF_POWER_OPERATION_RESUME = 3,
 };
 
-int SCXLNXCommHibernate(struct SCXLNX_COMM *pComm);
-int SCXLNXCommResume(struct SCXLNX_COMM *pComm);
-int SCXLNXCommShutdown(struct SCXLNX_COMM *pComm);
+int tf_pm_hibernate(struct tf_comm *comm);
+int tf_pm_resume(struct tf_comm *comm);
+int tf_pm_shutdown(struct tf_comm *comm);
 
-int SCXLNXCommPowerManagement(struct SCXLNX_COMM *pComm,
-	enum SCXLNX_POWER_OPERATION nOperation);
+int tf_power_management(struct tf_comm *comm,
+	enum TF_POWER_OPERATION operation);
 
 
 /*----------------------------------------------------------------------------
  * Communication initialization and termination
  *----------------------------------------------------------------------------*/
 
-int SCXLNXCommInit(struct SCXLNX_COMM *pComm);
+int tf_init(struct tf_comm *comm);
 
-void SCXLNXCommTerminate(struct SCXLNX_COMM *pComm);
+void tf_terminate(struct tf_comm *comm);
 
 
-#endif  /* __SCXLNX_COMM_H__ */
+#endif  /* __TF_COMM_H__ */
