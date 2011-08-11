@@ -562,8 +562,7 @@ static int bq20z75_resume(struct i2c_client *client)
 
 	setup_timer(&bq20z75_device->battery_poll_timer,
 		battery_poll_timer_func, 0);
-	mod_timer(&bq20z75_device->battery_poll_timer,
-		jiffies + msecs_to_jiffies(BATTERY_POLL_PERIOD));
+	battery_poll_timer_func((unsigned long) bq20z75_device);
 	return 0;
 }
 #endif
