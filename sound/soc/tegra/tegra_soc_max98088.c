@@ -419,7 +419,7 @@ static struct tegra_audio_data audio_data = {
 };
 
 static struct snd_soc_card tegra_snd_soc = {
-	.name = "tegra",
+	.name = "tegra-max98088",
 	.platform = &tegra_soc_platform,
 	.dai_link = tegra_soc_dai,
 	.num_links = ARRAY_SIZE(tegra_soc_dai),
