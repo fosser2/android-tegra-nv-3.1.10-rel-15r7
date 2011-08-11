@@ -406,8 +406,8 @@ static struct tegra_i2c_platform_data enterprise_i2c1_platform_data = {
 	.adapter_nr	= 0,
 	.bus_count	= 1,
 	.bus_clk_rate	= { 100000, 0 },
-	.scl_gpio		= TEGRA_GPIO_PC4,
-	.sda_gpio		= TEGRA_GPIO_PC5,
+	.scl_gpio		= {TEGRA_GPIO_PC4, 0},
+	.sda_gpio		= {TEGRA_GPIO_PC5, 0},
 	.arb_recovery = arb_lost_recovery,
 };
 
@@ -416,8 +416,8 @@ static struct tegra_i2c_platform_data enterprise_i2c2_platform_data = {
 	.bus_count	= 1,
 	.bus_clk_rate	= { 100000, 0 },
 	.is_clkon_always = true,
-	.scl_gpio		= TEGRA_GPIO_PT5,
-	.sda_gpio		= TEGRA_GPIO_PT6,
+	.scl_gpio		= {TEGRA_GPIO_PT5, 0},
+	.sda_gpio		= {TEGRA_GPIO_PT6, 0},
 	.arb_recovery = arb_lost_recovery,
 };
 
@@ -425,8 +425,8 @@ static struct tegra_i2c_platform_data enterprise_i2c3_platform_data = {
 	.adapter_nr	= 2,
 	.bus_count	= 1,
 	.bus_clk_rate	= { 100000, 0 },
-	.scl_gpio		= TEGRA_GPIO_PBB1,
-	.sda_gpio		= TEGRA_GPIO_PBB2,
+	.scl_gpio		= {TEGRA_GPIO_PBB1, 0},
+	.sda_gpio		= {TEGRA_GPIO_PBB2, 0},
 	.arb_recovery = arb_lost_recovery,
 };
 
@@ -434,8 +434,8 @@ static struct tegra_i2c_platform_data enterprise_i2c4_platform_data = {
 	.adapter_nr	= 3,
 	.bus_count	= 1,
 	.bus_clk_rate	= { 100000, 0 },
-	.scl_gpio		= TEGRA_GPIO_PV4,
-	.sda_gpio		= TEGRA_GPIO_PV5,
+	.scl_gpio		= {TEGRA_GPIO_PV4, 0},
+	.sda_gpio		= {TEGRA_GPIO_PV5, 0},
 	.arb_recovery = arb_lost_recovery,
 };
 
@@ -443,8 +443,8 @@ static struct tegra_i2c_platform_data enterprise_i2c5_platform_data = {
 	.adapter_nr	= 4,
 	.bus_count	= 1,
 	.bus_clk_rate	= { 100000, 0 },
-	.scl_gpio		= TEGRA_GPIO_PZ6,
-	.sda_gpio		= TEGRA_GPIO_PZ7,
+	.scl_gpio		= {TEGRA_GPIO_PZ6, 0},
+	.sda_gpio		= {TEGRA_GPIO_PZ7, 0},
 	.arb_recovery = arb_lost_recovery,
 };
 
