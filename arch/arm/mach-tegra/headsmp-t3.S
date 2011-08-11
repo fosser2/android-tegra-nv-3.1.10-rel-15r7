@@ -239,6 +239,8 @@ __tegra_hotplug_data:
 
 	.align L1_CACHE_SHIFT
 ENTRY(tegra_cpu_dynamic_power_init)
+#ifndef CONFIG_TRUSTED_FOUNDATIONS
+	//TL : moved to secure
 	mrc	p15, 0, r0, c0, c0, 5	@ MPIDR
 	tst	r0, #(0xF<<8)		@ cluster mask
 	mrc	p15, 0, r0, c15, c0, 0	@ power control
@@ -247,5 +249,6 @@ ENTRY(tegra_cpu_dynamic_power_init)
 	orreq	r0, r0, #(3<<8)		@ set MAXCLKLATENCY to 3 on G
 	orrne	r0, r0, #(2<<8)		@ set MAXCLKLATENCY to 2 on LP
 	mcr	p15, 0, r0, c15, c0, 0	@ power control
+#endif
 	bx	lr
 ENDPROC(tegra_cpu_dynamic_power_init)

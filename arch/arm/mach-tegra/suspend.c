@@ -82,7 +82,6 @@ void callGenericSMC(u32 param0, u32 param1, u32 param2)
 		  "r" (param2)
 		: "r0", "r1", "r2", "r3", "r4");
 }
-u32 buffer_rdv[64];
 #endif
 
 /**************** END TL *********************/
@@ -528,8 +527,15 @@ unsigned int tegra_suspend_lp2(unsigned int us, unsigned int flags)
 	barrier();
 
 #ifdef CONFIG_TRUSTED_FOUNDATIONS
-/* TRUSTED LOGIC SMC_STOP/Save State */
-	callGenericSMC(0xFFFFFFFC, 0xFFFFFFE4, virt_to_phys(buffer_rdv));
+	{
+		extern void __tegra_cpu_reset_handler(void);
+		extern void __tegra_cpu_reset_handler_start(void);
+		/* TRUSTED LOGIC SMC_STOP/Save State */
+		callGenericSMC(0xFFFFFFFC, 0xFFFFFFE4,
+			TEGRA_RESET_HANDLER_BASE +
+			(__tegra_cpu_reset_handler -
+			 __tegra_cpu_reset_handler_start));
+	}
 #endif
 
 	__cortex_a9_save(mode);
@@ -698,8 +704,18 @@ void tegra_suspend_dram(bool do_lp0)
 
 #ifdef CONFIG_TRUSTED_FOUNDATIONS
 /* TRUSTED LOGIC SMC_STOP/Save State */
-	callGenericSMC(0xFFFFFFFC, 0xFFFFFFE3, virt_to_phys(buffer_rdv));
+	if (!do_lp0) {
+		extern void __tegra_cpu_reset_handler(void);
+		extern void __tegra_cpu_reset_handler_start(void);
+		callGenericSMC(0xFFFFFFFC, 0xFFFFFFE6,
+				TEGRA_RESET_HANDLER_BASE +
+				(__tegra_cpu_reset_handler -
+				 __tegra_cpu_reset_handler_start));
+	} else {
+	callGenericSMC(0xFFFFFFFC, 0xFFFFFFE3, virt_to_phys(tegra_lp2_startup));
+	}
 #endif
+
 	__cortex_a9_save(mode);
 
 	if (!do_lp0) {

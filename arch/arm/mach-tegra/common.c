@@ -164,22 +164,11 @@ void __init tegra_init_cache(void)
 	void __iomem *p = IO_ADDRESS(TEGRA_ARM_PERIF_BASE) + 0x3000;
 	u32 aux_ctrl;
 
-#if defined(CONFIG_ARCH_TEGRA_2x_SOC)
 #ifndef CONFIG_TRUSTED_FOUNDATIONS
-   /*
-   ISSUE : Some registers of PL310 controler must be called from Secure context!
-            When called form Normal we obtain an abort.
-            Instructions that must be called in Secure :
-               - Tag and Data RAM Latency Control Registers (0x108 & 0x10C) must be written in Secure.
-
-   The following section of code has been regrouped in the implementation of "l2x0_init".
-   The "l2x0_init" will in fact call an SMC intruction to switch from Normal context to Secure context.
-   The configuration and activation will be done in Secure.
-   */
+#if defined(CONFIG_ARCH_TEGRA_2x_SOC)
 	writel(0x331, p + L2X0_TAG_LATENCY_CTRL);
 	writel(0x441, p + L2X0_DATA_LATENCY_CTRL);
 	writel(2, p + L2X0_PWR_CTRL);
-#endif
 
 #elif defined(CONFIG_ARCH_TEGRA_3x_SOC)
 #ifdef CONFIG_TEGRA_SILICON_PLATFORM
@@ -196,6 +185,7 @@ void __init tegra_init_cache(void)
 #else
 	writel(0x770, p + L2X0_TAG_LATENCY_CTRL);
 	writel(0x770, p + L2X0_DATA_LATENCY_CTRL);
+#endif
 #endif
 #endif
 	aux_ctrl = readl(p + L2X0_CACHE_TYPE);
@@ -301,24 +291,35 @@ static void tegra_pm_restart(char mode, const char *cmd)
 	arm_machine_restart(mode, cmd);
 }
 
+#ifdef CONFIG_TRUSTED_FOUNDATIONS
+void callGenericSMC(u32 param0, u32 param1, u32 param2);
+#endif
+
 void tegra_cpu_reset_handler_enable(void)
 {
 	extern void __tegra_cpu_reset_handler(void);
 	extern void __tegra_cpu_reset_handler_start(void);
 	extern void __tegra_cpu_reset_handler_end(void);
+#ifndef CONFIG_TRUSTED_FOUNDATIONS
+	unsigned long reg;
 	void __iomem *evp_cpu_reset =
 		IO_ADDRESS(TEGRA_EXCEPTION_VECTORS_BASE + 0x100);
-	void __iomem *iram_base = IO_ADDRESS(TEGRA_IRAM_BASE);
 	void __iomem *sb_ctrl = IO_ADDRESS(TEGRA_SB_BASE);
+#endif
+	void __iomem *iram_base = IO_ADDRESS(TEGRA_IRAM_BASE);
+
 	unsigned long cpu_reset_handler_size =
 		__tegra_cpu_reset_handler_end - __tegra_cpu_reset_handler_start;
 	unsigned long cpu_reset_handler_offset =
 		__tegra_cpu_reset_handler - __tegra_cpu_reset_handler_start;
-	unsigned long reg;
 
 	BUG_ON(cpu_reset_handler_size > TEGRA_RESET_HANDLER_SIZE);
 
 	memcpy(iram_base, (void *)__tegra_cpu_reset_handler_start, cpu_reset_handler_size);
+#ifdef CONFIG_TRUSTED_FOUNDATIONS
+	callGenericSMC(0xFFFFF200,
+		TEGRA_RESET_HANDLER_BASE + cpu_reset_handler_offset, 0);
+#else
 	/* NOTE: This must be the one and only write to the CPU reset
 		 vector in the entire system. */
 	writel(TEGRA_RESET_HANDLER_BASE + cpu_reset_handler_offset,
@@ -331,6 +332,7 @@ void tegra_cpu_reset_handler_enable(void)
 	reg |= 2;
 	writel(reg, sb_ctrl);
 	wmb();
+#endif
 }
 
 void tegra_cpu_reset_handler_flush(bool l1cache)

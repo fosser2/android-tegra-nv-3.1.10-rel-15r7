@@ -106,6 +106,7 @@ ENTRY(__tegra_cpu_reset_handler)
 	and	r5, r0, #0x00f00000		@ variant
 	and	r6, r0, #0x0000000f		@ revision
 	orr	r6, r6, r5, lsr #20-4		@ combine variant and revision
+#ifndef CONFIG_TRUSTED_FOUNDATIONS
 #ifdef CONFIG_ARM_ERRATA_743622
 	teq	r6, #0x20			@ present in r2p0
 	teqne	r6, #0x21			@ present in r2p1
@@ -127,6 +128,7 @@ ENTRY(__tegra_cpu_reset_handler)
 	mrclt	p15, 0, r10, c15, c0, 1		@ read diagnostic register
 	orrlt	r10, r10, #1 << 20		@ set bit #20
 	mcrlt	p15, 0, r10, c15, c0, 1		@ write diagnostic register
+#endif
 #endif
 	mrc	p15, 0, r10, c0, c0, 5		@ MPIDR
 	and	r10, r10, #0x3			@ R10 = CPU number

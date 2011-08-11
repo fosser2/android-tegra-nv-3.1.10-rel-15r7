@@ -701,7 +701,7 @@ __reenable_l2x0:
 	movne r1, #1
 // SMC(Enable Cache)
 	ldr r0, =0xFFFFF100
-	ldr r2, =0x00000000
+	mov r2, r4        @ AUX register
 	ldr r3, =0x00000000
 	ldr r4, =0x00000000
 	smc 0

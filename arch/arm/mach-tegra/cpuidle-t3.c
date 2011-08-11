@@ -116,6 +116,13 @@ bool tegra_lp2_is_allowed(struct cpuidle_device *dev,
 	if (!tegra_all_cpus_booted)
 		return false;
 
+#ifdef CONFIG_TRUSTED_FOUNDATIONS
+	/* For now, we don't understand this behavior...
+	 * Without this check tt will generate the MC_DECERR msg!
+	 */
+	if (num_online_cpus() > 1)
+		return false;
+#endif
 	/* On A01, lp2 on slave cpu's cause cpu hang randomly.
 	 * Refer to Bug 804085.
 	 */

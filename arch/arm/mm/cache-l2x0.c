@@ -323,7 +323,7 @@ void l2x0_shutdown(void)
 			printk(KERN_ERR "sched_setaffinity #1 -> 0x%lX", ret);
 		}
 #endif
-		callGenericSMC(0xFFFFF100, 0x00000002, 0);
+		callGenericSMC(0xFFFFF100, 0x00000002, l2x0_way_mask);
 #ifdef CONFIG_SMP
 		ret = sched_setaffinity(0, &saved_cpu_mask);
 		if (ret != 0)
@@ -432,7 +432,7 @@ static void l2x0_enable(__u32 aux_val, __u32 aux_mask)
 			printk(KERN_ERR "sched_setaffinity #1 -> 0x%lX", ret);
 		}
 #endif
-		callGenericSMC(0xFFFFF100, 0x00000001, 0);
+		callGenericSMC(0xFFFFF100, 0x00000001, aux);
 #ifdef CONFIG_SMP
 		ret = sched_setaffinity(0, &saved_cpu_mask);
 		if (ret != 0)
