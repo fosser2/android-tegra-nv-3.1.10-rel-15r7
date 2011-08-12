@@ -2084,6 +2084,9 @@ int sdhci_add_host(struct sdhci_host *host)
 		return -ENODEV;
 	}
 
+	if (caps & SDHCI_CAN_ASYNC_INT)
+		mmc->caps |= MMC_CAP_ASYNC_INT;
+
 	spin_lock_init(&host->lock);
 
 	/*

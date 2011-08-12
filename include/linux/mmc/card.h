@@ -86,7 +86,8 @@ struct sdio_cccr {
 				disable_cd:1,
 				uhs_sdr104:1,
 				uhs_sdr50:1,
-				uhs_ddr50:1;
+				uhs_ddr50:1,
+				async_intr:1;
 };
 
 struct sdio_cis {

@@ -144,6 +144,10 @@
 #define SDIO_UHS_SUPPORT_DDR50		0x04
 #define SDIO_UHS_SUPPORT_MASK	 	0x0E
 
+#define SDIO_CCCR_INT_EXT		0x16
+#define SDIO_INT_EXT_SAI	0x01
+#define SDIO_INT_EXT_EAI	0x02
+
 /*
  * Function Basic Registers (FBR)
  */

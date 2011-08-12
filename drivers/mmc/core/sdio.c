@@ -152,6 +152,12 @@ static int sdio_read_cccr(struct mmc_card *card)
 		if (ret & SDIO_CCCR_IF_CAP_8BIT)
 			card->cccr.wide_8bitbus = 1;
 #endif
+		ret = mmc_io_rw_direct(card, 0, 0, SDIO_CCCR_INT_EXT, 0, &data);
+		if (ret)
+			goto out;
+		if(data & SDIO_INT_EXT_SAI)
+			card->cccr.async_intr = 1;
+
 		ret = mmc_io_rw_direct(card, 0, 0, SDIO_CCCR_UHS_SUPPORT, 0, &data);
 		if (ret)
 			goto out;
@@ -198,6 +204,19 @@ static int sdio_enable_wide(struct mmc_card *card)
 		card->bus_width = SDIO_BUS_WIDTH_8BIT;
 	else
 		card->bus_width = SDIO_BUS_WIDTH_4BIT;
+
+	if (card->bus_width == SDIO_BUS_WIDTH_4BIT) {
+		if (card->cccr.async_intr && (card->host->caps & MMC_CAP_ASYNC_INT)) {
+			ret = mmc_io_rw_direct(card, 0, 0, SDIO_CCCR_INT_EXT, 0, &ctrl);
+			if (ret)
+				return ret;
+
+			ret |= SDIO_INT_EXT_EAI;
+			ret = mmc_io_rw_direct(card, 1, 0, SDIO_CCCR_INT_EXT, ctrl, NULL);
+			if (ret)
+				return ret;
+		}
+	}
 
 	return 1;
 }
