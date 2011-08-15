@@ -74,27 +74,19 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
 	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
 	struct snd_soc_codec *codec = codec_dai->codec;
-    struct tegra_i2s_info *info = cpu_dai->private_data;
+	struct tegra_i2s_info *info = cpu_dai->private_data;
 	int dai_flag = 0, sys_clk;
 	int err;
 	enum dac_dap_data_format data_fmt;
-	struct audio_dev_property dev_prop;
 
-#ifdef CONFIG_ARCH_TEGRA_2x_SOC
+
 	if (tegra_das_is_port_master(tegra_audio_codec_type_hifi))
-#else
-	if(tegra_das_is_device_master(tegra_audio_codec_type_hifi))
-#endif
 		dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
 	else
 		dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
 
-#ifdef CONFIG_ARCH_TEGRA_2x_SOC
 	data_fmt = tegra_das_get_codec_data_fmt(tegra_audio_codec_type_hifi);
-#else
-	tegra_das_get_device_property(tegra_audio_codec_type_hifi,&dev_prop);
-	data_fmt = dev_prop.dac_dap_data_comm_format;
-#endif
+
 	/* We are supporting DSP and I2s format for now */
 	if (data_fmt & dac_dap_data_format_dsp)
 		dai_flag |= SND_SOC_DAIFMT_DSP_A;
@@ -216,27 +208,21 @@ static int tegra_voice_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
 	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
-    struct tegra_i2s_info *info = cpu_dai->private_data;
+	struct tegra_i2s_info *info = cpu_dai->private_data;
 	int dai_flag = 0, sys_clk;
 	int err;
 	enum dac_dap_data_format data_fmt;
-	struct audio_dev_property dev_prop;
 
-#ifdef CONFIG_ARCH_TEGRA_2x_SOC
+
+
 	if (tegra_das_is_port_master(tegra_audio_codec_type_bluetooth))
-#else
-	if(tegra_das_is_device_master(tegra_audio_codec_type_bluetooth))
-#endif
 		dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
 	else
 		dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
 
-#ifdef CONFIG_ARCH_TEGRA_2x_SOC
-	data_fmt = tegra_das_get_codec_data_fmt(tegra_audio_codec_type_bluetooth);
-#else
-	tegra_das_get_device_property(tegra_audio_codec_type_bluetooth,&dev_prop);
-	data_fmt = dev_prop.dac_dap_data_comm_format;
-#endif
+	data_fmt = tegra_das_get_codec_data_fmt
+				(tegra_audio_codec_type_bluetooth);
+
 	/* We are supporting DSP and I2s format for now */
 	if (data_fmt & dac_dap_data_format_i2s)
 		dai_flag |= SND_SOC_DAIFMT_I2S;

@@ -42,11 +42,9 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 
 	enum dac_dap_data_format data_fmt;
 
-#ifdef CONFIG_ARCH_TEGRA_2x_SOC
 	if (tegra_das_is_port_master(tegra_audio_codec_type_hifi))
 		dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
 	else
-#endif
 		dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
 
 	dai_flag |= SND_SOC_DAIFMT_DSP_A;

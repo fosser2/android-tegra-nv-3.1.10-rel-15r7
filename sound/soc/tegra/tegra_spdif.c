@@ -337,6 +337,7 @@ static int tegra_spdif_driver_probe(struct platform_device *pdev)
 	struct resource *res, *mem;
 	struct tegra_spdif_info *info;
 	am_dev_format_info dev_fmt;
+	am_stream_format_info strm_fmt;
 
 	pr_info("%s\n", __func__);
 
@@ -371,6 +372,12 @@ static int tegra_spdif_driver_probe(struct platform_device *pdev)
 		err = -ENOMEM;
 		goto fail_release_mem;
 	}
+
+	memset(&strm_fmt, 0, sizeof(strm_fmt));
+	strm_fmt.bitsize  = SPDIF_BIT_MODE_MODE16BIT;
+	strm_fmt.channels = AUDIO_CHANNEL_2;
+	strm_fmt.samplerate = info->pdata->dev_clk_rate >> 7;
+
 
 	memset(&dev_fmt, 0, sizeof(dev_fmt));
 	dev_fmt.clkrate = info->pdata->dev_clk_rate;

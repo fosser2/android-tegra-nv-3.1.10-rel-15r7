@@ -76,24 +76,16 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 	int err;
 	int dai_flag = SND_SOC_DAIFMT_NB_NF;
 	enum dac_dap_data_format data_fmt;
-	struct audio_dev_property dev_prop;
 
-#ifdef CONFIG_ARCH_TEGRA_2x_SOC
+
 	if (tegra_das_is_port_master(tegra_audio_codec_type_hifi))
-#else
-    if(tegra_das_is_device_master(tegra_audio_codec_type_hifi))
-#endif
 		dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
 	else
 		dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
 
 
-#ifdef CONFIG_ARCH_TEGRA_2x_SOC
 	data_fmt = tegra_das_get_codec_data_fmt(tegra_audio_codec_type_hifi);
-#else
-	tegra_das_get_device_property(tegra_audio_codec_type_hifi,&dev_prop);
-	data_fmt = dev_prop.dac_dap_data_comm_format;
-#endif
+
 	/* We are supporting DSP and I2s format for now */
 	if (data_fmt & dac_dap_data_format_dsp)
 		dai_flag |= SND_SOC_DAIFMT_DSP_A;
