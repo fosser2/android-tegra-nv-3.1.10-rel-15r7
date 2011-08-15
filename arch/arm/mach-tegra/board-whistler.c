@@ -786,7 +786,7 @@ static void __init tegra_whistler_init(void)
 	whistler_codec_init();
 	whistler_power_off_init();
 	whistler_emc_init();
-	whistler_baseband_init();
+	whistler_baseband_ph450_init();
 }
 
 int __init tegra_whistler_protected_aperture_init(void)

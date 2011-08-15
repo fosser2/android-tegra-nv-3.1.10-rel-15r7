@@ -206,8 +206,8 @@ static struct tegra_ulpi_trimmer e951_trimmer = { 10, 1, 1, 1 };
 static struct tegra_ulpi_config ehci2_null_ulpi_phy_config = {
 	.inf_type = TEGRA_USB_NULL_ULPI,
 	.trimmer = &e951_trimmer,
-	.preinit = rainbow_570_reset,
-	.postinit = rainbow_570_handshake,
+	.preinit = ph450_reset,
+	.postinit = ph450_handshake,
 };
 
 static struct tegra_ehci_platform_data ehci2_null_ulpi_platform_data = {
@@ -336,25 +336,14 @@ static int __init ph450_init(void)
 
 static int ph450_reset(void)
 {
-	int retry = 100; /* retry for 10 sec */
-
 	gpio_set_value(AP2MDM_ACK2, 1);
 	gpio_set_value(MODEM_PWR_ON, 0);
+	gpio_set_value(MODEM_PWR_ON, 1);
+	mdelay(30);
 	gpio_set_value(MODEM_RESET, 0);
 	mdelay(200);
 	gpio_set_value(MODEM_RESET, 1);
 	mdelay(30);
-	gpio_set_value(MODEM_PWR_ON, 1);
-
-	while (retry) {
-		/* wait for MDM2AP_ACK2 low */
-		int val = gpio_get_value(MDM2AP_ACK2);
-		if (!val)
-			break;
-		else
-			retry--;
-			mdelay(100);
-	}
 
 	return 1;
 }
@@ -367,14 +356,14 @@ static int ph450_handshake(void)
 	return 0;
 }
 
-int __init whistler_baseband_ph450_init(void)
+int whistler_baseband_ph450_init(void)
 {
 	int ret;
 
 	tegra_pinmux_config_table(whistler_null_ulpi_pinmux,
 				  ARRAY_SIZE(whistler_null_ulpi_pinmux));
 
-	ret = rainbow_570_init();
+	ret = ph450_init();
 	if (ret) {
 		pr_err("modem init failed\n");
 		return ret;

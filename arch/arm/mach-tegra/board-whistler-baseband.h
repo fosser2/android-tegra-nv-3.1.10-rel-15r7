@@ -68,6 +68,7 @@ struct whistler_baseband {
 };
 
 int whistler_baseband_init(void);
+int whistler_baseband_ph450_init(void);
 
 #endif	/* BOARD_WHISTLER_BASEBAND_H */
 
