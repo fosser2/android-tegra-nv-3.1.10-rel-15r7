@@ -71,3 +71,10 @@ config VIDEO_AD5820
         ---help---
           This is a driver for the AD5820 focuser
           for use with the tegra isp.
+
+config TEGRA_CAMERA_CONSERVATIVE_GOV
+        bool "Use conservative cpu frequency governor when camera is started"
+        default y
+        ---help---
+         Also will restore to original cpu frequency governor when camera is stopped
+

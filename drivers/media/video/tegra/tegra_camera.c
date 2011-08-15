@@ -34,6 +34,13 @@
 #define TEGRA_CAMERA_NAME "tegra_camera"
 DEFINE_MUTEX(tegra_camera_lock);
 
+#ifdef CONFIG_TEGRA_CAMERA_CONSERVATIVE_GOV
+#define SET_CONSERVATIVE_GOVERNOR_DELAY (5*HZ)
+static int work_q_set_conservative;
+static struct delayed_work scaling_gov_work;
+static struct tegra_camera_platform_data *pdata;
+#endif
+
 struct tegra_camera_block {
 	int (*enable) (void);
 	int (*disable) (void);
@@ -204,6 +211,13 @@ static long tegra_camera_ioctl(struct file *file,
 			ret = tegra_camera_block[id].enable();
 			tegra_camera_block[id].is_enabled = true;
 		}
+#ifdef CONFIG_TEGRA_CAMERA_CONSERVATIVE_GOV
+		/* Set conservative governor for camera power saving */
+		if (work_q_set_conservative == 0) {
+			work_q_set_conservative = 1;
+			schedule_delayed_work(&scaling_gov_work, SET_CONSERVATIVE_GOVERNOR_DELAY);
+		}
+#endif
 		mutex_unlock(&tegra_camera_lock);
 		return ret;
 	}
@@ -216,6 +230,13 @@ static long tegra_camera_ioctl(struct file *file,
 			ret = tegra_camera_block[id].disable();
 			tegra_camera_block[id].is_enabled = false;
 		}
+#ifdef CONFIG_TEGRA_CAMERA_CONSERVATIVE_GOV
+		/* Restore default governor */
+		if (work_q_set_conservative == 1) {
+			work_q_set_conservative = 0;
+			schedule_delayed_work(&scaling_gov_work, 0);
+		}
+#endif
 		mutex_unlock(&tegra_camera_lock);
 		return ret;
 	}
@@ -257,6 +278,13 @@ static int tegra_camera_release(struct inode *inode, struct file *file)
 			tegra_camera_block[i].disable();
 			tegra_camera_block[i].is_enabled = false;
 		}
+#ifdef CONFIG_TEGRA_CAMERA_CONSERVATIVE_GOV
+	/* If governor is not already restored, do it now */
+	if (work_q_set_conservative == 1) {
+		work_q_set_conservative = 0;
+		schedule_delayed_work(&scaling_gov_work, 0);
+	}
+#endif
 
 	return 0;
 }
@@ -284,6 +312,20 @@ static int tegra_camera_clk_get(struct platform_device *pdev, const char *name,
 	}
 	return 0;
 }
+
+#ifdef CONFIG_TEGRA_CAMERA_CONSERVATIVE_GOV
+static void set_scaling_gov_work(struct work_struct *work)
+{
+	if (pdata != NULL) {
+		if (work_q_set_conservative == 1) {
+			pdata->save_default_governor();
+			pdata->set_conservative_governor();
+		} else {
+			pdata->restore_default_governor();
+		}
+	}
+}
+#endif
 
 static int tegra_camera_probe(struct platform_device *pdev)
 {
@@ -322,6 +364,12 @@ static int tegra_camera_probe(struct platform_device *pdev)
 	err = tegra_camera_clk_get(pdev, "csi", &csi_clk);
 	if (err)
 		goto csi_clk_get_err;
+
+#ifdef CONFIG_TEGRA_CAMERA_CONSERVATIVE_GOV
+	pdata = pdev->dev.platform_data;
+	work_q_set_conservative = 0;
+	INIT_DELAYED_WORK(&scaling_gov_work, set_scaling_gov_work);
+#endif
 
 	return 0;
 

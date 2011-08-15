@@ -40,6 +40,13 @@ enum StereoCameraMode {
 	StereoCameraMode_Force32 = 0x7FFFFFFF
 };
 
+#ifdef __KERNEL__
+struct tegra_camera_platform_data {
+	void (*set_conservative_governor)(void);
+	void (*save_default_governor)(void);
+	void (*restore_default_governor)(void);
+};
+#endif /* __KERNEL__ */
 
 #define TEGRA_CAMERA_IOCTL_ENABLE		_IOWR('i', 1, uint)
 #define TEGRA_CAMERA_IOCTL_DISABLE		_IOWR('i', 2, uint)
