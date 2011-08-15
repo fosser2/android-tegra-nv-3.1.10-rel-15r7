@@ -274,15 +274,20 @@ int am_device_init(aud_dev_info* devinfo, void *dev_fmt, void  *strm_fmt)
 		struct tegra_spdif_property spdifprop;
 		memset(&spdifprop, 0, sizeof(spdifprop));
 
+		if (sfmt) {
+			spdifprop.bit_size = sfmt->bitsize;
+			spdifprop.sample_rate = sfmt->samplerate;
+			spdifprop.channels = sfmt->channels;
+		}
+
 		if (dfmt) {
 			spdifprop.clk_rate = dfmt->clkrate;
-
-			return spdif_init(
+		}
+		return spdif_init(
 				devinfo->base,
 				devinfo->phy_base,
 				devinfo->fifo_mode,
 				&spdifprop);
-		}
 	}
 
 	return 0;
@@ -353,7 +358,7 @@ int tegra_das_get_device_i2s_port(enum tegra_audio_codec_type codec_type)
 		if (port_info[i].codec_type == codec_type)
 			return port_info[i].dac_port;
 	}
-	return -ENOENT;
+	return tegra_das_port_none;
 }
 
 int tegra_das_get_device_property(enum tegra_audio_codec_type codec_type,
@@ -595,16 +600,6 @@ int am_free_dma_requestor(aud_dev_info* devinfo)
 	AM_DEBUG_PRINT("%s++ %d  refcnt %d\n", __func__,
 			ch->dmach[fifo_mode],
 			ch->dmach_refcnt[fifo_mode]);
-	/*FIXME : dma is freed after the voice call is accepted.
-	This tear down the voice call connection- calling here to make
-	sure it is wired properly - Codec seems muted - need to add some
-	fix for that also*/
-
-/*	if (aud_manager->cur_conn == tegra_das_port_con_id_voicecall_no_bt) {
-		tegra_das_set_connection(tegra_das_port_con_id_hifi);
-		tegra_das_set_connection(tegra_das_port_con_id_voicecall_no_bt);
-	}
-*/
 	return 0;
 
 }
@@ -674,10 +669,24 @@ int am_device_deinit(aud_dev_info* devinfo)
 	return am_fn->aud_dev_deinit(devinfo->dev_id);
 }
 
+static inline int get_spdif_bit_size(int nbits)
+{
+	switch (nbits) {
+	case SPDIF_BIT_MODE_MODE24BIT:
+		return AUDIO_BIT_SIZE_24;
+	case SPDIF_BIT_MODE_MODERAW:
+		return AUDIO_BIT_SIZE_32;
+	default:
+		return AUDIO_BIT_SIZE_16;
+	}
+}
+
 int am_set_stream_format(aud_dev_info* devinfo, am_stream_format_info *format)
 {
 	int dev_id = devinfo->dev_id;
 	struct am_ch_info *ch = NULL;
+
+	AM_DEBUG_PRINT("%s++\n", __func__);
 
 	if (devinfo->dev_type == AUDIO_I2S_DEVICE) {
 		ch = &aud_manager->i2s_ch[dev_id];
@@ -700,23 +709,17 @@ int am_set_stream_format(aud_dev_info* devinfo, am_stream_format_info *format)
 	memcpy(&ch->sfmt, format, sizeof(am_stream_format_info));
 
 	if (devinfo->dev_type == AUDIO_SPDIF_DEVICE) {
-		switch (format->bitsize) {
-		case SPDIF_BIT_MODE_MODE24BIT:
-			ch->sfmt.bitsize = AUDIO_BIT_SIZE_24;
-			break;
-		case SPDIF_BIT_MODE_MODERAW:
-			ch->sfmt.bitsize = AUDIO_BIT_SIZE_32;
-			break;
-		default:
-			ch->sfmt.bitsize = AUDIO_BIT_SIZE_16;
-			break;
-		}
+		ch->sfmt.bitsize = get_spdif_bit_size(format->bitsize);
 	}
+
+	AM_DEBUG_PRINT("%s--\n", __func__);
 	return 0;
 }
 
 int am_set_device_format(aud_dev_info* devinfo, am_dev_format_info *format)
 {
+	AM_DEBUG_PRINT("%s++\n", __func__);
+
 	if (devinfo->dev_type == AUDIO_I2S_DEVICE) {
 		i2s_set_loopback(devinfo->dev_id, format->loopmode);
 		i2s_set_master(devinfo->dev_id, format->mastermode);
@@ -728,6 +731,8 @@ int am_set_device_format(aud_dev_info* devinfo, am_dev_format_info *format)
 	} else if (devinfo->dev_type == AUDIO_SPDIF_DEVICE) {
 
 	}
+
+	AM_DEBUG_PRINT("%s--\n", __func__);
 	return 0;
 }
 
@@ -735,6 +740,8 @@ int am_device_init(aud_dev_info* devinfo, void *dev_fmt, void  *strm_fmt)
 {
 	am_stream_format_info  *sfmt = (am_stream_format_info*)strm_fmt;
 	am_dev_format_info *dfmt = (am_dev_format_info*)dev_fmt;
+
+	AM_DEBUG_PRINT("%s++\n", __func__);
 
 	if (devinfo->dev_type == AUDIO_I2S_DEVICE) {
 
@@ -752,7 +759,6 @@ int am_device_init(aud_dev_info* devinfo, void *dev_fmt, void  *strm_fmt)
 			i2sprop.clk_rate = dfmt->clkrate;
 			i2sprop.fifo_fmt = dfmt->fifofmt;
 		}
-
 		return i2s_init(devinfo->dev_id, &i2sprop);
 
 	} else if (devinfo->dev_type == AUDIO_SPDIF_DEVICE) {
@@ -760,18 +766,38 @@ int am_device_init(aud_dev_info* devinfo, void *dev_fmt, void  *strm_fmt)
 		struct tegra_spdif_property spdifprop;
 		memset(&spdifprop, 0, sizeof(spdifprop));
 
+		if (sfmt) {
+			spdifprop.bit_size = sfmt->bitsize;
+			spdifprop.sample_rate = sfmt->samplerate;
+			spdifprop.channels = sfmt->channels;
+		}
+
 		if (dfmt) {
 			spdifprop.clk_rate = dfmt->clkrate;
+		}
 
-			return spdif_init(
+		return spdif_init(
 				devinfo->base,
 				devinfo->phy_base,
 				devinfo->fifo_mode,
 				&spdifprop);
-		}
 	}
 
 	return 0;
+}
+
+static inline int get_bit_size(int nbits)
+{
+	switch (nbits) {
+	case 24:
+		return AUDIO_BIT_SIZE_24;
+	case 32:
+		return AUDIO_BIT_SIZE_32;
+	case 8:
+		return AUDIO_BIT_SIZE_8;
+	default:
+		return AUDIO_BIT_SIZE_16;
+	}
 }
 
 int set_i2s_dev_prop(int dev_id,
@@ -782,21 +808,7 @@ int set_i2s_dev_prop(int dev_id,
 
 	ch->outcif.audio_channels = dev_prop->num_channels - 1;
 	ch->outcif.client_channels = dev_prop->num_channels - 1;
-
-	switch (dev_prop->bits_per_sample) {
-	case 24:
-		bitsize = AUDIO_BIT_SIZE_24;
-		break;
-	case 32:
-		bitsize = AUDIO_BIT_SIZE_32;
-		break;
-	case 8:
-		bitsize = AUDIO_BIT_SIZE_8;
-		break;
-	default:
-		bitsize = AUDIO_BIT_SIZE_16;
-		break;
-	}
+	bitsize = get_bit_size(dev_prop->bits_per_sample);
 
 	ch->outcif.audio_bits = bitsize;
 	ch->outcif.client_bits = bitsize;
@@ -977,26 +989,65 @@ int tegra_das_power_mode(bool is_normal)
 }
 EXPORT_SYMBOL_GPL(tegra_das_power_mode);
 
-inline static int get_bit_size(int nbits)
+bool tegra_das_is_port_master(enum tegra_audio_codec_type codec_type)
 {
-	switch (nbits) {
-	case 24:
-		return AUDIO_BIT_SIZE_24;
-	case 32:
-		return AUDIO_BIT_SIZE_32;
-	case 8:
-		return AUDIO_BIT_SIZE_8;
-	default:
-		return AUDIO_BIT_SIZE_16;
+	return tegra_das_is_device_master(codec_type) ? true : false;
+}
+EXPORT_SYMBOL_GPL(tegra_das_is_port_master);
+
+int tegra_das_get_codec_data_fmt(enum tegra_audio_codec_type codec_type)
+{
+	struct audio_dev_property dev_prop;
+
+	tegra_das_get_device_property(codec_type, &dev_prop);
+	return dev_prop.dac_dap_data_comm_format;
+}
+EXPORT_SYMBOL_GPL(tegra_das_get_codec_data_fmt);
+
+static inline int init_spdif_port(int fifo_mode)
+{
+	struct tegra_spdif_property spdifprop;
+	struct am_ch_info *ch = NULL;
+
+	spdif_get_device_property(fifo_mode, &spdifprop);
+
+	ch = &aud_manager->spdif_ch;
+	ch->sfmt.bitsize  = get_spdif_bit_size(spdifprop.bit_size);
+	ch->sfmt.channels = spdifprop.channels;
+	ch->sfmt.samplerate = spdifprop.sample_rate;
+
+
+	return 0;
+}
+
+static inline int init_device_port(enum tegra_audio_codec_type codec_type)
+{
+	struct audio_dev_property dev_prop;
+	int port_idx = tegra_das_port_none;
+	struct am_ch_info *ch = NULL;
+
+	port_idx = tegra_das_get_device_i2s_port(codec_type);
+
+	if (port_idx != tegra_das_port_none) {
+
+		memset(&dev_prop, 0 , sizeof(struct audio_dev_property));
+		tegra_das_get_device_property(codec_type, &dev_prop);
+		ch = &aud_manager->i2s_ch[port_idx];
+		ch->sfmt.bitsize = get_bit_size(dev_prop.bits_per_sample);
+		ch->sfmt.channels = dev_prop.num_channels - 1;
+		ch->sfmt.samplerate = dev_prop.rate;
 	}
+
+	AM_DEBUG_PRINT("%s port index %d\n", __func__, port_idx);
+
+	return port_idx;
 }
 
 int tegra_das_open(void)
 {
 	int err = 0;
 
-	struct audio_dev_property dev_prop;
-	struct am_ch_info *ch = NULL;
+	AM_DEBUG_PRINT("%s++\n", __func__);
 
 	aud_manager = kzalloc(sizeof(struct audio_manager_context), GFP_KERNEL);
 	if (!aud_manager)
@@ -1018,22 +1069,16 @@ int tegra_das_open(void)
 		aud_manager->pmc_clk = 0;
 		goto fail_clock;
 	}
-	aud_manager->hifi_port_idx = tegra_das_get_device_i2s_port(
+	aud_manager->hifi_port_idx = init_device_port(
 					tegra_audio_codec_type_hifi);
 
-	aud_manager->bb_port_idx = tegra_das_get_device_i2s_port(
+	aud_manager->bb_port_idx = init_device_port(
 					tegra_audio_codec_type_baseband);
 
-	aud_manager->bt_port_idx = tegra_das_get_device_i2s_port(
+	aud_manager->bt_port_idx = init_device_port(
 					tegra_audio_codec_type_bluetooth);
 
-	memset(&dev_prop, 0 , sizeof(struct audio_dev_property));
-	tegra_das_get_device_property(tegra_audio_codec_type_hifi,
-						&dev_prop);
-	ch = &aud_manager->i2s_ch[aud_manager->hifi_port_idx];
-	ch->sfmt.bitsize = get_bit_size(dev_prop.bits_per_sample);
-	ch->sfmt.channels = dev_prop.num_channels - 1;
-	ch->sfmt.samplerate = dev_prop.rate;
+	init_spdif_port(AUDIO_TX_MODE);
 
 	return err;
 

@@ -238,6 +238,15 @@ fail_spdif_open:
 	return err;
 }
 
+int spdif_get_device_property(int mode, struct tegra_spdif_property *spdifprop)
+{
+	memcpy(spdifprop,
+		&spinfo->spdev[mode].ch_prop,
+		sizeof(struct tegra_spdif_property));
+
+	return 0;
+}
+
 int spdif_initialize(unsigned long base, int mode)
 {
 	/* disable interrupts from SPDIF */
@@ -271,8 +280,10 @@ int spdif_init(unsigned long base, phys_addr_t phy_base, int mode,
 
 	spinfo->base = base;
 	spinfo->phy_base = phy_base;
+	spinfo->spdev[mode].ch_prop.bit_size = spdifprop->bit_size;
+	spinfo->spdev[mode].ch_prop.channels = spdifprop->channels;
 	spinfo->spdev[mode].ch_prop.clk_rate = spdifprop->clk_rate;
-
+	spinfo->spdev[mode].ch_prop.sample_rate = spdifprop->sample_rate;
 	spdif_clock_set_parent(0, mode, 0);
 
 	err = spdif_clock_enable(0, mode);
@@ -283,6 +294,8 @@ int spdif_init(unsigned long base, phys_addr_t phy_base, int mode,
 	}
 
 	spdif_initialize(base, mode);
+
+	spdif_set_sample_rate(0, mode, spdifprop->sample_rate);
 
 	spdif_clock_disable(0, mode);
 	SPDIF_DEBUG_PRINT(" %s --\n", __func__);

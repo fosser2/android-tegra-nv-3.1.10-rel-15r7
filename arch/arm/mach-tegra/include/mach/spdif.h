@@ -494,7 +494,8 @@ struct tegra_spdif_property {
 	int sample_rate;
 	int clk_rate;
 	int clk_parent;
-	int channel;
+	int channels;
+	int bit_size;
 };
 
 struct tegra_spdif_device_context {
@@ -537,6 +538,7 @@ u32 spdif_get_fifo_full_empty_count(int ifc, int mode);
 int spdif_initialize(unsigned long base, int mode);
 void spdif_dump_registers(unsigned long base);
 
+int spdif_get_device_property(int mode, struct tegra_spdif_property *spdifprop);
 int spdif_init(unsigned long base, phys_addr_t phy_base, int mode,
 			struct tegra_spdif_property* pspdifprop);
 int spdif_close(int ifc);
