@@ -76,7 +76,8 @@ enum panel_type {
 
 void tegra_get_board_info(struct board_info *);
 void tegra_get_pmu_board_info(struct board_info *bi);
-#ifdef CONFIG_TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND
+#if defined(CONFIG_TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND) || \
+defined(CONFIG_TEGRA_CAMERA_CONSERVATIVE_GOV)
 #define SET_CONSERVATIVE_GOVERNOR_UP_THRESHOLD 95
 #define SET_CONSERVATIVE_GOVERNOR_DOWN_THRESHOLD 50
 

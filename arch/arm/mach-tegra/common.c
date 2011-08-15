@@ -783,11 +783,14 @@ void __init tegra_release_bootloader_fb(void)
 			pr_err("Failed to free bootloader fb.\n");
 }
 
-#ifdef CONFIG_TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND
+#if defined(CONFIG_TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND) || \
+defined(CONFIG_TEGRA_CAMERA_CONSERVATIVE_GOV)
 static char cpufreq_gov_default[32];
 static char *cpufreq_gov_conservative = "conservative";
 static char *cpufreq_sysfs_place_holder="/sys/devices/system/cpu/cpu%i/cpufreq/scaling_governor";
 static char *cpufreq_gov_conservative_param="/sys/devices/system/cpu/cpufreq/conservative/%s";
+static int saved_governor_refcnt;
+DEFINE_MUTEX(governor_lock);
 
 static void cpufreq_set_governor(char *governor)
 {
@@ -807,7 +810,7 @@ static void cpufreq_set_governor(char *governor)
 	for_each_online_cpu(i) {
 		sprintf(buf, cpufreq_sysfs_place_holder, i);
 		scaling_gov = filp_open(buf, O_RDWR, 0);
-		if (IS_ERR_OR_NULL(scaling_gov)) {
+		if ( IS_ERR_OR_NULL(scaling_gov) ) {
 			pr_err("%s. Can't open %s\n", __func__, buf);
 		} else {
 			if (scaling_gov->f_op != NULL &&
@@ -827,38 +830,45 @@ static void cpufreq_set_governor(char *governor)
 
 void cpufreq_save_default_governor(void)
 {
-	struct file *scaling_gov = NULL;
-	mm_segment_t old_fs;
-	char    buf[128];
-	loff_t offset = 0;
+	mutex_lock(&governor_lock);
+	if (++saved_governor_refcnt == 1) {
+		struct file *scaling_gov = NULL;
+		mm_segment_t old_fs;
+		char    buf[128];
+		loff_t offset = 0;
 
-	/* change to KERNEL_DS address limit */
-	old_fs = get_fs();
-	set_fs(KERNEL_DS);
+		/* change to KERNEL_DS address limit */
+		old_fs = get_fs();
+		set_fs(KERNEL_DS);
 
-	buf[127] = 0;
-	sprintf(buf, cpufreq_sysfs_place_holder,0);
-	scaling_gov = filp_open(buf, O_RDONLY, 0);
-	if (IS_ERR_OR_NULL(scaling_gov)) {
-		pr_err("%s. Can't open %s\n", __func__, buf);
-	} else {
-		if (scaling_gov->f_op != NULL &&
-			scaling_gov->f_op->read != NULL)
-			scaling_gov->f_op->read(scaling_gov,
-					cpufreq_gov_default,
-					32,
-					&offset);
-		else
-			pr_err("f_op might be null\n");
+		buf[127] = 0;
+		sprintf(buf, cpufreq_sysfs_place_holder, 0);
+		scaling_gov = filp_open(buf, O_RDONLY, 0);
+		if (IS_ERR_OR_NULL(scaling_gov)) {
+			pr_err("%s. Can't open %s\n", __func__, buf);
+		} else {
+			if (scaling_gov->f_op != NULL &&
+				scaling_gov->f_op->read != NULL)
+				scaling_gov->f_op->read(scaling_gov,
+						cpufreq_gov_default,
+						32,
+						&offset);
+			else
+				pr_err("f_op might be null\n");
 
-		filp_close(scaling_gov, NULL);
+			filp_close(scaling_gov, NULL);
+		}
+		set_fs(old_fs);
 	}
-	set_fs(old_fs);
+	mutex_unlock(&governor_lock);
 }
 
 void cpufreq_restore_default_governor(void)
 {
-	cpufreq_set_governor(cpufreq_gov_default);
+	mutex_lock(&governor_lock);
+	if (--saved_governor_refcnt == 0)
+		cpufreq_set_governor(cpufreq_gov_default);
+	mutex_unlock(&governor_lock);
 }
 
 void cpufreq_set_conservative_governor_param(int up_th, int down_th)
@@ -918,6 +928,7 @@ void cpufreq_set_conservative_governor_param(int up_th, int down_th)
 
 void cpufreq_set_conservative_governor(void)
 {
-	cpufreq_set_governor(cpufreq_gov_conservative);
+	if (saved_governor_refcnt == 1)
+		cpufreq_set_governor(cpufreq_gov_conservative);
 }
 #endif /* CONFIG_TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND */
