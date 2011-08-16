@@ -37,6 +37,7 @@ struct tegra_sdhci_platform_data {
 	int vdd_max_uv;
 	int vdd_min_uv;
 	unsigned int max_clk;
+	unsigned int clk_limit;
 
 	void (*board_probe)(int id, struct mmc_host *);
 	void (*board_remove)(int id, struct mmc_host *);
