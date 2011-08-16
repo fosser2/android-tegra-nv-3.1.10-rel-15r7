@@ -594,6 +594,9 @@ void tegra_move_framebuffer(unsigned long to, unsigned long from,
 	void *from_virt;
 	unsigned long i;
 
+	if (!size || !from || !to)
+		return;
+
 	BUG_ON(PAGE_ALIGN((unsigned long)to) != (unsigned long)to);
 	BUG_ON(PAGE_ALIGN(from) != from);
 	BUG_ON(PAGE_ALIGN(size) != size);
