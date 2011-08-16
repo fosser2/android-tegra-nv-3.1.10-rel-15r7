@@ -24,6 +24,7 @@
 #define MAX8952_REG_CHIP_ID2        0x09
 
 /* Register bit-mask */
+#define MAX8952_MASK_FPWM_EN	0x80
 #define MAX8952_MASK_OUTMODE    0x3F
 
 /* IDs */
