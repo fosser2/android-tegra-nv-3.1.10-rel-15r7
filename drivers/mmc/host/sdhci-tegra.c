@@ -73,6 +73,7 @@ struct tegra_sdhci_host {
 	int wp_gpio_polarity;
 	unsigned int tap_delay;
 	unsigned int max_clk;
+	unsigned int clk_limit;
 	struct regulator *vsd;
 	unsigned int card_present;
 	struct regulator *reg_vdd_slot;
@@ -169,6 +170,8 @@ static void tegra_sdhci_enable_clock(struct tegra_sdhci_host *host, int clock)
 			sdhci_writeb(host->sdhci, val, SDHCI_VENDOR_CLOCK_CNTRL);
 			host->clk_enabled = 1;
 		}
+		if (host->clk_limit && (clock > host->clk_limit))
+			clock = host->clk_limit;
 		if (clock < SDHCI_TEGRA_MIN_CONTROLLER_CLOCK)
 			clk_set_rate(host->clk, SDHCI_TEGRA_MIN_CONTROLLER_CLOCK);
 		else
@@ -300,6 +303,7 @@ static int __devinit tegra_sdhci_probe(struct platform_device *pdev)
 	host->sdhci = sdhci;
 	host->card_always_on = (plat->power_gpio == -1) ? 1 : 0;
 	host->max_clk = plat->max_clk;
+	host->clk_limit = plat->clk_limit;
 	host->tap_delay = plat->tap_delay;
 	host->cd_gpio = plat->cd_gpio;
 	host->cd_gpio_polarity = plat->cd_gpio_polarity;
