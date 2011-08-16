@@ -257,7 +257,8 @@ __v7_setup:
 #endif
 #endif
 
-#if defined(CONFIG_ARM_ERRATA_742230) && !defined(CONFIG_TRUSTED_FOUNDATIONS)
+#ifndef CONFIG_TRUSTED_FOUNDATIONS
+#ifdef CONFIG_ARM_ERRATA_742230
 	cmp	r6, #0x22			@ only present up to r2p2
 	mrcle	p15, 0, r10, c15, c0, 1		@ read diagnostic register
 	orrle	r10, r10, #1 << 4		@ set bit #4
@@ -293,6 +294,7 @@ __v7_setup:
 	mrclt	p15, 0, r10, c15, c0, 1		@ read diagnostic register
 	orrlt	r10, r10, #1 << 20		@ set bit #20
 	mcrlt	p15, 0, r10, c15, c0, 1		@ write diagnostic register
+#endif
 #endif
 
 3:	mov	r10, #0
