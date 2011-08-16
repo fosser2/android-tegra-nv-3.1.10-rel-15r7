@@ -99,8 +99,6 @@ endif
 obj-$(CONFIG_ARCH_TEGRA_3x_SOC)         += tegra3_tsensor.o
 obj-$(CONFIG_TEGRA_DYNAMIC_PWRDET)      += powerdetect.o
 
-obj-y                                   += nv/
-
 obj-${CONFIG_MACH_HARMONY}              += board-harmony.o
 obj-${CONFIG_MACH_HARMONY}              += board-harmony-pinmux.o
 obj-${CONFIG_MACH_HARMONY}              += board-harmony-panel.o
