@@ -548,7 +548,7 @@ struct tegra_das_platform_data tegra_das_pdata = {
 				.bits_per_sample = 16,
 				.rate = 8000,
 				.master = 0,
-				.lrck_high_left = false,
+				.lrck_high_left = true,
 				.dac_dap_data_comm_format =
 					dac_dap_data_format_dsp,
 			},
