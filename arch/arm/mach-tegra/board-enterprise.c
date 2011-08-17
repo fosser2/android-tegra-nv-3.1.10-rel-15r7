@@ -36,6 +36,7 @@
 #include <linux/usb/f_accessory.h>
 #include <linux/spi/spi.h>
 #include <linux/tegra_uart.h>
+#include <linux/fsl_devices.h>
 
 #include <mach/clk.h>
 #include <mach/iomap.h>
@@ -830,6 +831,7 @@ static void enterprise_usb_init(void)
 	char *src = usb_serial_num;
 	int i;
 #endif
+	struct	fsl_usb2_platform_data *udc_pdata;
 
 	tegra_usb_phy_init(tegra_usb_phy_pdata, ARRAY_SIZE(tegra_usb_phy_pdata));
 
@@ -838,6 +840,9 @@ static void enterprise_usb_init(void)
 
 	tegra_ehci3_device.dev.platform_data = &tegra_ehci_pdata[2];
 	platform_device_register(&tegra_ehci3_device);
+
+	udc_pdata = tegra_udc_device.dev.platform_data;
+	udc_pdata->charge_regulator ="usb_bat_chg";
 
 #ifdef CONFIG_USB_ANDROID_RNDIS
 	/* create a fake MAC address from our serial number.
@@ -881,6 +886,7 @@ static void __init tegra_enterprise_init(void)
 	enterprise_pinmux_init();
 	enterprise_i2c_init();
 	enterprise_uart_init();
+	enterprise_usb_init();
 	snprintf(serial, sizeof(serial), "%llx", tegra_chip_uid());
 	andusb_plat.serial_number = kstrdup(serial, GFP_KERNEL);
 	platform_add_devices(enterprise_devices, ARRAY_SIZE(enterprise_devices));
@@ -888,7 +894,6 @@ static void __init tegra_enterprise_init(void)
 	enterprise_audio_init();
 	enterprise_sdhci_init();
 	touch_init();
-	enterprise_usb_init();
 #ifdef CONFIG_TEGRA_EDP_LIMITS
 	enterprise_edp_init();
 #endif
