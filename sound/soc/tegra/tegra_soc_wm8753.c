@@ -129,6 +129,16 @@
 /* Board Specific GPIO configuration for Whistler */
 #define TEGRA_GPIO_PW3 			179
 
+#define I2S_HIFI_SYS_CLK		2822400
+#define I2S_VOICE_SYS_CLK		512000
+
+/* These values are copied from WiredAccessoryObserver */
+enum headset_state {
+	BIT_NO_HEADSET = 0,
+	BIT_HEADSET = (1 << 0),
+	BIT_HEADSET_NO_MIC = (1 << 1),
+};
+
 static struct wm8753_headphone_jack
 {
 	struct snd_jack *jack;
@@ -167,10 +177,10 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 	data_fmt = tegra_das_get_codec_data_fmt(tegra_audio_codec_type_hifi);
 
 	/* We are supporting DSP and I2s format for now */
-	if (data_fmt & dac_dap_data_format_dsp)
-		dai_flag |= SND_SOC_DAIFMT_DSP_A;
-	else
+	if (data_fmt & dac_dap_data_format_i2s)
 		dai_flag |= SND_SOC_DAIFMT_I2S;
+	else
+		dai_flag |= SND_SOC_DAIFMT_DSP_A;
 
 	err = snd_soc_dai_set_fmt(codec_dai, dai_flag);
 	if (err < 0) {
@@ -192,7 +202,8 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 		return err;
 	}
 
-	err = snd_soc_dai_set_sysclk(cpu_dai, 0, sys_clk, SND_SOC_CLOCK_IN);
+	err = snd_soc_dai_set_sysclk(cpu_dai, 0,
+		I2S_HIFI_SYS_CLK, SND_SOC_CLOCK_IN);
 	if (err < 0) {
 		pr_err("cpu_dai clock not set\n");
 		return err;
@@ -322,13 +333,33 @@ static int tegra_voice_hw_params(struct snd_pcm_substream *substream,
 	enum dac_dap_data_format data_fmt;
 	struct audio_dev_property dev_prop;
 
-	if (tegra_das_is_port_master(tegra_audio_codec_type_bluetooth))
-		dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
-	else
-		dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
+	if (!strcmp(rtd->dai->stream_name, "Tegra BT Voice Call")) {
+		if (tegra_das_is_port_master(tegra_audio_codec_type_bluetooth))
+			dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
+		else
+			dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
 
-	data_fmt = tegra_das_get_codec_data_fmt(tegra_audio_codec_type_bluetooth);
+		data_fmt = tegra_das_get_codec_data_fmt
+			(tegra_audio_codec_type_bluetooth);
+	}
+	else if (!strcmp(rtd->dai->stream_name, "Tegra Voice Call")) {
+		if (tegra_das_is_port_master(tegra_audio_codec_type_voice))
+			dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
+		else
+			dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
 
+		data_fmt = tegra_das_get_codec_data_fmt
+			(tegra_audio_codec_type_baseband);
+	}
+	else {/* Tegra BT-SCO Voice */
+		if (tegra_das_is_port_master(tegra_audio_codec_type_bluetooth))
+			dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
+		else
+			dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
+
+		data_fmt = tegra_das_get_codec_data_fmt
+			(tegra_audio_codec_type_bluetooth);
+	}
 	/* We are supporting DSP and I2s format for now */
 	if (data_fmt & dac_dap_data_format_i2s)
 		dai_flag |= SND_SOC_DAIFMT_I2S;
@@ -354,7 +385,8 @@ static int tegra_voice_hw_params(struct snd_pcm_substream *substream,
 		return err;
 	}
 
-	err = snd_soc_dai_set_sysclk(cpu_dai, 0, sys_clk, SND_SOC_CLOCK_IN);
+	err = snd_soc_dai_set_sysclk(cpu_dai, 0,
+		I2S_VOICE_SYS_CLK, SND_SOC_CLOCK_IN);
 	if (err < 0) {
 		pr_err("cpu_dai clock not set\n");
 		return err;
@@ -546,12 +578,12 @@ static void wm8753_intr_work(struct work_struct *work)
 	value = snd_soc_read(wm8753_jack->pcodec, WM8753_INTPOL);
 	value &= WM8753_INTPOL_GPIO4IPOL;
 	if ((value) & ((WM8753_INTPOL_GPIO4IPOL))) {
-		tegra_switch_set_state(SND_JACK_HEADPHONE);
+		tegra_switch_set_state(BIT_HEADSET_NO_MIC);
 		snd_jack_report(wm8753_jack->jack, SND_JACK_HEADPHONE);
 		value &= ~(WM8753_INTPOL_GPIO4IPOL);
 	}
 	else {
-		tegra_switch_set_state(0);
+		tegra_switch_set_state(BIT_NO_HEADSET);
 		snd_jack_report(wm8753_jack->jack, 0);
 		value |= (WM8753_INTPOL_GPIO4IPOL);
 	}
@@ -716,11 +748,17 @@ static struct snd_soc_dai_link tegra_soc_dai[] = {
 	TEGRA_CREATE_SOC_DAI_LINK("WM8753", "WM8753 HiFi",
 		&tegra_i2s_dai[0], &wm8753_dai[WM8753_DAI_HIFI],
 		&tegra_hifi_ops),
+	TEGRA_CREATE_SOC_DAI_LINK("Tegra-Voice", "Tegra BT-SCO Voice",
+		&tegra_i2s_dai[1], &tegra_generic_codec_dai[2],
+		&tegra_voice_ops),
 	TEGRA_CREATE_SOC_DAI_LINK("Tegra-spdif", "Tegra Spdif",
 		&tegra_spdif_dai, &tegra_generic_codec_dai[0],
-		&tegra_spdif_ops),
-	TEGRA_CREATE_SOC_DAI_LINK("Tegra-generic", "Tegra Generic Voice",
-		&tegra_i2s_dai[1], &tegra_generic_codec_dai[2],
+		&tegra_voice_ops),
+	TEGRA_CREATE_SOC_DAI_LINK("Tegra-voice-call", "Tegra Voice Call",
+		&tegra_generic_codec_dai[1], &wm8753_dai[WM8753_DAI_VOICE],
+		&tegra_voice_ops),
+	TEGRA_CREATE_SOC_DAI_LINK("Tegra-bt-voice-call", "Tegra BT Voice Call",
+		&tegra_generic_codec_dai[1], &tegra_generic_codec_dai[2],
 		&tegra_voice_ops),
 #endif
 };
