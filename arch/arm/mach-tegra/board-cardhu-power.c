@@ -936,7 +936,11 @@ static void cardhu_board_resume(int lp_state, enum resume_stage stg)
 static struct tegra_suspend_platform_data cardhu_suspend_data = {
 	.cpu_timer	= 2000,
 	.cpu_off_timer	= 200,
+#ifdef CONFIG_TRUSTED_FOUNDATIONS
+	.suspend_mode	= TEGRA_SUSPEND_LP2,
+#else
 	.suspend_mode	= TEGRA_SUSPEND_LP0,
+#endif /* CONFIG_TRUSTED_FOUNDATIONS */
 	.core_timer	= 0x7e7e,
 	.core_off_timer = 0,
 	.separate_req	= true,
