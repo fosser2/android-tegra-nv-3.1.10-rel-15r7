@@ -807,9 +807,7 @@ static int bq27x00_battery_resume(struct i2c_client *client)
 
 	setup_timer(&bq27500_device->battery_poll_timer,
 		battery_poll_timer_func, (unsigned long) bq27500_device);
-	mod_timer(&bq27500_device->battery_poll_timer,
-		jiffies + msecs_to_jiffies(BATTERY_POLL_PERIOD));
-
+	battery_poll_timer_func((unsigned long) bq27500_device);
 	return 0;
 }
 #endif
