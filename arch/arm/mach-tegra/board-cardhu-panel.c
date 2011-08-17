@@ -217,6 +217,8 @@ static int cardhu_backlight_notify(struct device *unused, int brightness)
 	return brightness;
 }
 
+static int cardhu_disp1_check_fb(struct device *dev, struct fb_info *info);
+
 static struct platform_pwm_backlight_data cardhu_backlight_data = {
 	.pwm_id		= 0,
 	.max_brightness	= 255,
@@ -225,6 +227,8 @@ static struct platform_pwm_backlight_data cardhu_backlight_data = {
 	.init		= cardhu_backlight_init,
 	.exit		= cardhu_backlight_exit,
 	.notify		= cardhu_backlight_notify,
+	/* Only toggle backlight on fb blank notifications for disp1 */
+	.check_fb	= cardhu_disp1_check_fb,
 };
 
 static struct platform_device cardhu_backlight_device = {
@@ -903,6 +907,11 @@ static struct nvhost_device cardhu_disp1_device = {
 		.platform_data = &cardhu_disp1_pdata,
 	},
 };
+
+static int cardhu_disp1_check_fb(struct device *dev, struct fb_info *info)
+{
+	return info->device == &cardhu_disp1_device.dev;
+}
 
 static struct nvhost_device cardhu_disp2_device = {
 	.name		= "tegradc",
