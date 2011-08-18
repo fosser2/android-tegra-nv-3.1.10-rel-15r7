@@ -296,8 +296,8 @@ static void tps6586x_gpio_set(struct gpio_chip *chip, unsigned offset,
 {
 	struct tps6586x *tps6586x = container_of(chip, struct tps6586x, gpio);
 
-	__tps6586x_write(tps6586x->client, TPS6586X_GPIOSET2,
-			 value << offset);
+	tps6586x_update(tps6586x->dev, TPS6586X_GPIOSET2,
+			value << offset, 1 << offset);
 }
 
 static int tps6586x_gpio_input(struct gpio_chip *gc, unsigned offset)
@@ -548,13 +548,13 @@ static int __devinit tps6586x_i2c_probe(struct i2c_client *client,
 		}
 	}
 
+	tps6586x_gpio_init(tps6586x, pdata->gpio_base);
+
 	ret = tps6586x_add_subdevs(tps6586x, pdata);
 	if (ret) {
 		dev_err(&client->dev, "add devices failed: %d\n", ret);
 		goto err_add_devs;
 	}
-
-	tps6586x_gpio_init(tps6586x, pdata->gpio_base);
 
 	tps6586x_i2c_client = client;
 
