@@ -27,6 +27,7 @@
 #include <linux/i2c-tegra.h>
 #include <linux/io.h>
 #include <linux/delay.h>
+#include <linux/gpio.h>
 #include <linux/platform_data/tegra_usb.h>
 
 #include <asm/mach-types.h>
@@ -376,6 +377,41 @@ static __initdata struct tegra_clk_init_table harmony_clk_init_table[] = {
 	{"ndflash",     "pll_p",        108000000,      true},
 	{ NULL,		NULL,		0,		0},
 };
+
+static int __init harmony_wifi_init(void)
+{
+        int gpio_pwr, gpio_rst;
+
+	if (!machine_is_harmony())
+		return 0;
+
+        /* WLAN - Power up (low) and Reset (low) */
+        gpio_pwr = gpio_request(TEGRA_GPIO_WLAN_PWR_LOW, "wlan_pwr");
+        gpio_rst = gpio_request(TEGRA_GPIO_WLAN_RST_LOW, "wlan_rst");
+        if (gpio_pwr < 0 || gpio_rst < 0)
+                pr_warning("Unable to get gpio for WLAN Power and Reset\n");
+        else {
+
+		tegra_gpio_enable(TEGRA_GPIO_WLAN_PWR_LOW);
+		tegra_gpio_enable(TEGRA_GPIO_WLAN_RST_LOW);
+                /* toggle in this order as per spec */
+                gpio_direction_output(TEGRA_GPIO_WLAN_PWR_LOW, 0);
+                gpio_direction_output(TEGRA_GPIO_WLAN_RST_LOW, 0);
+		udelay(5);
+                gpio_direction_output(TEGRA_GPIO_WLAN_PWR_LOW, 1);
+                gpio_direction_output(TEGRA_GPIO_WLAN_RST_LOW, 1);
+        }
+
+	return 0;
+}
+
+/*
+ * subsys_initcall_sync is good synch point to call harmony_wifi_init
+ * This makes sure that the required regulators (LDO3
+ * supply of external PMU and 1.2V regulator) are properly enabled,
+ * and mmc driver has not yet probed for a device on SDIO bus.
+ */
+subsys_initcall_sync(harmony_wifi_init);
 
 static void __init tegra_harmony_init(void)
 {
