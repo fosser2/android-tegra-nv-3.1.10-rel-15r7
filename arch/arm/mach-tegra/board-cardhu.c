@@ -729,6 +729,9 @@ static struct platform_device *cardhu_devices[] __initdata = {
 #if defined(CONFIG_CRYPTO_DEV_TEGRA_SE)
 	&tegra_se_device,
 #endif
+#if defined(CONFIG_CRYPTO_DEV_TEGRA_AES)
+	&tegra_aes_device,
+#endif
 	&ram_console_device,
 };
 
