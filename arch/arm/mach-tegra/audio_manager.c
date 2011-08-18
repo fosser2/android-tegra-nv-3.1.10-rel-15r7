@@ -389,15 +389,6 @@ int default_record_connection(aud_dev_info *devinfo)
 
 }
 
-int default_playback_bt_connection(aud_dev_info *devinfo)
-{
-	struct am_dev_fns *am_fn = &init_am_dev_fns[devinfo->dev_type];
-	return am_fn->aud_dev_get_dma_requestor(devinfo->dev_id,
-					AUDIO_TX_MODE);
-
-}
-
-
 int default_playback_connection(struct am_ch_info *ch, int ifc, int fifo_mode)
 {
 	/* get unused dam channel first */
