@@ -54,6 +54,7 @@ static int enable_msi;
 /* Module clock info */
 static struct clk *clk_hda,  *clk_hda2codec , *clk_hda2hdmicodec;
 static bool is_hda_clk_on = false;
+static int nv_tegra_hda_controller_init(struct platform_device *pdev);
 
 #ifdef CONFIG_SND_HDA_PATCH_LOADER
 static char *patch[SNDRV_CARDS];
@@ -514,9 +515,7 @@ static int nv_tegra_azx_suspend(struct platform_device *pdev,
 		snd_pcm_suspend_all(chip->pcm[i]);
 	if (chip->initialized)
 		snd_hda_suspend(chip->bus);
-
-	if (!chip->bus->power_keep_link_on)
-		azx_stop_chip(chip);
+	azx_stop_chip(chip);
 
 	if (chip->irq >= 0) {
 		free_irq(chip->irq, chip);
@@ -534,6 +533,7 @@ static int nv_tegra_azx_resume(struct platform_device *pdev)
 	struct azx *chip = card->private_data;
 
 	nv_tegra_enable_hda_clks(true);
+	nv_tegra_hda_controller_init(pdev);
 
 	chip->msi = 0;
 	if (azx_acquire_irq(chip, 1) < 0)
