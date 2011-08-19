@@ -1170,8 +1170,6 @@ void __init tegra_init_suspend(struct tegra_suspend_platform_data *plat)
 	(void)reg;
 	(void)mode;
 
-	preset_lpj = loops_per_jiffy;
-
 #ifdef CONFIG_PM
 
 	if ((tegra_get_chipid() == TEGRA_CHIPID_TEGRA3) &&
