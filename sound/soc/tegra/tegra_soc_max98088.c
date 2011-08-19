@@ -274,7 +274,12 @@ void tegra_ext_control(struct snd_soc_codec *codec, int new_con)
 	else
 		snd_soc_dapm_disable_pin(codec, "Headphone");
 
-	if (new_con & (TEGRA_SPK | TEGRA_EAR_SPK))
+	if (new_con & TEGRA_EAR_SPK)
+		snd_soc_dapm_enable_pin(codec, "Earpiece");
+	else
+		snd_soc_dapm_disable_pin(codec, "Earpiece");
+
+	if (new_con & TEGRA_SPK)
 		snd_soc_dapm_enable_pin(codec, "Int Spk");
 	else
 		snd_soc_dapm_disable_pin(codec, "Int Spk");
@@ -305,6 +310,7 @@ void tegra_ext_control(struct snd_soc_codec *codec, int new_con)
 static const struct snd_soc_dapm_widget tegra_dapm_widgets[] = {
 	SND_SOC_DAPM_HP("Headphone", NULL),
 	SND_SOC_DAPM_HP("Headset Out", NULL),
+	SND_SOC_DAPM_HP("Earpiece", NULL),
 	SND_SOC_DAPM_MIC("Headset In", NULL),
 	SND_SOC_DAPM_SPK("Int Spk", NULL),
 	SND_SOC_DAPM_MIC("Int Mic", NULL),
@@ -328,10 +334,9 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{"MIC1", NULL, "Int Mic"},
 	{"MIC1", NULL, "Int Mic"},
 
-	/*
-	 * To be complete, add remained in/out devices such as built-in mic
-	 * and headset mic.
-	 */
+	/* Earpiece connected to RECL and RECR */
+	{"Earpiece", NULL, "RECL"},
+	{"Earpiece", NULL, "RECR"},
 };
 
 static int tegra_codec_init(struct snd_soc_codec *codec)
