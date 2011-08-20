@@ -37,6 +37,7 @@
 #include <linux/spi/spi.h>
 #include <linux/tegra_uart.h>
 #include <linux/fsl_devices.h>
+#include <media/tegra_camera.h>
 
 #include <mach/clk.h>
 #include <mach/iomap.h>
@@ -710,9 +711,18 @@ static struct platform_device tegra_rtc_device = {
 	.num_resources = ARRAY_SIZE(tegra_rtc_resources),
 };
 
+static struct tegra_camera_platform_data tegra_pdata = {
+	.set_conservative_governor = cpufreq_set_conservative_governor,
+	.save_default_governor = cpufreq_save_default_governor,
+	.restore_default_governor = cpufreq_restore_default_governor,
+};
+
 static struct platform_device tegra_camera = {
 	.name = "tegra_camera",
 	.id = -1,
+	.dev = {
+		.platform_data = &tegra_pdata,
+	},
 };
 
 static struct platform_device *enterprise_devices[] __initdata = {
