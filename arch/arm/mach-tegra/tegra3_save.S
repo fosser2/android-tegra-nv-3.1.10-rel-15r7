@@ -571,10 +571,11 @@ powerdown_l2_done:
 	ldr	r0, [r5, #CLK_RESET_CLK_SOURCE_MSELECT]
 	orr	r0, r0, #MSELECT_CLKM
 	str	r0, [r5, #CLK_RESET_CLK_SOURCE_MSELECT]
+	ldr	r0, [r5, #CLK_RESET_CLK_SOURCE_MSELECT]
 
-	/* 2 us delay between changing sclk and disabling PLLs */
+	/* 5 us delay between changing sclk and disabling PLLs */
 	wait_for_us r1, r7, r9
-	add	r1, r1, #2
+	add	r1, r1, #5
 	wait_until r1, r7, r9
 
 	/* switch to CLKS */
