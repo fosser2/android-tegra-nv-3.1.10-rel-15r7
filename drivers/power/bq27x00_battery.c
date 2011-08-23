@@ -63,8 +63,8 @@
 
 /* Define battery poll period to 30ms */
 #define BATTERY_POLL_PERIOD		30000
-#define BATTERY_FAST_POLL_PERIOD	100
-#define BATTERY_FAST_POLL_MAX_COUNT	200
+#define BATTERY_FAST_POLL_PERIOD	200
+#define BATTERY_FAST_POLL_MAX_COUNT	50
 
 /* If the system has several batteries we need a different name for each
  * of them...
@@ -88,6 +88,7 @@ struct bq27x00_device_info {
 	bool				battery_present;
 	struct i2c_client		*client;
 	struct bq27x00_platform_data	*plat_data;
+	spinlock_t			lock;
 	bool				battery_status_changed;
 	enum bq27x00_status		battery_status;
 	int				fast_poll_count;
@@ -246,6 +247,8 @@ static int bq27x00_battery_status(struct bq27x00_device_info *di,
 		return ret;
 	}
 
+	spin_lock_irq(&di->lock);
+
 	if ((di->chip == BQ27500) || (di->chip == BQ27510)) {
 		if (ret & BQ27500_FLAG_DSC) {
 			status = POWER_SUPPLY_STATUS_DISCHARGING;
@@ -268,6 +271,8 @@ static int bq27x00_battery_status(struct bq27x00_device_info *di,
 		else
 			status = POWER_SUPPLY_STATUS_DISCHARGING;
 	}
+
+	spin_unlock_irq(&di->lock);
 
 	val->intval = status;
 	return 0;
@@ -516,11 +521,18 @@ static void bq27x00_powersupply_init(struct bq27x00_device_info *di)
 static irqreturn_t ac_present_irq(int irq, void *data)
 {
 	struct bq27x00_device_info *di = data;
+	unsigned long flags;
+
+	spin_lock_irqsave(&di->lock, flags);
+
 	power_supply_changed(&di->ac);
 	di->battery_status_changed = true;
 	di->fast_poll_count = 0;
 	mod_timer(&di->battery_poll_timer,
 		jiffies + msecs_to_jiffies(BATTERY_FAST_POLL_PERIOD));
+
+	spin_unlock_irqrestore(&di->lock, flags);
+
 	return IRQ_HANDLED;
 }
 
@@ -528,6 +540,9 @@ static void battery_poll_timer_func(unsigned long pdi)
 {
 	struct bq27x00_device_info *di = (void *)pdi;
 	power_supply_changed(&di->bat);
+
+	spin_lock_irq(&di->lock);
+
 	if (di->battery_status_changed) {
 		if (di->fast_poll_count < BATTERY_FAST_POLL_MAX_COUNT) {
 			mod_timer(&di->battery_poll_timer,
@@ -544,6 +559,8 @@ static void battery_poll_timer_func(unsigned long pdi)
 		mod_timer(&di->battery_poll_timer,
 			jiffies + msecs_to_jiffies(BATTERY_POLL_PERIOD));
 	}
+
+	spin_unlock_irq(&di->lock);
 }
 
 static int bq27x00_battery_probe(struct i2c_client *client,
@@ -575,6 +592,8 @@ static int bq27x00_battery_probe(struct i2c_client *client,
 	di->chip = id->driver_data;
 	di->battery_status_changed = false;
 	di->battery_status = DISCHARGING;
+
+	spin_lock_init(&di->lock);
 
 	di->irq = client->irq;
 	if (client->dev.platform_data) {
