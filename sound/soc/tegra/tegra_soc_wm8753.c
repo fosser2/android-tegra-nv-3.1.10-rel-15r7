@@ -129,6 +129,12 @@
 /* Board Specific GPIO configuration for Whistler */
 #define TEGRA_GPIO_PW3 			179
 
+enum headset_state {
+	BIT_NO_HEADSET = 0,
+	BIT_HEADSET = (1 << 0),
+	BIT_HEADSET_NO_MIC = (1 << 1),
+};
+
 static struct wm8753_headphone_jack
 {
 	struct snd_jack *jack;
@@ -322,34 +328,34 @@ static int tegra_voice_hw_params(struct snd_pcm_substream *substream,
 	enum dac_dap_data_format data_fmt;
 	int dai_flag = 0, sys_clk;
 	int err;
+	bool master_port = false;
 
 	if (!strcmp(rtd->dai->stream_name, "Tegra BT Voice Call")) {
-		if (tegra_das_is_port_master(tegra_audio_codec_type_bluetooth))
-			dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
-		else
-			dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
+		master_port = tegra_das_is_port_master(
+				tegra_audio_codec_type_bluetooth);
 
-		data_fmt = tegra_das_get_codec_data_fmt
-			(tegra_audio_codec_type_bluetooth);
+		data_fmt = tegra_das_get_codec_data_fmt(
+				tegra_audio_codec_type_bluetooth);
 	}
 	else if (!strcmp(rtd->dai->stream_name, "Tegra Voice Call")) {
-		if (tegra_das_is_port_master(tegra_audio_codec_type_voice))
-			dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
-		else
-			dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
+		master_port = tegra_das_is_port_master(
+				tegra_audio_codec_type_voice);
 
-		data_fmt = tegra_das_get_codec_data_fmt
-			(tegra_audio_codec_type_baseband);
+		data_fmt = tegra_das_get_codec_data_fmt(
+				tegra_audio_codec_type_baseband);
 	}
 	else {/* Tegra BT-SCO Voice */
-		if (tegra_das_is_port_master(tegra_audio_codec_type_bluetooth))
-			dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
-		else
-			dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
+		master_port = tegra_das_is_port_master(
+				tegra_audio_codec_type_bluetooth);
 
 		data_fmt = tegra_das_get_codec_data_fmt
 			(tegra_audio_codec_type_bluetooth);
 	}
+
+	if (master_port == true)
+		dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
+	else
+		dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
 
 	/* We are supporting DSP and I2s format for now */
 	if (data_fmt & dac_dap_data_format_dsp)
@@ -370,7 +376,8 @@ static int tegra_voice_hw_params(struct snd_pcm_substream *substream,
 	}
 
 	sys_clk = clk_get_rate(audio_data->dap_mclk);
-	err = snd_soc_dai_set_sysclk(codec_dai, 0, sys_clk, SND_SOC_CLOCK_IN);
+	err = snd_soc_dai_set_sysclk(codec_dai, WM8753_PCMCLK, sys_clk,
+							SND_SOC_CLOCK_IN);
 	if (err < 0) {
 		pr_err("cpu_dai clock not set\n");
 		return err;
@@ -382,6 +389,17 @@ static int tegra_voice_hw_params(struct snd_pcm_substream *substream,
 		return err;
 	}
 
+	if ((!strcmp(rtd->dai->stream_name, "Tegra Voice Call")) &&
+		(master_port == true)) {
+		/*default set to 8k */
+		int pcmdiv = WM8753_PCM_DIV_6;
+		snd_soc_dai_set_pll(codec_dai, WM8753_PLL2, 0,
+			sys_clk, 12288000);
+		if (params_rate(params) == 16000)
+			pcmdiv = WM8753_PCM_DIV_3;
+
+		snd_soc_dai_set_clkdiv(codec_dai, WM8753_PCMDIV, pcmdiv);
+	}
 	return 0;
 }
 
@@ -574,12 +592,12 @@ static void wm8753_intr_work(struct work_struct *work)
 	value = snd_soc_read(wm8753_jack->pcodec, WM8753_INTPOL);
 	value &= WM8753_INTPOL_GPIO4IPOL;
 	if ((value) & ((WM8753_INTPOL_GPIO4IPOL))) {
-		tegra_switch_set_state(SND_JACK_HEADPHONE);
+		tegra_switch_set_state(BIT_HEADSET_NO_MIC);
 		snd_jack_report(wm8753_jack->jack, SND_JACK_HEADPHONE);
 		value &= ~(WM8753_INTPOL_GPIO4IPOL);
 	}
 	else {
-		tegra_switch_set_state(0);
+		tegra_switch_set_state(BIT_NO_HEADSET);
 		snd_jack_report(wm8753_jack->jack, 0);
 		value |= (WM8753_INTPOL_GPIO4IPOL);
 	}

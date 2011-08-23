@@ -144,6 +144,7 @@ static int tegra_i2s_hw_params(struct snd_pcm_substream *substream,
 
 	switch (params_rate(params)) {
 	case 8000:
+	case 16000:
 	case 32000:
 	case 44100:
 	case 48000:
