@@ -459,8 +459,7 @@ static long nvhost_channelctl(struct file *filp,
 		break;
 	}
 	case NVHOST_IOCTL_CHANNEL_SET_TIMEOUT:
-		priv->timeout.timeout =
-			(u32)((struct nvhost_set_timeout_args *)buf)->timeout;
+		priv->timeout.timeout = 0;
 		dev_dbg(&priv->ch->dev->pdev->dev,
 			"%s: setting buffer timeout (%d ms) for userctx 0x%p\n",
 			__func__, priv->timeout.timeout, priv);
