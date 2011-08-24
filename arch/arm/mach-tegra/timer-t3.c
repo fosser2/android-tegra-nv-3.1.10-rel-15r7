@@ -230,44 +230,22 @@ static irqreturn_t tegra_lp2wake_interrupt(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-#define LP2_TIMER_IRQ_ACTION(n, i) \
-static struct irqaction tegra_lp2wake_irq_cpu##n = { \
-	.name		= "tmr_lp2wake_cpu" __stringify(n), \
-	.flags		= IRQF_DISABLED, \
-	.handler	= tegra_lp2wake_interrupt, \
-	.dev_id		= (void*)n, \
-	.irq		= i, \
+#define LP2_TIMER_IRQ_ACTION(cpu, irqnum) {			\
+	.name		= "tmr_lp2wake_cpu" __stringify(cpu),	\
+	.flags		= IRQF_DISABLED,			\
+	.handler	= tegra_lp2wake_interrupt,		\
+	.dev_id		= (void*)cpu,				\
+	.irq		= irqnum,				\
+}
+
+static struct irqaction lp2wake_actions[] = {
+	LP2_TIMER_IRQ_ACTION(0, INT_TMR3),
+#ifdef CONFIG_SMP
+	LP2_TIMER_IRQ_ACTION(1, INT_TMR4),
+	LP2_TIMER_IRQ_ACTION(2, INT_TMR5),
+	LP2_TIMER_IRQ_ACTION(3, INT_TMR6),
+#endif
 };
-
-#define LP2_TIMER_IRQ_ACTIONS() \
-	LP2_TIMER_IRQ_ACTION(0, INT_TMR3); \
-	LP2_TIMER_IRQ_ACTION(1, INT_TMR4); \
-	LP2_TIMER_IRQ_ACTION(2, INT_TMR5); \
-	LP2_TIMER_IRQ_ACTION(3, INT_TMR6);
-
-LP2_TIMER_IRQ_ACTIONS();
-
-#define REGISTER_LP2_WAKE_IRQ(n) \
-	ret = setup_irq(tegra_lp2wake_irq_cpu##n.irq, &tegra_lp2wake_irq_cpu##n); \
-	if (ret) { \
-		printk(KERN_ERR "Failed to register LP2 timer IRQ: " \
-			"irq=%d, ret=%d\n", tegra_lp2wake_irq_cpu##n.irq, ret); \
-		BUG(); \
-	} \
-	ret = irq_set_affinity(tegra_lp2wake_irq_cpu##n.irq, cpumask_of(n)); \
-	if (ret) { \
-		printk(KERN_ERR "Failed to set affinity for LP2 timer IRQ: " \
-			"irq=%d, ret=%d\n", tegra_lp2wake_irq_cpu##n.irq, ret); \
-		BUG(); \
-	}
-
-#define REGISTER_LP2_WAKE_IRQS() \
-do { \
-	REGISTER_LP2_WAKE_IRQ(0); \
-	REGISTER_LP2_WAKE_IRQ(1); \
-	REGISTER_LP2_WAKE_IRQ(2); \
-	REGISTER_LP2_WAKE_IRQ(3); \
-} while (0)
 
 /*
  * To sanity test timer interrupts for cpu 0-3, enable this flag and check
@@ -282,7 +260,7 @@ static void test_lp2_wake_timers(void)
 	unsigned int timer_base;
 	unsigned long cycles = 50000;
 
-	for_each_possible_cpu(cpu) {
+	for_each_present_cpu(cpu) {
 		timer_base = lp2_wake_timers[cpu];
 		timer_writel(0, timer_base + TIMER_PTV);
 		if (cycles) {
@@ -298,6 +276,7 @@ static void test_lp2_wake_timers(void){}
 static void __init tegra_init_timer(void)
 {
 	unsigned long rate = clk_measure_input_freq();
+	unsigned int cpu;
 	int ret;
 
 #ifdef CONFIG_HAVE_ARM_TWD
@@ -341,12 +320,32 @@ static void __init tegra_init_timer(void)
 		BUG();
 	}
 
+#ifdef CONFIG_SMP
 	/* For T30.A01 use INT_TMR_SHARED instead of INT_TMR6 for CPU3. */
 	if ((tegra_get_chipid() == TEGRA_CHIPID_TEGRA3) &&
 		(tegra_get_revision() == TEGRA_REVISION_A01))
-			tegra_lp2wake_irq_cpu3.irq = INT_TMR_SHARED;
+			lp2wake_actions[3].irq = INT_TMR_SHARED;
+#endif
 
-	REGISTER_LP2_WAKE_IRQS();
+	for_each_present_cpu(cpu) {
+		ret = setup_irq(lp2wake_actions[cpu].irq, &lp2wake_actions[cpu]);
+		if (ret) {
+			printk(KERN_ERR "Failed to register LP2 timer IRQ: "
+				"irq=%d, ret=%d\n",
+				lp2wake_actions[cpu].irq, ret);
+			BUG();
+		}
+#ifdef CONFIG_SMP
+		ret = irq_set_affinity(lp2wake_actions[cpu].irq,
+				       cpumask_of(cpu));
+		if (ret) {
+			printk(KERN_ERR "Failed to set affinity for LP2 timer "
+				"IRQ: irq=%d, ret=%d\n",
+				lp2wake_actions[cpu].irq, ret);
+			BUG();
+		}
+#endif
+	}
 
 	clockevents_calc_mult_shift(&tegra_clockevent, 1000000, 5);
 	tegra_clockevent.max_delta_ns =
