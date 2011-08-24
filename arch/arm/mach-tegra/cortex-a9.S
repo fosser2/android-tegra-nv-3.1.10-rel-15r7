@@ -661,8 +661,8 @@ ENTRY(__cortex_a9_l2x0_restart)
 	mov32	r5, (TEGRA_FLOW_CTRL_BASE-IO_PPSB_PHYS+IO_PPSB_VIRT)
 	ldr	r5, [r5, #0x2C]		@ FLOW_CTRL_CLUSTER_CONTROL
 	ands	r5, r5, #1		@ 0 == G cluster, 1 == LP cluster
-	movweq	r5, #0x777		@ G tag
-	movweq	r6, #0x777		@ G data
+	movweq	r5, #0x441		@ G tag
+	movweq	r6, #0x551		@ G data
 	movwne	r5, #0x221		@ LP tag
 	movwne	r6, #0x221		@ LP data
 #endif
