@@ -390,10 +390,8 @@ static int __devinit tegra_sdhci_probe(struct platform_device *pdev)
 			SDHCI_QUIRK_BROKEN_CTRL_HISPD |
 			SDHCI_QUIRK_NO_HISPD_BIT |
 			SDHCI_QUIRK_BROKEN_ADMA_ZEROLEN_DESC |
-			SDHCI_QUIRK_RUNTIME_DISABLE;
-#ifndef CONFIG_ARCH_TEGRA_2x_SOC
-	sdhci->quirks |= SDHCI_QUIRK_BROKEN_CARD_DETECTION;
-#endif
+			SDHCI_QUIRK_RUNTIME_DISABLE |
+			SDHCI_QUIRK_BROKEN_CARD_DETECTION;
 
 	if (plat->is_8bit_supported)
 		sdhci->quirks |= SDHCI_QUIRK_8_BIT_DATA;
@@ -496,7 +494,6 @@ static int tegra_sdhci_remove(struct platform_device *pdev)
 
 #ifdef CONFIG_PM
 
-
 static void tegra_sdhci_restore_interrupts(struct sdhci_host *sdhost)
 {
 	u32 ierr;
@@ -561,9 +558,8 @@ static int tegra_sdhci_suspend(struct platform_device *pdev, pm_message_t state)
 		u16 clk;
 		unsigned int clock = 100000;
 
-		if (device_may_wakeup(&pdev->dev)) {
-		        enable_irq_wake(host->sdhci->irq);
-		}
+		if (device_may_wakeup(&pdev->dev))
+			enable_irq_wake(host->sdhci->irq);
 
 		/* save interrupt status before suspending */
 		host->sdhci_ints = sdhci_readl(host->sdhci, SDHCI_INT_ENABLE);
@@ -585,7 +581,6 @@ static int tegra_sdhci_suspend(struct platform_device *pdev, pm_message_t state)
 		return ret;
 	}
 
-
 	ret = sdhci_suspend_host(host->sdhci, state);
 	if (ret)
 		pr_err("%s: failed, error = %d\n", __func__, ret);
@@ -603,14 +598,13 @@ static int tegra_sdhci_suspend(struct platform_device *pdev, pm_message_t state)
 static int tegra_sdhci_resume(struct platform_device *pdev)
 {
 	struct tegra_sdhci_host *host = platform_get_drvdata(pdev);
-	int ret;
+	int ret = 0;
 
 	if (host->card_always_on && is_card_sdio(host->sdhci->mmc->card)) {
 		int ret = 0;
 
-		if (device_may_wakeup(&pdev->dev)) {
-		        disable_irq_wake(host->sdhci->irq);
-		}
+		if (device_may_wakeup(&pdev->dev))
+			disable_irq_wake(host->sdhci->irq);
 
 		/* soft reset SD host controller and enable interrupts */
 		ret = tegra_sdhci_restore(host->sdhci);
