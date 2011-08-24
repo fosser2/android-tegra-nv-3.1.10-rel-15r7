@@ -209,7 +209,9 @@ static int tegra_voice_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
 	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
 	struct tegra_i2s_info *info = cpu_dai->private_data;
-	int dai_flag = 0, sys_clk;
+	struct tegra_audio_platform_data* i2s_pdata = info->pdata;
+	int dai_flag = 0;
+	unsigned int bit_clk;
 	int err;
 	enum dac_dap_data_format data_fmt;
 
@@ -241,14 +243,14 @@ static int tegra_voice_hw_params(struct snd_pcm_substream *substream,
 		return err;
 	}
 
-	sys_clk = tegra_das_get_mclk_rate();
-	err = snd_soc_dai_set_sysclk(codec_dai, 0, sys_clk, SND_SOC_CLOCK_IN);
+	bit_clk = (unsigned int) i2s_pdata->dev_clk_rate;
+	err = snd_soc_dai_set_sysclk(codec_dai, 0, bit_clk, SND_SOC_CLOCK_IN);
 	if (err < 0) {
 		pr_err("cpu_dai clock not set\n");
 		return err;
 	}
 
-	err = snd_soc_dai_set_sysclk(cpu_dai, 0, sys_clk, SND_SOC_CLOCK_IN);
+	err = snd_soc_dai_set_sysclk(cpu_dai, 0, bit_clk, SND_SOC_CLOCK_IN);
 	if (err < 0) {
 		pr_err("cpu_dai clock not set\n");
 		return err;
@@ -550,14 +552,13 @@ static struct snd_soc_dai_link tegra_soc_dai[] = {
 	TEGRA_CREATE_SOC_DAI_LINK("WM8903", "WM8903 HiFi",
 		&tegra_i2s_dai[1], &wm8903_dai, &tegra_hifi_ops),
 
-	TEGRA_CREATE_SOC_DAI_LINK("Tegra-generic-0", "Tegra BB Voice",
-		&tegra_i2s_dai[2], &tegra_generic_codec_dai[1],
-		&tegra_voice_ops),
-
 	TEGRA_CREATE_SOC_DAI_LINK("Tegra-generic-1", "Tegra BT Voice",
 		&tegra_i2s_dai[3], &tegra_generic_codec_dai[2],
 		&tegra_voice_ops),
 
+	TEGRA_CREATE_SOC_DAI_LINK("Tegra-generic-0", "Tegra BB Voice",
+		&tegra_i2s_dai[2], &tegra_generic_codec_dai[1],
+		&tegra_voice_ops),
 #endif
 
 	TEGRA_CREATE_SOC_DAI_LINK("Tegra-spdif", "Tegra Spdif",
