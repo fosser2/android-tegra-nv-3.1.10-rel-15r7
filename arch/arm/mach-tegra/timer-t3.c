@@ -33,6 +33,7 @@
 #include <asm/mach/time.h>
 #include <asm/localtimer.h>
 
+#include <mach/hardware.h>
 #include <mach/iomap.h>
 #include <mach/irqs.h>
 #include <mach/suspend.h>
@@ -297,8 +298,6 @@ static void test_lp2_wake_timers(void){}
 static void __init tegra_init_timer(void)
 {
 	unsigned long rate = clk_measure_input_freq();
-	void __iomem *chip_id = IO_ADDRESS(TEGRA_APB_MISC_BASE) + 0x804;
-	unsigned long id;
 	int ret;
 
 #ifdef CONFIG_HAVE_ARM_TWD
@@ -342,23 +341,10 @@ static void __init tegra_init_timer(void)
 		BUG();
 	}
 
-	/* For T30.A01 use INT_TMR_SHARED instead of INT_TMR6. */
-	id = readl(chip_id);
-	if (((id & 0xFF00) >> 8) == 0x30) {
-#ifdef CONFIG_TEGRA_SILICON_PLATFORM
-		if (((id >> 16) & 0xf) == 1) {
+	/* For T30.A01 use INT_TMR_SHARED instead of INT_TMR6 for CPU3. */
+	if ((tegra_get_chipid() == TEGRA_CHIPID_TEGRA3) &&
+		(tegra_get_revision() == TEGRA_REVISION_A01))
 			tegra_lp2wake_irq_cpu3.irq = INT_TMR_SHARED;
-		}
-#else
-		void __iomem *emu_rev = IO_ADDRESS(TEGRA_APB_MISC_BASE) + 0x860;
-		unsigned long reg = readl(emu_rev);
-		unsigned long netlist = reg & 0xFFFF;
-		unsigned long patch = (reg >> 16) & 0xFF;
-		if ((netlist == 12) && (patch < 14)) {
-			tegra_lp2wake_irq_cpu3.irq = INT_TMR_SHARED;
-		}
-#endif
-	}
 
 	REGISTER_LP2_WAKE_IRQS();
 
