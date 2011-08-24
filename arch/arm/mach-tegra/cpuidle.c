@@ -86,6 +86,9 @@ void tegra_flow_wfi(struct cpuidle_device *dev)
 	dsb();
 
 	start_critical_timings();
+
+	/* can fall back here from LP2 path - tell cpuidle governor */
+	dev->last_state = &dev->states[0];
 }
 
 static int tegra_idle_enter_lp3(struct cpuidle_device *dev,
@@ -143,6 +146,10 @@ static int tegra_idle_enter_lp2(struct cpuidle_device *dev,
 	hrtimer_peek_ahead_timers();
 
 	smp_rmb();
+
+	if (state != dev->last_state)
+		return (int)us;	/* skip lp2 stats if we've been in lp3 */
+
 	state->exit_latency = tegra_lp2_exit_latency;
 	state->target_residency = tegra_lp2_exit_latency +
 		tegra_lp2_power_off_time;
