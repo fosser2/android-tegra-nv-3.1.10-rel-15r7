@@ -31,6 +31,15 @@ struct tegra_audio_in_config {
 	int stereo;
 };
 
+struct dam_srate {
+	unsigned int in_sample_rate;
+	unsigned int out_sample_rate;
+	unsigned int audio_bits;
+	unsigned int client_bits;
+	unsigned int audio_channels;
+	unsigned int client_channels;
+};
+
 enum tegra_audio_device {
 	TEGRA_AUDIO_DEVICE_NONE = 0x00000000,
 	TEGRA_AUDIO_DEVICE_OUT_HEADPHONE = 0x00000001,
@@ -92,5 +101,8 @@ enum tegra_audio_device {
 			const unsigned int *)
 #define TEGRA_AUDIO_GET_BIT_FORMAT	_IOR(TEGRA_AUDIO_MAGIC, 12, \
 			unsigned int *)
+
+#define DAM_SRC_START	_IOW(TEGRA_AUDIO_MAGIC, 13, struct dam_srate *)
+#define DAM_SRC_STOP	_IOW(TEGRA_AUDIO_MAGIC, 14, struct dam_srate *)
 
 #endif/*_CPCAP_AUDIO_H*/

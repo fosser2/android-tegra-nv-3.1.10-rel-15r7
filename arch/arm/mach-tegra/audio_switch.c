@@ -443,6 +443,7 @@ int audio_apbif_free_channel(int ifc, int fifo_mode)
 
 	return 0;
 }
+EXPORT_SYMBOL(audio_apbif_free_channel);
 
 /* FIXME : Stream with same index has to be taken care of
    need to figure out the stream->number is differential
@@ -511,6 +512,7 @@ void apbif_channel_enable(int ifc, int tx, int enable)
 	}
 	apbif_writel(ifc, val, APBIF_CHANNEL0_CTRL_0);
 }
+EXPORT_SYMBOL(apbif_channel_enable);
 
 /*
 *  apbif loopback mode
@@ -556,6 +558,7 @@ void apbif_set_pack_mode(int ifc, int tx, int pack_mode)
 
 	apbif_writel(ifc, val, APBIF_CHANNEL0_CTRL_0);
 }
+EXPORT_SYMBOL(apbif_set_pack_mode);
 
 /*
 *  Apbif set threshold
@@ -585,6 +588,7 @@ int apbif_fifo_set_attention_level(int ifc, int tx, unsigned level)
 	apbif_writel(ifc, val, APBIF_CHANNEL0_CTRL_0);
 	return 0;
 }
+EXPORT_SYMBOL(apbif_fifo_set_attention_level);
 
 void apbif_fifo_write(int ifc, int fifo_mode, u32 data)
 {
@@ -631,6 +635,7 @@ void apbif_soft_reset(int ifc, int fifo_mode, int enable)
 
 	apbif_writel(ifc, val, APBIF_CHANNEL0_CLEAR_0);
 }
+EXPORT_SYMBOL(apbif_soft_reset);
 
 /*
 * Apbif channel get fifo free count
@@ -683,11 +688,13 @@ phys_addr_t apbif_get_fifo_phy_base(int ifc, int tx)
 	return (ch->phy_base + ((tx == AUDIO_TX_MODE)?
 		APBIF_CHANNEL0_TXFIFO_0:APBIF_CHANNEL0_RXFIFO_0));
 }
+EXPORT_SYMBOL(apbif_get_fifo_phy_base);
 
 int apbif_get_channel(int regindex, int fifo_mode)
 {
 	return get_apbif_channel(regindex, fifo_mode);
 }
+EXPORT_SYMBOL(apbif_get_channel);
 
 void audio_switch_disable_clock(void)
 {
@@ -751,6 +758,7 @@ fail_audio_clock:
 	audio_switch_disable_clock();
 	return err;
 }
+EXPORT_SYMBOL(audio_switch_enable_clock);
 
 int audio_apbif_set_acif(int ifc, int fifo_mode, struct audio_cif *cifInfo)
 {
@@ -767,6 +775,7 @@ int audio_apbif_set_acif(int ifc, int fifo_mode, struct audio_cif *cifInfo)
 	}
 	return 0;
 }
+EXPORT_SYMBOL(audio_apbif_set_acif);
 
 int audio_switch_suspend(void)
 {
@@ -874,6 +883,7 @@ fail_audio_open:
 
 	return err;
 }
+EXPORT_SYMBOL(audio_switch_open);
 
 int audio_switch_close(void)
 {
@@ -897,3 +907,4 @@ int audio_switch_close(void)
 	dam_close();
 	return 0;
 }
+EXPORT_SYMBOL(audio_switch_close);

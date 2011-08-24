@@ -714,6 +714,13 @@ struct platform_device tegra_spdif_device = {
 	.num_resources	= ARRAY_SIZE(spdif_resource),
 };
 
+#if !defined(CONFIG_ARCH_TEGRA_2x_SOC)
+struct platform_device tegra_test_manager_device = {
+	.name		= "audio_test_manager",
+	.id		= 0,
+};
+#endif
+
 #if defined(CONFIG_SND_HDA_TEGRA)
 static u64 tegra_hda_dma_mask = DMA_BIT_MASK(32);
 

@@ -24,6 +24,7 @@
 #include <mach/iomap.h>
 #include <mach/audio.h>
 #include <mach/audio_switch.h>
+#include <mach/dam.h>
 
 #define NR_DAM_IFC	3
 
@@ -32,97 +33,6 @@
 	return __VA_ARGS__;						\
 }
 
-/* Offsets from TEGRA_DAM1_BASE, TEGRA_DAM2_BASE and TEGRA_DAM3_BASE */
-#define DAM_CTRL_0			0
-#define DAM_CLIP_0			4
-#define DAM_CLIP_THRESHOLD_0		8
-#define DAM_AUDIOCIF_OUT_CTRL_0		0x0C
-#define DAM_CH0_CTRL_0			0x10
-#define DAM_CH0_CONV_0			0x14
-#define DAM_AUDIOCIF_CH0_CTRL_0		0x1C
-#define DAM_CH1_CTRL_0			0x20
-#define DAM_CH1_CONV_0			0x24
-#define DAM_AUDIOCIF_CH1_CTRL_0		0x2C
-
-#define DAM_CTRL_REGINDEX 	(DAM_AUDIOCIF_CH1_CTRL_0 >> 2)
-#define DAM_CTRL_RSVD_6		6
-#define DAM_CTRL_RSVD_10	10
-
-#define DAM_NUM_INPUT_CHANNELS		2
-#define DAM_FS_8KHZ  			0
-#define DAM_FS_16KHZ 			1
-#define DAM_FS_44KHZ 			2
-#define DAM_FS_48KHZ 			3
-
-/* DAM_CTRL_0 */
-
-#define DAM_CTRL_0_SOFT_RESET_ENABLE	(1 << 31)
-
-#define DAM_CTRL_0_FSOUT_SHIFT	4
-#define DAM_CTRL_0_FSOUT_MASK	(0xf << DAM_CTRL_0_FSOUT_SHIFT)
-#define DAM_CTRL_0_FSOUT_FS8	(DAM_FS_8KHZ << DAM_CTRL_0_FSOUT_SHIFT)
-#define DAM_CTRL_0_FSOUT_FS16	(DAM_FS_16KHZ << DAM_CTRL_0_FSOUT_SHIFT)
-#define DAM_CTRL_0_FSOUT_FS44	(DAM_FS_44KHZ << DAM_CTRL_0_FSOUT_SHIFT)
-#define DAM_CTRL_0_FSOUT_FS48	(DAM_FS_48KHZ << DAM_CTRL_0_FSOUT_SHIFT)
-#define DAM_CTRL_0_CG_EN	(1 << 1)
-#define DAM_CTRL_0_DAM_EN	(1 << 0)
-
-/* DAM_CLIP_0 */
-
-#define DAM_CLIP_0_COUNTER_ENABLE	(1 << 31)
-#define DAM_CLIP_0_COUNT_MASK		0x7fffffff
-
-/* DAM_CLIP_THRESHOLD_0 */
-#define DAM_CLIP_THRESHOLD_0_VALUE_SHIFT	8
-#define DAM_CLIP_THRESHOLD_0_VALUE_MASK		\
-		(0x7fffff << DAM_CLIP_THRESHOLD_0_VALUE_SHIFT)
-#define DAM_CLIP_THRESHOLD_0_VALUE		(1 << 31)
-#define DAM_CLIP_THRESHOLD_0_COUNT_SHIFT	0
-
-
-#define STEP_RESET		1
-#define DAM_DATA_SYNC		1
-#define DAM_DATA_SYNC_SHIFT	4
-#define DAM_GAIN		1
-#define DAM_GAIN_SHIFT		0
-
-/* DAM_CH0_CTRL_0 */
-#define DAM_CH0_CTRL_0_FSIN_SHIFT	8
-#define DAM_CH0_CTRL_0_STEP_SHIFT	16
-#define DAM_CH0_CTRL_0_STEP_MASK	(0xffff << 16)
-#define DAM_CH0_CTRL_0_STEP_RESET	(STEP_RESET << 16)
-#define DAM_CH0_CTRL_0_FSIN_MASK	(0xf << 8)
-#define DAM_CH0_CTRL_0_FSIN_FS8		(DAM_FS_8KHZ << 8)
-#define DAM_CH0_CTRL_0_FSIN_FS16	(DAM_FS_16KHZ << 8)
-#define DAM_CH0_CTRL_0_FSIN_FS44	(DAM_FS_44KHZ << 8)
-#define DAM_CH0_CTRL_0_FSIN_FS48	(DAM_FS_48KHZ << 8)
-#define DAM_CH0_CTRL_0_DATA_SYNC_MASK	(0xf << DAM_DATA_SYNC_SHIFT)
-#define DAM_CH0_CTRL_0_DATA_SYNC	(DAM_DATA_SYNC << DAM_DATA_SYNC_SHIFT)
-#define DAM_CH0_CTRL_0_EN		(1 << 0)
-
-
-/* DAM_CH0_CONV_0 */
-#define DAM_CH0_CONV_0_GAIN		(DAM_GAIN << DAM_GAIN_SHIFT)
-
-/* DAM_CH1_CTRL_0 */
-#define DAM_CH1_CTRL_0_DATA_SYNC_MASK	(0xf << DAM_DATA_SYNC_SHIFT)
-#define DAM_CH1_CTRL_0_DATA_SYNC	(DAM_DATA_SYNC << DAM_DATA_SYNC_SHIFT)
-#define DAM_CH1_CTRL_0_EN		(1 << 0)
-
-/* DAM_CH1_CONV_0 */
-#define DAM_CH1_CONV_0_GAIN		(DAM_GAIN << DAM_GAIN_SHIFT)
-
-#define DAM_OUT_CHANNEL		0
-#define DAM_IN_CHANNEL_0	1
-#define DAM_IN_CHANNEL_1	2
-
-#define  ENABLE_DAM_DEBUG_PRINT	0
-
-#if ENABLE_DAM_DEBUG_PRINT
-#define DAM_DEBUG_PRINT(fmt, arg...) printk(fmt, ## arg)
-#else
-#define DAM_DEBUG_PRINT(fmt, arg...) do {} while (0)
-#endif
 
 /* FIXME: move this control to audio_manager later if needed */
 struct dam_context {
@@ -157,7 +67,7 @@ struct dam_src_step_table  step_table[] = {
 	{ 16000, 44100, 160 },
 	{ 16000, 48000, 1 },
 	{ 44100, 8000, 441 },
-	{ 48000, 8000, 6 },
+	{ 48000, 8000, 0 },
 	{ 44100, 16000, 441 },
 	{ 48000, 16000, 0 },
 };
@@ -239,7 +149,9 @@ void dam_enable(int ifc, int on, int chtype)
 		DAM_CTRL_0_DAM_EN : 0;
 
 	dam_writel(ifc, val, DAM_CTRL_0);
+
 }
+EXPORT_SYMBOL(dam_enable);
 
 void dam_enable_clip_counter(int ifc, int on)
 {
@@ -285,6 +197,7 @@ int dam_set_gain(int ifc, int chtype, int gain)
 	}
 	return 0;
 }
+EXPORT_SYMBOL(dam_set_gain);
 
 void dam_set_samplerate(int ifc, int chtype, int samplerate)
 {
@@ -307,6 +220,7 @@ void dam_set_samplerate(int ifc, int chtype, int samplerate)
 		break;
 	}
 }
+EXPORT_SYMBOL(dam_set_samplerate);
 
 void dam_set_output_samplerate(int ifc,int fsout)
 {
@@ -480,7 +394,6 @@ int dam_suspend(int ifc)
 	ch = &dam_cont_info[ifc];
 
 	dam_save_ctrl_registers(ifc);
-
 	dam_disable_clock(ifc);
 
 	return 0;
@@ -492,7 +405,6 @@ int dam_resume(int ifc)
 	ch = &dam_cont_info[ifc];
 
 	dam_enable_clock(ifc);
-
 	dam_restore_ctrl_registers(ifc);
 
 	return 0;
@@ -514,6 +426,7 @@ int dam_set_clock_parent(int ifc, int parent)
 	clk_set_parent(ch->dam_clk, mclk_source);
 	return 0;
 }
+EXPORT_SYMBOL(dam_set_clock_parent);
 
 void dam_disable_clock(int ifc)
 {
@@ -563,6 +476,7 @@ fail_dam_clock:
 	dam_disable_clock(ifc);
 	return err;
 }
+EXPORT_SYMBOL(dam_enable_clock);
 
 int dam_set_acif(int ifc, int chtype, struct audio_cif *cifInfo)
 {
@@ -591,6 +505,7 @@ int dam_set_acif(int ifc, int chtype, struct audio_cif *cifInfo)
 
 	return 0;
 }
+EXPORT_SYMBOL(dam_set_acif);
 
 int dam_get_controller(int chtype)
 {
@@ -610,6 +525,7 @@ int dam_get_controller(int chtype)
 				pr_err("unable to enable the dam channel\n");
 				return -ENOENT;
 			}
+
 			ch->in_use = true;
 			ch->ch_alloc[chtype] = true;
 			return i;
@@ -622,6 +538,7 @@ int dam_get_controller(int chtype)
 	}
 	return -ENOENT;
 }
+EXPORT_SYMBOL(dam_get_controller);
 
 int dam_free_controller(int ifc, int chtype)
 {
@@ -648,6 +565,7 @@ int dam_free_controller(int ifc, int chtype)
 
 	return 0;
 }
+EXPORT_SYMBOL(dam_free_controller);
 
 int dam_get_dma_requestor(int ifc, int chtype, int fifo_mode)
 {
@@ -700,6 +618,7 @@ int dam_open(void)
 		for (i = 0; i < NR_DAM_IFC; i++) {
 			ch = &dam_cont_info[i];
 			memset(ch, 0, sizeof(struct dam_context));
+
 			ch->dam_clk = tegra_get_clock_by_name(damclk_info[i]);
 			if (!ch->dam_clk) {
 				pr_err("unable to get dam%d clock\n", i);
