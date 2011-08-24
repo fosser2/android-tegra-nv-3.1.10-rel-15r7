@@ -440,7 +440,11 @@ static void enterprise_board_resume(int lp_state, enum resume_stage stg)
 static struct tegra_suspend_platform_data enterprise_suspend_data = {
 	.cpu_timer	= 2000,
 	.cpu_off_timer	= 200,
+#ifdef CONFIG_TRUSTED_FOUNDATIONS
+	.suspend_mode	= TEGRA_SUSPEND_LP2,
+#else
 	.suspend_mode	= TEGRA_SUSPEND_LP0,
+#endif /* CONFIG_TRUSTED_FOUNDATIONS */
 	.core_timer	= 0x7e7e,
 	.core_off_timer = 0,
 	.separate_req	= true,
@@ -460,7 +464,11 @@ static void enterprise_init_deep_sleep_mode(void)
 	struct board_info bi;
 	tegra_get_board_info(&bi);
 	if (bi.board_id == BOARD_1205 && bi.fab == ENTERPRISE_FAB_A01)
+#ifdef CONFIG_TRUSTED_FOUNDATIONS
+		enterprise_suspend_data.suspend_mode = TEGRA_SUSPEND_LP2;
+#else
 		enterprise_suspend_data.suspend_mode = TEGRA_SUSPEND_LP1;
+#endif /* CONFIG_TRUSTED_FOUNDATIONS */
 }
 
 int __init enterprise_suspend_init(void)
