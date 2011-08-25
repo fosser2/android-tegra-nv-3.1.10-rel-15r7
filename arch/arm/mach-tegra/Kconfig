@@ -31,6 +31,10 @@ config ARCH_TEGRA_3x_SOC
 	  Support for NVIDIA Tegra 3 family of SoCs, based upon the
 	  ARM CortexA9MP CPU and the ARM PL310 L2 cache controller
 
+config TEGRA_PCI
+	bool "PCI Express support"
+	select PCI
+
 comment "Tegra board type"
 
 config MACH_HARMONY
