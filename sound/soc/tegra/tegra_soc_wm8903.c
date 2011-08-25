@@ -62,6 +62,7 @@ extern struct wired_jack_conf tegra_wired_jack_conf;
 
 #define ADC_DIGITAL_VOL_9DB		0x1D8
 #define ADC_DIGITAL_VOL_12DB		0x1E0
+#define ADC_DIGITAL_VOL_17_625_DB	0x1FF
 #define ADC_ANALOG_VOLUME		0x1C
 
 #define SET_REG_VAL(r,m,l,v) (((r)&(~((m)<<(l))))|(((v)&(m))<<(l)))
@@ -186,7 +187,7 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 		snd_soc_write(codec, WM8903_GPIO_CONTROL_2, CtrlReg);
 
 		/* Enable ADC Digital volumes */
-		VolumeCtrlReg = ADC_DIGITAL_VOL_9DB;
+		VolumeCtrlReg = ADC_DIGITAL_VOL_17_625_DB;
 
 		snd_soc_write(codec, WM8903_ADC_DIGITAL_VOLUME_LEFT,
 				VolumeCtrlReg);
