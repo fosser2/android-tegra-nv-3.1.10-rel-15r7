@@ -51,7 +51,6 @@ extern unsigned long tegra_lp0_vec_start;
 extern unsigned long tegra_lp0_vec_size;
 extern bool tegra_lp0_vec_relocate;
 extern unsigned long tegra_grhost_aperture;
-int __init tegra_pcie_init(bool init_port0, bool init_port1);
 
 extern struct sys_timer tegra_timer;
 

@@ -32,8 +32,10 @@ config ARCH_TEGRA_3x_SOC
 	  ARM CortexA9MP CPU and the ARM PL310 L2 cache controller
 
 config TEGRA_PCI
-	bool "PCI Express support"
+	bool "PCIe host controller driver"
 	select PCI
+	help
+	  Adds PCIe Host controller driver for tegra based systems
 
 comment "Tegra board type"
 
