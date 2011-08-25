@@ -71,6 +71,7 @@ struct tegra_overlay_info {
 	u32			overlay_ref;
 	struct mutex		lock;
 	struct workqueue_struct	*flip_wq;
+	struct completion	complete;
 
 	/* Big enough for tegra_dc%u when %u < 10 */
 	char			name[10];
@@ -276,12 +277,9 @@ static void tegra_overlay_blend_reorder(struct tegra_dc_blend *blend,
 
 static int tegra_overlay_flip_didim(struct tegra_overlay_flip_data *data)
 {
-	mutex_lock(&tegra_flip_lock);
+	init_completion(&data->overlay->complete);
 	INIT_WORK(&data->work, tegra_overlay_flip_worker);
-
 	queue_work(data->overlay->flip_wq, &data->work);
-
-	mutex_unlock(&tegra_flip_lock);
 
 	return 0;
 }
@@ -325,6 +323,8 @@ static void tegra_overlay_n_shot(struct tegra_overlay_flip_data *data,
 			data->didim_work = true;
 			for (i = 0; i < *nr_unpin; i++)
 				data->unpin_handles[i] = unpin_handles[i];
+			tegra_dc_incr_syncpt_min(overlay->dc, 0,
+						data->syncpt_max);
 			tegra_overlay_flip_didim(data);
 			mutex_unlock(&overlay->lock);
 			return;
@@ -345,6 +345,39 @@ static void tegra_overlay_n_shot(struct tegra_overlay_flip_data *data,
 	kfree(data);
 }
 
+static bool tegra_overlay_n_shot_delay(struct tegra_overlay_flip_data *data,
+						unsigned int delay)
+{
+	int i;
+	long timeout;
+	struct tegra_overlay_info *overlay = data->overlay;
+
+	/* If delay is zero, do not delay. */
+	if (!delay)
+		return true;
+
+	timeout = wait_for_completion_interruptible_timeout(
+			&overlay->complete, msecs_to_jiffies(delay));
+
+	/* Check return value to see if timeout occurs of not. If yes, we will
+	 * continue to update duplicate frame; otherwise clear it. */
+	if (timeout) {
+		/*tegra_dc_incr_syncpt_min(overlay->dc, 0,*/
+						/*data->syncpt_max);*/
+		for (i = 0; i < data->nr_unpin; i++) {
+			nvmap_unpin(overlay->overlay_nvmap,
+						data->unpin_handles[i]);
+			nvmap_free(overlay->overlay_nvmap,
+						data->unpin_handles[i]);
+		}
+
+		kfree(data);
+		return false;
+	}
+
+	return true;
+}
+
 static void tegra_overlay_flip_worker(struct work_struct *work)
 {
 	struct tegra_overlay_flip_data *data =
@@ -353,9 +386,15 @@ static void tegra_overlay_flip_worker(struct work_struct *work)
 	struct tegra_dc_win *win;
 	struct tegra_dc_win *wins[TEGRA_FB_FLIP_N_WINDOWS];
 	struct nvmap_handle_ref *unpin_handles[TEGRA_FB_FLIP_N_WINDOWS];
+	unsigned int delay_ms = (unsigned int) overlay->dc->out->n_shot_delay;
 	int i, nr_win = 0, nr_unpin = 0;
 
 	data = container_of(work, struct tegra_overlay_flip_data, work);
+
+	if ((overlay->dc->out->flags & TEGRA_DC_OUT_ONE_SHOT_MODE) &&
+		(overlay->dc->out->flags & TEGRA_DC_OUT_N_SHOT_MODE) &&
+		data->didim_work && !tegra_overlay_n_shot_delay(data, delay_ms))
+		return;
 
 	for (i = 0; i < TEGRA_FB_FLIP_N_WINDOWS; i++) {
 		struct tegra_overlay_flip_win *flip_win = &data->win[i];
@@ -457,6 +496,8 @@ static int tegra_overlay_flip(struct tegra_overlay_info *overlay,
 
 	if ((overlay->dc->out->flags & TEGRA_DC_OUT_ONE_SHOT_MODE) &&
 		(overlay->dc->out->flags & TEGRA_DC_OUT_N_SHOT_MODE)) {
+		if (!completion_done(&overlay->complete))
+			complete(&overlay->complete);
 		mutex_lock(&overlay->lock);
 		overlay->overlay_ref++;
 		overlay->n_shot = 0;
@@ -853,10 +894,10 @@ struct tegra_overlay_info *tegra_overlay_register(struct nvhost_device *ndev,
 		e = -ENOMEM;
 		goto err_delete_wq;
 	}
-	mutex_init(&dev->lock);
 	dev->overlay_ref = 0;
 	dev->n_shot = 0;
-
+	mutex_init(&dev->lock);
+	init_completion(&dev->complete);
 	dev->dc = dc;
 
 	dev_info(&ndev->dev, "registered overlay\n");
@@ -883,8 +924,13 @@ void tegra_overlay_disable(struct tegra_overlay_info *overlay_info)
 {
 	mutex_lock(&tegra_flip_lock);
 	mutex_lock(&overlay_info->lock);
+
+	/* Clear n_shot and wake up pending worker */
 	overlay_info->n_shot = 0;
+	complete(&overlay_info->complete);
+
 	flush_workqueue(overlay_info->flip_wq);
+
 	mutex_unlock(&overlay_info->lock);
 	mutex_unlock(&tegra_flip_lock);
 }

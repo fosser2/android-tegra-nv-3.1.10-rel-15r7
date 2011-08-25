@@ -292,6 +292,7 @@ enum {
 struct tegra_dc_out {
 	int				type;
 	unsigned			flags;
+	unsigned			n_shot_delay;
 
 	/* size in mm */
 	unsigned			h_size;
