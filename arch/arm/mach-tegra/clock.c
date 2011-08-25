@@ -759,9 +759,9 @@ int __init tegra_disable_boot_clocks(void)
 
 int __init tegra_late_init_clock(void)
 {
+	tegra_disable_boot_clocks();
 	tegra_dvfs_late_init();
 	tegra_sync_cpu_clock();
-	tegra_disable_boot_clocks();
 	return 0;
 }
 late_initcall(tegra_late_init_clock);
