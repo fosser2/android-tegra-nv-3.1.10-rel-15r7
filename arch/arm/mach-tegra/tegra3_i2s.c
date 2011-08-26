@@ -325,7 +325,7 @@ int i2s_set_bit_code(int ifc, unsigned int bitcode)
 int i2s_set_bit_format(int ifc, unsigned fmt)
 {
 	u32 val;
-
+	struct i2s_controller_info *info = &i2s_cont_info[ifc];
 	check_i2s_ifc(ifc, -EINVAL);
 
 	if (fmt >= AUDIO_FRAME_FORMAT_UNKNOWN) {
@@ -348,6 +348,7 @@ int i2s_set_bit_format(int ifc, unsigned fmt)
 		i2s_set_slot_control(ifc, AUDIO_TX_MODE, 0, 0x1);
 		i2s_set_slot_control(ifc, AUDIO_RX_MODE, 0, 0x1);
 	}
+	info->i2sprop.audio_mode = fmt;
 	i2s_writel(ifc, val, I2S_CTRL_0);
 	return 0;
 }
@@ -795,9 +796,18 @@ int i2s_set_acif(int ifc, int fifo_mode, struct audio_cif *cifInfo)
 	if (fifo_mode == AUDIO_TX_MODE)
 		audio_switch_set_acif((unsigned int)i2s_base[ifc] +
 			 I2S_AUDIOCIF_I2STX_CTRL_0, cifInfo);
-	else
+	else {
+		struct audio_cif  reccifInfo;
+		memcpy(&reccifInfo, cifInfo, sizeof(struct audio_cif));
+
+		/* mono record support in i2s mode */
+		if ((info->i2sprop.audio_mode == AUDIO_FRAME_FORMAT_I2S) &&
+		 (cifInfo->client_channels == AUDIO_CHANNEL_1))
+			reccifInfo.client_channels = AUDIO_CHANNEL_2;
+
 		audio_switch_set_acif((unsigned int)i2s_base[ifc] +
-			 I2S_AUDIOCIF_I2SRX_CTRL_0, cifInfo);
+				 I2S_AUDIOCIF_I2SRX_CTRL_0, &reccifInfo);
+	}
 
 	if (apbif_ifc >= 0) {
 		apbif_set_pack_mode(apbif_ifc,
