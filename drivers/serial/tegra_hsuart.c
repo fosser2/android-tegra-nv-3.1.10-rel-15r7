@@ -1240,7 +1240,9 @@ static void tegra_set_termios(struct uart_port *u, struct ktermios *termios,
 
 	/* Baud rate. */
 	baud = uart_get_baud_rate(u, termios, oldtermios, 200, 4000000);
+	spin_unlock_irqrestore(&u->lock, flags);
 	tegra_set_baudrate(t, baud);
+	spin_lock_irqsave(&u->lock, flags);
 
 	/* Flow control */
 	if (termios->c_cflag & CRTSCTS)	{
