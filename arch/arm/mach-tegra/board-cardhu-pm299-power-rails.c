@@ -45,7 +45,12 @@
 #define PMC_CTRL		0x0
 #define PMC_CTRL_INTR_LOW	(1 << 17)
 
-static struct regulator_consumer_supply ricoh583_dc1_supply_0[] = {
+static struct regulator_consumer_supply ricoh583_dc1_supply_skubit0_0[] = {
+	REGULATOR_SUPPLY("vdd_core", NULL),
+	REGULATOR_SUPPLY("en_vddio_ddr_1v2", NULL),
+};
+
+static struct regulator_consumer_supply ricoh583_dc1_supply_skubit0_1[] = {
 	REGULATOR_SUPPLY("en_vddio_ddr_1v2", NULL),
 };
 
@@ -174,7 +179,7 @@ static struct regulator_consumer_supply ricoh583_ldo8_supply_0[] = {
 	}
 
 TPS_PDATA_INIT(dc0, 0,         700,  1500, 0, 1, 1, 0, -1, 0, 0);
-TPS_PDATA_INIT(dc1, 0,         700,  1500, 0, 1, 1, 0, -1, 0, 0);
+TPS_PDATA_INIT(dc1, skubit0_0, 700,  1500, 0, 1, 1, 0, -1, 0, 0);
 TPS_PDATA_INIT(dc2, 0,         900,  2400, 0, 1, 1, 0, -1, 0, 0);
 TPS_PDATA_INIT(dc3, 0,         900,  2400, 0, 1, 1, 0, -1, 0, 0);
 
@@ -199,7 +204,7 @@ TPS_PDATA_INIT(ldo8, 0,         900, 3400, ricoh583_rails(DC2), 1, 0, 0, -1, 0, 
 
 #define TPS6591X_DEV_COMMON_E118X 		\
 	TPS_REG(DC0, dc0, 0),			\
-	TPS_REG(DC1, dc1, 0),		\
+	TPS_REG(DC1, dc1, skubit0_0),		\
 	TPS_REG(DC2, dc2, 0),		\
 	TPS_REG(DC3, dc3, 0),		\
 	TPS_REG(LDO0, ldo8, 0),		\
@@ -282,6 +287,16 @@ int __init cardhu_pm299_regulator_init(void)
 	if (pmu_board_info.board_id != BOARD_PMU_PM299) {
 		pr_err("%s(): Board ID is not proper\n", __func__);
 		return -ENODEV;
+	}
+
+	/* If TPS6236x DCDC is there then consumer for dc1 should
+	 * not have vdd_core */
+	if ((board_info.sku & SKU_DCDC_TPS62361_SUPPORT) ||
+			(pmu_board_info.sku & SKU_DCDC_TPS62361_SUPPORT)) {
+		pdata_dc1_skubit0_0.regulator.consumer_supplies =
+					ricoh583_dc1_supply_skubit0_1;
+		pdata_dc1_skubit0_0.regulator.num_consumer_supplies =
+				ARRAY_SIZE(ricoh583_dc1_supply_skubit0_1);
 	}
 
 	ricoh_platform.num_subdevs = ARRAY_SIZE(tps_devs_e118x_dcdc);
@@ -380,12 +395,6 @@ static struct regulator_consumer_supply gpio_switch_en_vdd_bl_supply[] = {
 	REGULATOR_SUPPLY("vdd_backlight1", NULL),
 };
 static int gpio_switch_en_vdd_bl_voltages[] = { 5000};
-
-/* EN_VDD_BL2 (E1291-A03) from AP PEX_L0_PRSNT_N DD.00 */
-static struct regulator_consumer_supply gpio_switch_en_vdd_bl2_supply[] = {
-	REGULATOR_SUPPLY("vdd_backlight2", NULL),
-};
-static int gpio_switch_en_vdd_bl2_voltages[] = { 5000};
 
 /* EN_3V3_MODEM from AP GPIO VI_VSYNCH D06*/
 static struct regulator_consumer_supply gpio_switch_en_3v3_modem_supply[] = {
@@ -603,6 +612,8 @@ GREG_INIT(22, en_vbrtr,		en_vbrtr,	"vdd_3v3_devices",	0,      0,      PMU_TCA641
 	ADD_GPIO_REG(en_3v3_sys),		\
 	ADD_GPIO_REG(en_3v3_modem),		\
 	ADD_GPIO_REG(en_vdd_pnl1),		\
+	ADD_GPIO_REG(cam1_ldo_en),		\
+	ADD_GPIO_REG(cam2_ldo_en),		\
 	ADD_GPIO_REG(cam3_ldo_en),		\
 	ADD_GPIO_REG(en_vdd_com),		\
 	ADD_GPIO_REG(en_3v3_fuse),		\
@@ -618,7 +629,9 @@ GREG_INIT(22, en_vbrtr,		en_vbrtr,	"vdd_3v3_devices",	0,      0,      PMU_TCA641
 	ADD_GPIO_REG(en_vdd_bl_pm269),		\
 	ADD_GPIO_REG(en_3v3_sys),		\
 	ADD_GPIO_REG(en_3v3_modem),		\
-	ADD_GPIO_REG(en_vdd_pnl1_pm269),		\
+	ADD_GPIO_REG(en_vdd_pnl1_pm269),	\
+	ADD_GPIO_REG(cam1_ldo_en),		\
+	ADD_GPIO_REG(cam2_ldo_en),		\
 	ADD_GPIO_REG(cam3_ldo_en),		\
 	ADD_GPIO_REG(en_vdd_com),		\
 	ADD_GPIO_REG(en_3v3_fuse_pm269),	\
@@ -636,7 +649,7 @@ GREG_INIT(22, en_vbrtr,		en_vbrtr,	"vdd_3v3_devices",	0,      0,      PMU_TCA641
 	ADD_GPIO_REG(dis_5v_switch_e118x),	\
 	ADD_GPIO_REG(en_usb1_vbus_oc_e118x),	\
 	ADD_GPIO_REG(en_usb3_vbus_oc_e118x),	\
-	ADD_GPIO_REG(en_vddio_vid_oc_e118x), \
+	ADD_GPIO_REG(en_vddio_vid_oc_e118x),	\
 	ADD_GPIO_REG(en_vbrtr),
 
 /* Gpio switch regulator platform data  for E1186/E1187/E1256*/
