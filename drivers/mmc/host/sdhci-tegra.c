@@ -54,6 +54,8 @@
 #define SDMMC_VENDOR_MISC_CNTRL_SDMMC_SPARE0_ENABLE_SDR50	0x10
 #define SDMMC_VENDOR_MISC_CNTRL_SDMMC_SPARE0_ENABLE_SD3_0_SUPPORT	0x20
 
+#define SDMMC_SDMEMCOMPPADCTRL	0x1E0
+
 #define SDMMC_AUTO_CAL_CONFIG	0x1E4
 #define SDMMC_AUTO_CAL_CONFIG_AUTO_CAL_ENABLE	0x20000000
 #define SDMMC_AUTO_CAL_CONFIG_AUTO_CAL_PD_OFFSET_SHIFT	0x8
@@ -78,6 +80,7 @@ struct tegra_sdhci_host {
 	unsigned int card_present;
 	struct regulator *reg_vdd_slot;
 	struct regulator *reg_vddio;
+	unsigned int instance;
 	unsigned int acquire_spinlock;
 };
 
@@ -148,6 +151,26 @@ static void tegra_sdhci_configure_capabilities(struct sdhci_host *sdhci)
 	ctrl |= SDMMC_VENDOR_MISC_CNTRL_SDMMC_SPARE0_ENABLE_SDR104;
 	ctrl |= SDMMC_VENDOR_MISC_CNTRL_SDMMC_SPARE0_ENABLE_SD3_0_SUPPORT;
 	sdhci_writel(sdhci, ctrl, SDMMC_VENDOR_MISC_CNTRL);
+
+	/* Auto calibration is present only for sdmmc1 and sdmmc3 */
+	if ((host->instance ==0) || (host->instance == 2)) {
+		ctrl = sdhci_readl(sdhci, SDMMC_AUTO_CAL_CONFIG);
+		ctrl |= SDMMC_AUTO_CAL_CONFIG_AUTO_CAL_ENABLE;
+		/* Program Auto cal PD offset(bits 8:14) */
+		ctrl &= ~(0x7F << SDMMC_AUTO_CAL_CONFIG_AUTO_CAL_PD_OFFSET_SHIFT);
+		ctrl |= (SDMMC_AUTO_CAL_CONFIG_AUTO_CAL_PD_OFFSET <<
+			SDMMC_AUTO_CAL_CONFIG_AUTO_CAL_PD_OFFSET_SHIFT);
+		/* Program Auto cal PU offset(bits 0:6) */
+		ctrl &= ~0x7F;
+		ctrl |= SDMMC_AUTO_CAL_CONFIG_AUTO_CAL_PU_OFFSET;
+		sdhci_writel(sdhci, ctrl, SDMMC_AUTO_CAL_CONFIG);
+
+		/* Set SDMEM_COMPAD_VREF to 0x7 */
+		ctrl |= sdhci_readl(sdhci, SDMMC_SDMEMCOMPPADCTRL);
+		ctrl &= ~0xF;
+		ctrl |= 0x7;
+		sdhci_writel(sdhci, ctrl, SDMMC_SDMEMCOMPPADCTRL);
+	}
 
 	tegra_sdhci_configure_tap_value(sdhci, host->tap_delay);
 #endif
@@ -226,24 +249,6 @@ static void tegra_sdhci_set_signalling_voltage(struct sdhci_host *sdhci,
 	if (rc)
 		printk(KERN_ERR "%s switching to %dV failed %d\n",
 			mmc_hostname(sdhci->mmc), (maxV/1000000), rc);
-	else {
-#ifndef CONFIG_ARCH_TEGRA_2x_SOC
-		if (signalling_voltage == MMC_1_8_VOLT_SIGNALLING) {
-			unsigned int val;
-			/* Do Auto Calibration */
-			val = sdhci_readl(sdhci, SDMMC_AUTO_CAL_CONFIG);
-			val |= SDMMC_AUTO_CAL_CONFIG_AUTO_CAL_ENABLE;
-			/* Program Auto cal PD offset(bits 8:14) */
-			val &= ~(0x7F << SDMMC_AUTO_CAL_CONFIG_AUTO_CAL_PD_OFFSET_SHIFT);
-			val |= (SDMMC_AUTO_CAL_CONFIG_AUTO_CAL_PD_OFFSET <<
-				SDMMC_AUTO_CAL_CONFIG_AUTO_CAL_PD_OFFSET_SHIFT);
-			/* Program Auto cal PU offset(bits 0:6) */
-			val &= ~0x7F;
-			val |= SDMMC_AUTO_CAL_CONFIG_AUTO_CAL_PU_OFFSET;
-			sdhci_writel(sdhci, val, SDMMC_AUTO_CAL_CONFIG);
-		}
-#endif
-	}
 }
 
 static int tegra_sdhci_get_ro(struct sdhci_host *sdhci)
@@ -313,6 +318,7 @@ static int __devinit tegra_sdhci_probe(struct platform_device *pdev)
 	host->sdhci->tap_value = plat->tap_delay;
 #endif
 	host->acquire_spinlock = 0;
+	host->instance = pdev->id;
 	host->clk = clk_get(&pdev->dev, plat->clk_id);
 	if (IS_ERR(host->clk)) {
 		rc = PTR_ERR(host->clk);
