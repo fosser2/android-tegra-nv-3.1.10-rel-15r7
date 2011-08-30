@@ -35,6 +35,7 @@
 #define BOARD_PM267   0x0243
 #define BOARD_PM269   0x0245
 #define BOARD_E1208   0x0C08
+#define BOARD_PM305   0x0305
 #define BOARD_PMU_PM299   0x0263
 
 /* SKU Information */
