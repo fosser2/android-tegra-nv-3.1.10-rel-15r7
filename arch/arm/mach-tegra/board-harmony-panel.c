@@ -40,6 +40,7 @@
 #define harmony_en_vdd_pnl	TEGRA_GPIO_PC6
 #define harmony_bl_vdd		TEGRA_GPIO_PW0
 #define harmony_bl_pwm		TEGRA_GPIO_PB4
+#define harmony_hdmi_hpd	TEGRA_GPIO_PN7
 
 static int harmony_backlight_init(struct device *dev)
 {
@@ -73,6 +74,8 @@ static int harmony_backlight_notify(struct device *unused, int brightness)
 	return brightness;
 }
 
+static int harmony_disp1_check_fb(struct device *dev, struct fb_info *info);
+
 static struct platform_pwm_backlight_data harmony_backlight_data = {
 	.pwm_id		= 0,
 	.max_brightness	= 255,
@@ -81,6 +84,8 @@ static struct platform_pwm_backlight_data harmony_backlight_data = {
 	.init		= harmony_backlight_init,
 	.exit		= harmony_backlight_exit,
 	.notify		= harmony_backlight_notify,
+	/* Only toggle backlight on fb blank notifications for disp1 */
+	.check_fb	= harmony_disp1_check_fb,
 };
 
 static struct platform_device harmony_backlight_device = {
@@ -103,6 +108,47 @@ static int harmony_panel_disable(void)
 	return 0;
 }
 
+static int harmony_set_hdmi_power(bool enable)
+{
+	static struct {
+		struct regulator *regulator;
+		const char *name;
+	} regs[] = {
+		{ .name = "avdd_hdmi" },
+		{ .name = "avdd_hdmi_pll" },
+	};
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(regs); i++) {
+		if (!regs[i].regulator) {
+			regs[i].regulator = regulator_get(NULL, regs[i].name);
+
+			if (IS_ERR(regs[i].regulator)) {
+				int ret = PTR_ERR(regs[i].regulator);
+				regs[i].regulator = NULL;
+				return ret;
+			}
+		}
+
+		if (enable)
+			regulator_enable(regs[i].regulator);
+		else
+			regulator_disable(regs[i].regulator);
+	}
+
+	return 0;
+}
+
+static int harmony_hdmi_enable(void)
+{
+	return harmony_set_hdmi_power(true);
+}
+
+static int harmony_hdmi_disable(void)
+{
+	return harmony_set_hdmi_power(false);
+}
+
 static struct resource harmony_disp1_resources[] = {
 	{
 		.name	= "irq",
@@ -120,6 +166,27 @@ static struct resource harmony_disp1_resources[] = {
 		.name	= "fbmem",
 		.start	= 0x1c012000,
 		.end	= 0x1c012000 + 0x258000 - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+};
+
+static struct resource harmony_disp2_resources[] = {
+	{
+		.name	= "irq",
+		.start	= INT_DISPLAY_B_GENERAL,
+		.end	= INT_DISPLAY_B_GENERAL,
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		.name	= "regs",
+		.start	= TEGRA_DISPLAY2_BASE,
+		.end	= TEGRA_DISPLAY2_BASE + TEGRA_DISPLAY2_SIZE - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.name	= "hdmi_regs",
+		.start	= TEGRA_HDMI_BASE,
+		.end	= TEGRA_HDMI_BASE + TEGRA_HDMI_SIZE - 1,
 		.flags	= IORESOURCE_MEM,
 	},
 };
@@ -147,6 +214,13 @@ static struct tegra_fb_data harmony_fb_data = {
 	.bits_per_pixel	= 32,
 };
 
+static struct tegra_fb_data harmony_hdmi_fb_data = {
+	.win		= 0,
+	.xres		= 1280,
+	.yres		= 720,
+	.bits_per_pixel	= 16,
+};
+
 static struct tegra_dc_out harmony_disp1_out = {
 	.type		= TEGRA_DC_OUT_RGB,
 
@@ -160,10 +234,30 @@ static struct tegra_dc_out harmony_disp1_out = {
 	.disable	= harmony_panel_disable,
 };
 
+static struct tegra_dc_out harmony_disp2_out = {
+	.type		= TEGRA_DC_OUT_HDMI,
+	.flags		= TEGRA_DC_OUT_HOTPLUG_HIGH,
+
+	.dcc_bus	= 1,
+	.hotplug_gpio	= harmony_hdmi_hpd,
+
+	.align		= TEGRA_DC_ALIGN_MSB,
+	.order		= TEGRA_DC_ORDER_RED_BLUE,
+
+	.enable		= harmony_hdmi_enable,
+	.disable	= harmony_hdmi_disable,
+};
+
 static struct tegra_dc_platform_data harmony_disp1_pdata = {
 	.flags		= TEGRA_DC_FLAG_ENABLED,
 	.default_out	= &harmony_disp1_out,
 	.fb		= &harmony_fb_data,
+};
+
+static struct tegra_dc_platform_data harmony_disp2_pdata = {
+	.flags		= 0,
+	.default_out	= &harmony_disp2_out,
+	.fb		= &harmony_hdmi_fb_data,
 };
 
 static struct nvhost_device harmony_disp1_device = {
@@ -173,6 +267,21 @@ static struct nvhost_device harmony_disp1_device = {
 	.num_resources	= ARRAY_SIZE(harmony_disp1_resources),
 	.dev = {
 		.platform_data = &harmony_disp1_pdata,
+	},
+};
+
+static int harmony_disp1_check_fb(struct device *dev, struct fb_info *info)
+{
+	return info->device == &harmony_disp1_device.dev;
+}
+
+static struct nvhost_device harmony_disp2_device = {
+	.name		= "tegradc",
+	.id		= 1,
+	.resource	= harmony_disp2_resources,
+	.num_resources	= ARRAY_SIZE(harmony_disp2_resources),
+	.dev = {
+		.platform_data = &harmony_disp2_pdata,
 	},
 };
 
@@ -229,11 +338,18 @@ int __init harmony_panel_init(void)
 	gpio_direction_output(harmony_lvds_shutdown, 1);
 	tegra_gpio_enable(harmony_lvds_shutdown);
 
+	gpio_request(harmony_hdmi_hpd, "hdmi_hpd");
+	gpio_direction_input(harmony_hdmi_hpd);
+	tegra_gpio_enable(harmony_hdmi_hpd);
+
 	err = platform_add_devices(harmony_gfx_devices,
 				   ARRAY_SIZE(harmony_gfx_devices));
 
 	if (!err)
 		err = nvhost_device_register(&harmony_disp1_device);
+
+	if (!err)
+		err = nvhost_device_register(&harmony_disp2_device);
 
 	return err;
 }
