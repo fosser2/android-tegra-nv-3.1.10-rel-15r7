@@ -172,10 +172,10 @@ static irqreturn_t mdm_start_thread(int irq, void *data)
 
 	if (gpio_get_value(priv->restart_gpio)) {
 		pr_info("BB_RST_OUT high\n");
-		/* hold wait lock to complete the enumeration */
-		wake_lock_timeout(&priv->wake_lock, HZ * 2);
 	} else {
 		pr_info("BB_RST_OUT low\n");
+		/* hold wait lock to complete the enumeration */
+                wake_lock_timeout(&priv->wake_lock, HZ * 10);
 	}
 
 	return IRQ_HANDLED;
@@ -282,11 +282,8 @@ static int __init ph450_init(void)
 	tegra_pinmux_set_pullupdown(TEGRA_PINGROUP_ULPI_STP,
 				    TEGRA_PUPD_PULL_UP);
 
-	/* enable pull-up for MDM2AP_ACK2 and BB_RST_OUT */
+	/* enable pull-up for MDM2AP_ACK2 */
 	tegra_pinmux_set_pullupdown(TEGRA_PINGROUP_GPIO_PV0,
-				    TEGRA_PUPD_PULL_UP);
-
-	tegra_pinmux_set_pullupdown(TEGRA_PINGROUP_GPIO_PV1,
 				    TEGRA_PUPD_PULL_UP);
 
 	tegra_gpio_enable(MODEM_PWR_ON);
