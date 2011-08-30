@@ -169,7 +169,9 @@ static void nvhdmi_unsol_event(struct hda_codec *codec, unsigned int res)
 	int sink_state_old = spec->sink_eld[index].monitor_present &
 					spec->sink_eld[index].eld_valid;
 	int sink_state_new;
+#if defined(CONFIG_SND_HDA_TEGRA)
 	struct snd_pcm_substream *s;
+#endif
 
 	hdmi_unsol_event(codec, res);
 	sink_state_new = spec->sink_eld[index].monitor_present &
@@ -181,13 +183,17 @@ static void nvhdmi_unsol_event(struct hda_codec *codec, unsigned int res)
 	if (!codec->pcm_info || !codec->pcm_info->pcm)
 		return;
 
+#if defined(CONFIG_SND_HDA_TEGRA)
 	s = codec->pcm_info->pcm->streams[SNDRV_PCM_STREAM_PLAYBACK].substream;
-	if (s && s->runtime) {
-		if (snd_pcm_running(s)) {
-			snd_pcm_stop(s, SNDRV_PCM_STATE_XRUN);
-			snd_pcm_start(s);
-		}
+	if (s && s->runtime && s->runtime->rate) {
+		int err = tegra_hdmi_setup_audio_freq_source(
+				s->runtime->rate, AUTO);
+		if ( err < 0 )
+			snd_printk(KERN_ERR
+				"Unable to set hdmi audio freq:%d \n",
+				s->runtime->rate);
 	}
+#endif
 }
 
 static void nvhdmi_shutup(struct hda_codec *codec)
