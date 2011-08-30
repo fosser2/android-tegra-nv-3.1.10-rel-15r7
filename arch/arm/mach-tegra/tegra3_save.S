@@ -267,12 +267,11 @@ ENTRY(__tegra_lp1_reset)
 	orr	r1, r1, #(1<<12)
 	str	r1, [r2, #PMC_PLLP_WB0_OVERRIDE]
 
+	pll_enable r1, r0, CLK_RESET_PLLM_BASE, CLK_RESET_PLLM_MISC
 	pll_enable r1, r0, CLK_RESET_PLLP_BASE, CLK_RESET_PLLP_MISC
 	pll_enable r1, r0, CLK_RESET_PLLA_BASE, CLK_RESET_PLLA_MISC
 	pll_enable r1, r0, CLK_RESET_PLLC_BASE, CLK_RESET_PLLC_MISC
 	pll_enable r1, r0, CLK_RESET_PLLX_BASE, CLK_RESET_PLLX_MISC
-	mov32	r7, TEGRA_TMRUS_BASE
-	ldr	r1, [r7]
 
 #if USE_PLL_LOCK_BITS
 	pll_locked r1, r0, CLK_RESET_PLLM_BASE
@@ -280,10 +279,15 @@ ENTRY(__tegra_lp1_reset)
 	pll_locked r1, r0, CLK_RESET_PLLA_BASE
 	pll_locked r1, r0, CLK_RESET_PLLC_BASE
 	pll_locked r1, r0, CLK_RESET_PLLX_BASE
+#define LOCK_DELAY PLL_POST_LOCK_DELAY
 #else
-	add	r1, r1, #0xff	@ 255uS delay for PLL stabilization
-	wait_until r1, r7, r3
+/* 255uS delay for PLL stabilization */
+#define LOCK_DELAY 0xff
 #endif
+	mov32	r7, TEGRA_TMRUS_BASE
+	ldr	r1, [r7]
+	add	r1, r1, #LOCK_DELAY
+	wait_until r1, r7, r3
 
 	add	r5, pc, #__lp1_pad_area-(.+8)	@ r5 reserved for pad base
 

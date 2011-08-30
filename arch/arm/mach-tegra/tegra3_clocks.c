@@ -296,9 +296,6 @@
 #define ROUND_DIVIDER_UP	0
 #define ROUND_DIVIDER_DOWN	1
 
-/* FIXME: recommended safety delay after lock is detected */
-#define PLL_POST_LOCK_DELAY		100
-
 static void tegra3_clk_shared_bus_update(struct clk *bus);
 
 static struct clk *emc_bridge;
