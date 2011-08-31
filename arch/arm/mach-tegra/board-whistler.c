@@ -411,7 +411,7 @@ static struct tegra_das_platform_data tegra_das_pdata = {
 			.device_property = {
 				.num_channels = 1,
 				.bits_per_sample = 16,
-				.rate = 8000,
+				.rate = 16000,
 				.dac_dap_data_comm_format =
 					dac_dap_data_format_dsp,
 			},
