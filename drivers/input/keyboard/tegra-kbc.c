@@ -61,6 +61,7 @@ struct tegra_kbc {
 	struct work_struct key_repeat;
 	struct workqueue_struct *kbc_work_queue;
 	struct clk *clk;
+	int is_open;
 	int row_seq[KBC_MAX_ROW];
 	int col_seq[KBC_MAX_COL];
 	int ncols;
@@ -284,6 +285,7 @@ static void tegra_kbc_close(struct input_dev *dev)
 	spin_unlock_irqrestore(&kbc->lock, flags);
 
 	clk_disable(kbc->clk);
+	kbc->is_open = 0;
 }
 
 static void tegra_kbc_setup_wakekeys(struct tegra_kbc *kbc, bool filter)
@@ -363,6 +365,7 @@ static int tegra_kbc_open(struct input_dev *dev)
 	dev_dbg(kbc->dev, "KBC: tegra_kbc_open\n");
 
 	clk_enable(kbc->clk);
+	kbc->is_open = 1;
 
 	/* Reset the KBC controller to clear all previous status.*/
 	tegra_periph_reset_assert(kbc->clk);
@@ -519,6 +522,7 @@ static int __devinit tegra_kbc_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, kbc);
 
+	kbc->is_open = 0;
 	kbc->dev = &pdev->dev;
 	kbc->idev->name = pdev->name;
 	input_set_drvdata(kbc->idev, kbc);
@@ -622,6 +626,7 @@ static int __devexit tegra_kbc_remove(struct platform_device *pdev)
 
 	free_irq(kbc->irq, pdev);
 	clk_disable(kbc->clk);
+	kbc->is_open = 0;
 	clk_put(kbc->clk);
 
 	input_unregister_device(kbc->idev);
@@ -641,6 +646,9 @@ static int tegra_kbc_suspend(struct platform_device *pdev, pm_message_t state)
 	struct tegra_kbc *kbc = platform_get_drvdata(pdev);
 	int timeout = kbc->pdata->scan_timeout_cnt/32 + 200;
 	unsigned long int_st;
+
+	if (!kbc->is_open)
+		return 0;
 
 	dev_dbg(&pdev->dev, "KBC: tegra_kbc_suspend\n");
 	if (device_may_wakeup(&pdev->dev) &&
@@ -670,6 +678,9 @@ static int tegra_kbc_resume(struct platform_device *pdev)
 	struct tegra_kbc *kbc = platform_get_drvdata(pdev);
 
 	dev_dbg(&pdev->dev, "KBC: tegra_kbc_resume\n");
+
+	if (!kbc->is_open)
+		return tegra_kbc_open(kbc->idev);
 
 	if (device_may_wakeup(&pdev->dev)) {
 		disable_irq_wake(kbc->irq);
