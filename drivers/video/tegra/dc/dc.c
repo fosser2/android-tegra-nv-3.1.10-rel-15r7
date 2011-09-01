@@ -1507,6 +1507,8 @@ void tegra_dc_enable(struct tegra_dc *dc)
 
 static void _tegra_dc_controller_disable(struct tegra_dc *dc)
 {
+	int i;
+
 	disable_irq(dc->irq);
 
 	if (dc->out_ops && dc->out_ops->disable)
@@ -1519,6 +1521,12 @@ static void _tegra_dc_controller_disable(struct tegra_dc *dc)
 	if (dc->out && dc->out->disable)
 		dc->out->disable();
 
+	for (i = 0; i < dc->n_windows; i++) {
+		struct tegra_dc_win *w = &dc->windows[i];
+
+		/* disable windows */
+		w->flags &= ~TEGRA_WIN_FLAG_ENABLED;
+	}
 	/* flush any pending syncpt waits */
 	while (dc->syncpt_min < dc->syncpt_max) {
 		dc->syncpt_min++;
