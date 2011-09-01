@@ -23,6 +23,7 @@
 #ifndef __NVHOST_3DCTX_COMMON_H
 #define __NVHOST_3DCTX_COMMON_H
 
+#include "nvhost_acm.h"
 #include <linux/types.h>
 
 /* Internal variables used by common 3D context switch functions */
@@ -48,5 +49,6 @@ extern struct nvhost_hwctx *nvhost_3dctx_alloc_common(
 extern void nvhost_3dctx_get(struct nvhost_hwctx *ctx);
 extern void nvhost_3dctx_free(struct kref *ref);
 extern void nvhost_3dctx_put(struct nvhost_hwctx *ctx);
+extern void nvhost_3dctx_prepare_power_off(struct nvhost_module *mod);
 
 #endif
