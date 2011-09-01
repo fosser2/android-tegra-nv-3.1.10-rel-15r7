@@ -487,6 +487,9 @@
 #define  SD_CORRECTION_MODE_MAN		(1 << 11)
 
 #define NUM_BIN_WIDTHS 4
+#define STEPS_PER_AGG_LVL 32
+#define STEPS_PER_AGG_CHG_LOG2 4
+#define STEPS_PER_AGG_CHG (1<<STEPS_PER_AGG_CHG_LOG2)
 
 #define DC_DISP_SD_CSC_COEFF			0x4c3
 #define  SD_CSC_COEFF_R(x)		(((x) & 0xf) << 4)
