@@ -217,6 +217,7 @@ static __initdata struct tegra_clk_init_table cardhu_clk_init_table[] = {
 	{ "i2c3",	"pll_p",	3200000,	false},
 	{ "i2c4",	"pll_p",	3200000,	false},
 	{ "i2c5",	"pll_p",	3200000,	false},
+	{ "vi_sensor",	"pll_p",	150000000,	false},
 	{ NULL,		NULL,		0,		0},
 };
 
