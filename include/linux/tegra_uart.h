@@ -28,6 +28,18 @@ struct uart_clk_parent {
 	unsigned long	fixed_clk_rate;
 };
 
+/*
+ * struct tegra_uart_platform_data - Platform data for tegra high speed uart.
+ *
+ * @parent_clk_list: The parent clock source list. The best clock source will be
+ *                   selected such that the error between desired baudrate and
+ *                   calculated baudrate within 2% error. The searching will
+ *                   start from index 0 and so the preference of clock source
+ *                   selection will be high on index 0 and it will go lower
+ *                   with increasing index.
+ * @parent_clk_count: The number of clock source list.
+ */
+
 struct tegra_uart_platform_data {
 	void (*wake_peer)(struct uart_port *);
 	struct uart_clk_parent *parent_clk_list;
