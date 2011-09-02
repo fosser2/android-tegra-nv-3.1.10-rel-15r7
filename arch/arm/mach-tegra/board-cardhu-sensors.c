@@ -554,7 +554,7 @@ static struct nct1008_platform_data cardhu_nct1008_pdata = {
 	.hysteresis = 5,
 	.shutdown_ext_limit = 90,
 	.shutdown_local_limit = 90,
-	.throttling_ext_limit = 75,
+	.throttling_ext_limit = 85,
 	.alarm_fn = tegra_throttling_enable,
 };
 
