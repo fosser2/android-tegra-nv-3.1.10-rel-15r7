@@ -74,6 +74,11 @@ enum panel_type {
 	panel_type_dsi,
 };
 
+enum power_supply_type {
+	power_supply_adapter,
+	power_supply_battery,
+};
+
 void tegra_get_board_info(struct board_info *);
 void tegra_get_pmu_board_info(struct board_info *bi);
 #ifdef CONFIG_TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND
@@ -88,5 +93,6 @@ void cpufreq_set_conservative_governor_param(int up_th, int down_th);
 int get_core_edp(void);
 enum panel_type get_panel_type(void);
 int tegra_get_modem_id(void);
+enum power_supply_type get_power_supply_type(void);
 
 #endif
