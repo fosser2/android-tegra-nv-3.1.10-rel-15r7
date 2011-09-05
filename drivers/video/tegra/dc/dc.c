@@ -352,6 +352,20 @@ out:
 	return ret;
 }
 
+unsigned int tegra_dc_has_multiple_dc(void)
+{
+	unsigned int idx;
+	unsigned int cnt = 0;
+	struct tegra_dc *dc;
+
+	mutex_lock(&tegra_dc_lock);
+	for (idx = 0; idx < TEGRA_MAX_DC; idx++)
+		cnt += ((dc = tegra_dcs[idx]) != NULL && dc->enabled) ? 1 : 0;
+	mutex_unlock(&tegra_dc_lock);
+
+	return (cnt > 1);
+}
+
 struct tegra_dc *tegra_dc_get_dc(unsigned idx)
 {
 	if (idx < TEGRA_MAX_DC)

@@ -410,6 +410,10 @@ static void tegra_overlay_set_emc_freq(struct tegra_overlay_info *dev)
 		if (dev->overlays[i].owner != NULL)
 			emc_freq += dev->dc->mode.pclk*(i==1?2:1)*2;
 	}
+
+	if (tegra_dc_has_multiple_dc())
+		emc_freq = ULONG_MAX;
+
 	clk_set_rate(dev->dc->emc_clk, emc_freq);
 }
 
