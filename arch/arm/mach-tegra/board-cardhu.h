@@ -172,6 +172,7 @@
 /* RICOH583 IRQs */
 #define RICOH583_IRQ_BASE	TEGRA_NR_IRQS
 #define RICOH583_IRQ_END	(RICOH583X_IRQ_BASE + RICOH583_NR_IRQS)
+#define DOCK_DETECT_GPIO TEGRA_GPIO_PU4
 
 int cardhu_charge_init(void);
 int cardhu_regulator_init(void);

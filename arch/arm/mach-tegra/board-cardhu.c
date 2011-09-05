@@ -39,6 +39,7 @@
 #include <linux/tegra_uart.h>
 #include <linux/memblock.h>
 #include <linux/spi-tegra.h>
+
 #include <mach/clk.h>
 #include <mach/iomap.h>
 #include <mach/irqs.h>
@@ -54,6 +55,7 @@
 #include <mach/usb_phy.h>
 #include <sound/wm8903.h>
 #include <mach/suspend.h>
+#include <mach/pci.h>
 
 #include "board.h"
 #include "clock.h"
@@ -959,6 +961,31 @@ static struct platform_device tegra_baseband_power2_device = {
 	},
 };
 
+
+static struct tegra_pci_platform_data cardhu_pci_platform_data = {
+	.port_status[0]	= 1,
+	.port_status[1]	= 1,
+	.port_status[2]	= 1,
+	.use_dock_detect	= 0,
+	.gpio		= 0,
+};
+
+static void cardhu_pci_init(void)
+{
+	struct board_info board_info;
+
+	tegra_get_board_info(&board_info);
+	if (board_info.board_id == BOARD_E1291) {
+		cardhu_pci_platform_data.port_status[0] = 0;
+		cardhu_pci_platform_data.port_status[1] = 0;
+		cardhu_pci_platform_data.port_status[2] = 1;
+		cardhu_pci_platform_data.use_dock_detect = 1;
+		cardhu_pci_platform_data.gpio = DOCK_DETECT_GPIO;
+	}
+	tegra_pci_device.dev.platform_data = &cardhu_pci_platform_data;
+	platform_device_register(&tegra_pci_device);
+}
+
 static void cardhu_modem_init(void)
 {
 	struct board_info board_info;
@@ -1069,6 +1096,7 @@ static void __init tegra_cardhu_init(void)
 	cardhu_pins_state_init();
 	cardhu_emc_init();
 	tegra_release_bootloader_fb();
+	cardhu_pci_init();
 }
 
 static void __init tegra_cardhu_reserve(void)
