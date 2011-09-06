@@ -1353,9 +1353,9 @@ static const struct tegra_emc_table cardhu_emc_tables_k4p8g304eb[] = {
 			0x00000001, /* EMC_QRST */
 			0x00000009, /* EMC_QSAFE */
 			0x0000000a, /* EMC_RDV */
-			0x0000005e, /* EMC_REFRESH */
+			0x00000060, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
-			0x00000017, /* EMC_PRE_REFRESH_REQ_CNT */
+			0x00000018, /* EMC_PRE_REFRESH_REQ_CNT */
 			0x00000001, /* EMC_PDEX2WR */
 			0x00000001, /* EMC_PDEX2RD */
 			0x00000002, /* EMC_PCHG2PDEN */
@@ -1369,18 +1369,18 @@ static const struct tegra_emc_table cardhu_emc_tables_k4p8g304eb[] = {
 			0x00000004, /* EMC_TRPAB */
 			0x00000004, /* EMC_TCLKSTABLE */
 			0x00000002, /* EMC_TCLKSTOP */
-			0x00000068, /* EMC_TREFBW */
+			0x0000006b, /* EMC_TREFBW */
 			0x00000004, /* EMC_QUSE_EXTRA */
-			0x00000004, /* EMC_FBIO_CFG6 */
+			0x00000006, /* EMC_FBIO_CFG6 */
 			0x00000000, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
 			0x00004282, /* EMC_FBIO_CFG5 */
 			0x00780084, /* EMC_CFG_DIG_DLL */
 			0x00008000, /* EMC_CFG_DIG_DLL_PERIOD */
-			0x00098000, /* EMC_DLL_XFORM_DQS0 */
-			0x00098000, /* EMC_DLL_XFORM_DQS1 */
-			0x00098000, /* EMC_DLL_XFORM_DQS2 */
-			0x00098000, /* EMC_DLL_XFORM_DQS3 */
+			0x000a0000, /* EMC_DLL_XFORM_DQS0 */
+			0x000a0000, /* EMC_DLL_XFORM_DQS1 */
+			0x000a0000, /* EMC_DLL_XFORM_DQS2 */
+			0x000a0000, /* EMC_DLL_XFORM_DQS3 */
 			0x00000010, /* EMC_DLL_XFORM_DQS4 */
 			0x00000010, /* EMC_DLL_XFORM_DQS5 */
 			0x00000010, /* EMC_DLL_XFORM_DQS6 */
@@ -1405,7 +1405,7 @@ static const struct tegra_emc_table cardhu_emc_tables_k4p8g304eb[] = {
 			0x00080000, /* EMC_DLL_XFORM_DQ1 */
 			0x00080000, /* EMC_DLL_XFORM_DQ2 */
 			0x00080000, /* EMC_DLL_XFORM_DQ3 */
-			0x00100220, /* EMC_XM2CMDPADCTRL */
+			0x00120220, /* EMC_XM2CMDPADCTRL */
 			0x0800201c, /* EMC_XM2DQSPADCTRL2 */
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc004, /* EMC_XM2CLKPADCTRL */
@@ -1421,7 +1421,7 @@ static const struct tegra_emc_table cardhu_emc_tables_k4p8g304eb[] = {
 			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_CTT */
 			0x00000000, /* EMC_CTT_DURATION */
-			0x800001c2, /* EMC_DYN_SELF_REF_CONTROL */
+			0x800001c5, /* EMC_DYN_SELF_REF_CONTROL */
 			0x00020001, /* MC_EMEM_ARB_CFG */
 			0x80000008, /* MC_EMEM_ARB_OUTSTANDING_REQ */
 			0x00000001, /* MC_EMEM_ARB_TIMING_RCD */
@@ -1438,7 +1438,7 @@ static const struct tegra_emc_table cardhu_emc_tables_k4p8g304eb[] = {
 			0x00000002, /* MC_EMEM_ARB_TIMING_W2R */
 			0x02020001, /* MC_EMEM_ARB_DA_TURNS */
 			0x00060402, /* MC_EMEM_ARB_DA_COVERS */
-			0x74030303, /* MC_EMEM_ARB_MISC0 */
+			0x73e30303, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
 			0x50000000, /* EMC_FBIO_SPARE */
 			0xff00ff00, /* EMC_CFG_RSV */
@@ -1490,7 +1490,7 @@ static const struct tegra_emc_table cardhu_emc_tables_k4p8g304eb[] = {
 			0x00000002, /* EMC_TCLKSTOP */
 			0x000000d5, /* EMC_TREFBW */
 			0x00000004, /* EMC_QUSE_EXTRA */
-			0x00000004, /* EMC_FBIO_CFG6 */
+			0x00000006, /* EMC_FBIO_CFG6 */
 			0x00000000, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
 			0x00004282, /* EMC_FBIO_CFG5 */
@@ -1524,7 +1524,7 @@ static const struct tegra_emc_table cardhu_emc_tables_k4p8g304eb[] = {
 			0x00080000, /* EMC_DLL_XFORM_DQ1 */
 			0x00080000, /* EMC_DLL_XFORM_DQ2 */
 			0x00080000, /* EMC_DLL_XFORM_DQ3 */
-			0x00100220, /* EMC_XM2CMDPADCTRL */
+			0x00120220, /* EMC_XM2CMDPADCTRL */
 			0x0800201c, /* EMC_XM2DQSPADCTRL2 */
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc004, /* EMC_XM2CLKPADCTRL */
@@ -1590,7 +1590,7 @@ static const struct tegra_emc_table cardhu_emc_tables_k4p8g304eb[] = {
 			0x00000003, /* EMC_QUSE */
 			0x00000001, /* EMC_QRST */
 			0x00000009, /* EMC_QSAFE */
-			0x00000009, /* EMC_RDV */
+			0x0000000a, /* EMC_RDV */
 			0x00000181, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
 			0x00000060, /* EMC_PRE_REFRESH_REQ_CNT */
@@ -1609,7 +1609,7 @@ static const struct tegra_emc_table cardhu_emc_tables_k4p8g304eb[] = {
 			0x00000002, /* EMC_TCLKSTOP */
 			0x000001a9, /* EMC_TREFBW */
 			0x00000004, /* EMC_QUSE_EXTRA */
-			0x00000004, /* EMC_FBIO_CFG6 */
+			0x00000006, /* EMC_FBIO_CFG6 */
 			0x00000000, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
 			0x00004282, /* EMC_FBIO_CFG5 */
@@ -1678,7 +1678,7 @@ static const struct tegra_emc_table cardhu_emc_tables_k4p8g304eb[] = {
 			0x00060403, /* MC_EMEM_ARB_DA_COVERS */
 			0x72430504, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
-			0x10000000, /* EMC_FBIO_SPARE */
+			0x50000000, /* EMC_FBIO_SPARE */
 			0xff00ff00, /* EMC_CFG_RSV */
 		},
 		0x0000000a, /* EMC_ZCAL_WAIT_CNT after clock change */
@@ -1706,9 +1706,9 @@ static const struct tegra_emc_table cardhu_emc_tables_k4p8g304eb[] = {
 			0x00000002, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000001, /* EMC_WDV */
-			0x00000003, /* EMC_QUSE */
+			0x00000004, /* EMC_QUSE */
 			0x00000001, /* EMC_QRST */
-			0x0000000a, /* EMC_QSAFE */
+			0x0000000b, /* EMC_QSAFE */
 			0x0000000a, /* EMC_RDV */
 			0x00000303, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
@@ -1727,17 +1727,17 @@ static const struct tegra_emc_table cardhu_emc_tables_k4p8g304eb[] = {
 			0x00000004, /* EMC_TCLKSTABLE */
 			0x00000002, /* EMC_TCLKSTOP */
 			0x00000351, /* EMC_TREFBW */
-			0x00000004, /* EMC_QUSE_EXTRA */
-			0x00000006, /* EMC_FBIO_CFG6 */
+			0x00000005, /* EMC_QUSE_EXTRA */
+			0x00000004, /* EMC_FBIO_CFG6 */
 			0x00000000, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
 			0x00004282, /* EMC_FBIO_CFG5 */
 			0x00440084, /* EMC_CFG_DIG_DLL */
 			0x00008000, /* EMC_CFG_DIG_DLL_PERIOD */
-			0x00074000, /* EMC_DLL_XFORM_DQS0 */
-			0x00074000, /* EMC_DLL_XFORM_DQS1 */
-			0x00074000, /* EMC_DLL_XFORM_DQS2 */
-			0x00074000, /* EMC_DLL_XFORM_DQS3 */
+			0x00070000, /* EMC_DLL_XFORM_DQS0 */
+			0x00070000, /* EMC_DLL_XFORM_DQS1 */
+			0x00070000, /* EMC_DLL_XFORM_DQS2 */
+			0x00070000, /* EMC_DLL_XFORM_DQS3 */
 			0x00000010, /* EMC_DLL_XFORM_DQS4 */
 			0x00000010, /* EMC_DLL_XFORM_DQS5 */
 			0x00000010, /* EMC_DLL_XFORM_DQS6 */
@@ -1762,7 +1762,7 @@ static const struct tegra_emc_table cardhu_emc_tables_k4p8g304eb[] = {
 			0x00078000, /* EMC_DLL_XFORM_DQ1 */
 			0x00078000, /* EMC_DLL_XFORM_DQ2 */
 			0x00078000, /* EMC_DLL_XFORM_DQ3 */
-			0x00100220, /* EMC_XM2CMDPADCTRL */
+			0x000d0220, /* EMC_XM2CMDPADCTRL */
 			0x0800201c, /* EMC_XM2DQSPADCTRL2 */
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc004, /* EMC_XM2CLKPADCTRL */
@@ -1797,7 +1797,7 @@ static const struct tegra_emc_table cardhu_emc_tables_k4p8g304eb[] = {
 			0x00070506, /* MC_EMEM_ARB_DA_COVERS */
 			0x71e40a07, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
-			0x50000000, /* EMC_FBIO_SPARE */
+			0xd0000000, /* EMC_FBIO_SPARE */
 			0xff00ff00, /* EMC_CFG_RSV */
 		},
 		0x00000013, /* EMC_ZCAL_WAIT_CNT after clock change */
@@ -1881,8 +1881,8 @@ static const struct tegra_emc_table cardhu_emc_tables_k4p8g304eb[] = {
 			0x0000000c, /* EMC_DLL_XFORM_DQ1 */
 			0x0000000c, /* EMC_DLL_XFORM_DQ2 */
 			0x0000000c, /* EMC_DLL_XFORM_DQ3 */
-			0x000b0220, /* EMC_XM2CMDPADCTRL */
-			0x0800003d, /* EMC_XM2DQSPADCTRL2 */
+			0x00070220, /* EMC_XM2CMDPADCTRL */
+			0x0400003d, /* EMC_XM2DQSPADCTRL2 */
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc004, /* EMC_XM2CLKPADCTRL */
 			0x01f1f408, /* EMC_XM2COMPPADCTRL */
@@ -1916,7 +1916,7 @@ static const struct tegra_emc_table cardhu_emc_tables_k4p8g304eb[] = {
 			0x00110b10, /* MC_EMEM_ARB_DA_COVERS */
 			0x71c81811, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
-			0xe0000000, /* EMC_FBIO_SPARE */
+			0x60000000, /* EMC_FBIO_SPARE */
 			0xff00ff88, /* EMC_CFG_RSV */
 		},
 		0x00000030, /* EMC_ZCAL_WAIT_CNT after clock change */
