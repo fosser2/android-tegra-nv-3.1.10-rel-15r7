@@ -901,7 +901,6 @@ static void enterprise_usb_init(void)
 	platform_device_register(&tegra_ehci3_device);
 
 	udc_pdata = tegra_udc_device.dev.platform_data;
-	udc_pdata->charge_regulator ="usb_bat_chg";
 
 #ifdef CONFIG_USB_ANDROID_RNDIS
 	/* create a fake MAC address from our serial number.

@@ -72,7 +72,6 @@ struct fsl_usb2_platform_data {
 	unsigned int			port_enables;
 	void				*phy_config;
 	enum fsl_usb2_phy_types usb_phy_type;
-	const char			*charge_regulator;
 };
 
 /* Flags in fsl_usb2_mph_platform_data */
