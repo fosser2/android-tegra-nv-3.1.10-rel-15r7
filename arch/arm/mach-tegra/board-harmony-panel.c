@@ -34,6 +34,7 @@
 
 #include "devices.h"
 #include "gpio-names.h"
+#include "board.h"
 
 #define harmony_bl_enb		TEGRA_GPIO_PB5
 #define harmony_lvds_shutdown	TEGRA_GPIO_PB2
@@ -164,8 +165,6 @@ static struct resource harmony_disp1_resources[] = {
 	},
 	{
 		.name	= "fbmem",
-		.start	= 0x1c012000,
-		.end	= 0x1c012000 + 0x258000 - 1,
 		.flags	= IORESOURCE_MEM,
 	},
 };
@@ -181,6 +180,10 @@ static struct resource harmony_disp2_resources[] = {
 		.name	= "regs",
 		.start	= TEGRA_DISPLAY2_BASE,
 		.end	= TEGRA_DISPLAY2_BASE + TEGRA_DISPLAY2_SIZE - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.name	= "fbmem",
 		.flags	= IORESOURCE_MEM,
 	},
 	{
@@ -296,8 +299,6 @@ static struct nvmap_platform_carveout harmony_carveouts[] = {
 	[1] = {
 		.name		= "generic-0",
 		.usage_mask	= NVMAP_HEAP_CARVEOUT_GENERIC,
-		.base		= 0x18C00000,
-		.size		= SZ_128M - 0xC00000,
 		.buddy_size	= SZ_32K,
 	},
 };
@@ -325,6 +326,7 @@ static struct platform_device *harmony_gfx_devices[] __initdata = {
 int __init harmony_panel_init(void)
 {
 	int err;
+	struct resource *res;
 
 	gpio_request(harmony_en_vdd_pnl, "en_vdd_pnl");
 	gpio_direction_output(harmony_en_vdd_pnl, 1);
@@ -342,8 +344,31 @@ int __init harmony_panel_init(void)
 	gpio_direction_input(harmony_hdmi_hpd);
 	tegra_gpio_enable(harmony_hdmi_hpd);
 
+	harmony_carveouts[1].base = tegra_carveout_start;
+	harmony_carveouts[1].size = tegra_carveout_size;
+
 	err = platform_add_devices(harmony_gfx_devices,
 				   ARRAY_SIZE(harmony_gfx_devices));
+	if (err)
+		goto fail;
+
+	res = nvhost_get_resource_byname(&harmony_disp1_device,
+		IORESOURCE_MEM, "fbmem");
+	if (res) {
+		res->start = tegra_fb_start;
+		res->end = tegra_fb_start + tegra_fb_size - 1;
+	}
+
+	res = nvhost_get_resource_byname(&harmony_disp2_device,
+		IORESOURCE_MEM, "fbmem");
+	if (res) {
+		res->start = tegra_fb2_start;
+		res->end = tegra_fb2_start + tegra_fb2_size - 1;
+	}
+
+	/* Copy the bootloader fb to the fb. */
+	tegra_move_framebuffer(tegra_fb_start, tegra_bootloader_fb_start,
+		min(tegra_fb_size, tegra_bootloader_fb_size));
 
 	if (!err)
 		err = nvhost_device_register(&harmony_disp1_device);
@@ -351,6 +376,7 @@ int __init harmony_panel_init(void)
 	if (!err)
 		err = nvhost_device_register(&harmony_disp2_device);
 
+fail:
 	return err;
 }
 

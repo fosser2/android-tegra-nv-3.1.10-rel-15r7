@@ -29,6 +29,7 @@
 #include <linux/delay.h>
 #include <linux/gpio.h>
 #include <linux/platform_data/tegra_usb.h>
+#include <linux/memblock.h>
 
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
@@ -277,16 +278,6 @@ static struct platform_device *harmony_devices[] __initdata = {
 	&tegra_i2s_device1,
 };
 
-static void __init tegra_harmony_fixup(struct machine_desc *desc,
-	struct tag *tags, char **cmdline, struct meminfo *mi)
-{
-	mi->nr_banks = 2;
-	mi->bank[0].start = PHYS_OFFSET;
-	mi->bank[0].size = 448 * SZ_1M;
-	mi->bank[1].start = SZ_512M;
-	mi->bank[1].size = SZ_512M;
-}
-
 static __initdata struct tegra_clk_init_table harmony_clk_init_table[] = {
 	/* name		parent		rate		enabled */
 	{ "clk_dev1",	NULL,		26000000,	true},
@@ -435,13 +426,21 @@ static void __init tegra_harmony_init(void)
 	harmony_power_off_init();
 }
 
+void __init tegra_harmony_reserve(void)
+{
+	if (memblock_reserve(0x0, 4096) < 0)
+		pr_warn("Cannot reserve first 4K of memory for safety\n");
+
+	tegra_reserve(SZ_128M, SZ_8M, SZ_16M);
+}
+
 MACHINE_START(HARMONY, "harmony")
 	.boot_params  = 0x00000100,
 	.phys_io        = IO_APB_PHYS,
 	.io_pg_offst    = ((IO_APB_VIRT) >> 18) & 0xfffc,
-	.fixup		= tegra_harmony_fixup,
 	.init_irq       = tegra_init_irq,
 	.init_machine   = tegra_harmony_init,
 	.map_io         = tegra_map_common_io,
+	.reserve        = tegra_harmony_reserve,
 	.timer          = &tegra_timer,
 MACHINE_END
