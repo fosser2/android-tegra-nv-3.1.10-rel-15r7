@@ -762,6 +762,12 @@ GREG_INIT(21, en_vdd_bl2_a03,	en_vdd_bl2,	NULL,		0,      0,      TEGRA_GPIO_PDD0
 
 GREG_INIT(22, en_vbrtr,		en_vbrtr,	"vdd_3v3_devices",	0,      0,      PMU_TCA6416_GPIO_PORT12,	false,	0,	0,	0,	0);
 
+/* PM313 display board specific */
+GREG_INIT(4, en_vdd_bl_pm313,       en_vdd_bl,      NULL,
+		0,      0,      TEGRA_GPIO_PK3, false,  1,  0,  0,  0);
+GREG_INIT(6, en_vdd_pnl1_pm313,     en_vdd_pnl1,        "vdd_3v3_devices",
+		0,      0,      TEGRA_GPIO_PH3, false,  1,  0,  0,  0);
+
 #define ADD_GPIO_REG(_name) &gpio_pdata_##_name
 
 #define COMMON_GPIO_REG \
@@ -798,10 +804,8 @@ GREG_INIT(22, en_vbrtr,		en_vbrtr,	"vdd_3v3_devices",	0,      0,      PMU_TCA641
 	ADD_GPIO_REG(en_5v_cp),			\
 	ADD_GPIO_REG(en_5v0),			\
 	ADD_GPIO_REG(en_ddr),			\
-	ADD_GPIO_REG(en_vdd_bl_pm269),		\
 	ADD_GPIO_REG(en_3v3_sys),		\
 	ADD_GPIO_REG(en_3v3_modem),		\
-	ADD_GPIO_REG(en_vdd_pnl1_pm269),		\
 	ADD_GPIO_REG(cam1_ldo_en),		\
 	ADD_GPIO_REG(cam2_ldo_en),		\
 	ADD_GPIO_REG(cam3_ldo_en),		\
@@ -816,17 +820,36 @@ GREG_INIT(22, en_vbrtr,		en_vbrtr,	"vdd_3v3_devices",	0,      0,      PMU_TCA641
 	ADD_GPIO_REG(en_usb3_vbus_oc_e118x),	\
 	ADD_GPIO_REG(en_vddio_vid_oc_pm269),
 
-#define E118x_GPIO_REG	\
-	ADD_GPIO_REG(en_vdd_bl),		\
+#define E1247_DISPLAY_GPIO_REG		\
+	ADD_GPIO_REG(en_vdd_bl_pm269),	\
+	ADD_GPIO_REG(en_vdd_pnl1_pm269),
+
+#define PM313_DISPLAY_GPIO_REG		\
+	ADD_GPIO_REG(en_vdd_bl_pm313),	\
+	ADD_GPIO_REG(en_vdd_pnl1_pm313),
+
+#define E118x_GPIO_REG				\
+	ADD_GPIO_REG(en_5v_cp),			\
+	ADD_GPIO_REG(en_5v0),			\
+	ADD_GPIO_REG(en_ddr),			\
+	ADD_GPIO_REG(en_3v3_sys),		\
+	ADD_GPIO_REG(en_3v3_modem),		\
+	ADD_GPIO_REG(cam3_ldo_en),		\
+	ADD_GPIO_REG(en_vdd_com),		\
+	ADD_GPIO_REG(en_3v3_fuse),		\
+	ADD_GPIO_REG(en_3v3_emmc),		\
+	ADD_GPIO_REG(en_vdd_sdmmc1),		\
+	ADD_GPIO_REG(en_3v3_pex_hvdd),		\
+	ADD_GPIO_REG(en_1v8_cam),		\
 	ADD_GPIO_REG(dis_5v_switch_e118x),	\
 	ADD_GPIO_REG(en_usb1_vbus_oc_e118x),	\
 	ADD_GPIO_REG(en_usb3_vbus_oc_e118x),	\
-	ADD_GPIO_REG(en_vddio_vid_oc_e118x), \
+	ADD_GPIO_REG(en_vddio_vid_oc_e118x),	\
 	ADD_GPIO_REG(en_vbrtr),
 
-#define E1198_GPIO_REG	\
-	ADD_GPIO_REG(en_vddio_vid_oc),		\
-	ADD_GPIO_REG(cam1_ldo_en),		\
+#define E1198_GPIO_REG			\
+	ADD_GPIO_REG(en_vddio_vid_oc),	\
+	ADD_GPIO_REG(cam1_ldo_en),	\
 	ADD_GPIO_REG(cam2_ldo_en),
 
 #define E1291_1198_A00_GPIO_REG	\
@@ -842,8 +865,14 @@ GREG_INIT(22, en_vbrtr,		en_vbrtr,	"vdd_3v3_devices",	0,      0,      PMU_TCA641
 
 /* Gpio switch regulator platform data  for E1186/E1187/E1256*/
 static struct gpio_switch_regulator_subdev_data *gswitch_subdevs_e118x[] = {
-	COMMON_GPIO_REG
 	E118x_GPIO_REG
+	E1247_DISPLAY_GPIO_REG
+};
+
+/* Gpio switch regulator platform data  for E1186/E1187/E1256*/
+static struct gpio_switch_regulator_subdev_data *gswitch_subdevs_e118x_pm313[] = {
+	E118x_GPIO_REG
+	PM313_DISPLAY_GPIO_REG
 };
 
 /* Gpio switch regulator platform data for E1198 and E1291*/
@@ -879,6 +908,13 @@ static struct gpio_switch_regulator_subdev_data *gswitch_subdevs_e1198_a02[] = {
 /* Gpio switch regulator platform data for PM269*/
 static struct gpio_switch_regulator_subdev_data *gswitch_subdevs_pm269[] = {
 	PM269_GPIO_REG
+	E1247_DISPLAY_GPIO_REG
+};
+
+/* Gpio switch regulator platform data for PM269*/
+static struct gpio_switch_regulator_subdev_data *gswitch_subdevs_pm269_pm313[] = {
+	PM269_GPIO_REG
+	PM313_DISPLAY_GPIO_REG
 };
 
 /* Gpio switch regulator platform data for E1291 A03*/
@@ -910,9 +946,11 @@ int __init cardhu_gpio_switch_regulator_init(void)
 	int i;
 	struct board_info board_info;
 	struct board_info pmu_board_info;
+	struct board_info display_board_info;
 
 	tegra_get_board_info(&board_info);
 	tegra_get_pmu_board_info(&pmu_board_info);
+	tegra_get_display_board_info(&display_board_info);
 
 	if (pmu_board_info.board_id == BOARD_PMU_PM299)
 		return cardhu_pm299_gpio_switch_regulator_init();
@@ -949,10 +987,22 @@ int __init cardhu_gpio_switch_regulator_init(void)
 	case BOARD_PM311:
 		gswitch_pdata.num_subdevs = ARRAY_SIZE(gswitch_subdevs_pm269);
 		gswitch_pdata.subdevs = gswitch_subdevs_pm269;
+		if (display_board_info.board_id == BOARD_DISPLAY_PM313) {
+			gswitch_pdata.num_subdevs = ARRAY_SIZE(gswitch_subdevs_pm269_pm313);
+			gswitch_pdata.subdevs = gswitch_subdevs_pm269_pm313;
+		} else {
+			gswitch_pdata.num_subdevs = ARRAY_SIZE(gswitch_subdevs_pm269);
+			gswitch_pdata.subdevs = gswitch_subdevs_pm269;
+		}
 		break;
 	default:
-		gswitch_pdata.num_subdevs = ARRAY_SIZE(gswitch_subdevs_e118x);
-		gswitch_pdata.subdevs = gswitch_subdevs_e118x;
+		if (display_board_info.board_id == BOARD_DISPLAY_PM313) {
+			gswitch_pdata.num_subdevs = ARRAY_SIZE(gswitch_subdevs_e118x_pm313);
+			gswitch_pdata.subdevs = gswitch_subdevs_e118x_pm313;
+		} else {
+			gswitch_pdata.num_subdevs = ARRAY_SIZE(gswitch_subdevs_e118x);
+			gswitch_pdata.subdevs = gswitch_subdevs_e118x;
+		}
 		break;
 	}
 
