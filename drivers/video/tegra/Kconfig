@@ -104,6 +104,14 @@ config NVMAP_SEARCH_GLOBAL_HANDLES
 	  compatibility with legacy applications.
 	  If unsure, say N.
 
+config NVMAP_VPR
+	bool "Enable VPR Heap."
+	depends on TEGRA_NVMAP
+	default n
+	help
+	  Say Y here to enable Video Protection Region(VPR) heap.
+	  if unsure, say N.
+
 config TEGRA_DSI
 	bool "Enable DSI panel."
 	default n
