@@ -43,6 +43,10 @@
 #define harmony_bl_pwm		TEGRA_GPIO_PB4
 #define harmony_hdmi_hpd	TEGRA_GPIO_PN7
 
+/*panel power on sequence timing*/
+#define harmony_pnl_to_lvds_ms	0
+#define harmony_lvds_to_bl_ms	200
+
 static int harmony_backlight_init(struct device *dev)
 {
 	int ret;
@@ -99,13 +103,17 @@ static struct platform_device harmony_backlight_device = {
 
 static int harmony_panel_enable(void)
 {
+	gpio_set_value(harmony_en_vdd_pnl, 1);
+	mdelay(harmony_pnl_to_lvds_ms);
 	gpio_set_value(harmony_lvds_shutdown, 1);
+	mdelay(harmony_lvds_to_bl_ms);
 	return 0;
 }
 
 static int harmony_panel_disable(void)
 {
 	gpio_set_value(harmony_lvds_shutdown, 0);
+	gpio_set_value(harmony_en_vdd_pnl, 0);
 	return 0;
 }
 
