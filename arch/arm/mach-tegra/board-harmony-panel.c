@@ -331,6 +331,38 @@ static struct platform_device *harmony_gfx_devices[] __initdata = {
 	&harmony_backlight_device,
 };
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+/*
+ * Put early_suspend/late_resume handlers here for the display in order to
+ * keep the code out of the display driver, keeping it closer to upstream.
+ */
+struct early_suspend harmony_panel_early_suspender;
+
+static void harmony_panel_early_suspend(struct early_suspend *h)
+{
+	unsigned i;
+	for (i = 0; i < num_registered_fb; i++)
+		fb_blank(registered_fb[i], FB_BLANK_POWERDOWN);
+#ifdef CONFIG_TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND
+	cpufreq_save_default_governor();
+	cpufreq_set_conservative_governor();
+	cpufreq_set_conservative_governor_param(
+		SET_CONSERVATIVE_GOVERNOR_UP_THRESHOLD,
+		SET_CONSERVATIVE_GOVERNOR_DOWN_THRESHOLD);
+#endif
+}
+
+static void harmony_panel_late_resume(struct early_suspend *h)
+{
+	unsigned i;
+#ifdef CONFIG_TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND
+	cpufreq_restore_default_governor();
+#endif
+	for (i = 0; i < num_registered_fb; i++)
+		fb_blank(registered_fb[i], FB_BLANK_UNBLANK);
+}
+#endif
+
 int __init harmony_panel_init(void)
 {
 	int err;
@@ -351,6 +383,13 @@ int __init harmony_panel_init(void)
 	gpio_request(harmony_hdmi_hpd, "hdmi_hpd");
 	gpio_direction_input(harmony_hdmi_hpd);
 	tegra_gpio_enable(harmony_hdmi_hpd);
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	harmony_panel_early_suspender.suspend = harmony_panel_early_suspend;
+	harmony_panel_early_suspender.resume = harmony_panel_late_resume;
+	harmony_panel_early_suspender.level = EARLY_SUSPEND_LEVEL_DISABLE_FB;
+	register_early_suspend(&harmony_panel_early_suspender);
+#endif
 
 	harmony_carveouts[1].base = tegra_carveout_start;
 	harmony_carveouts[1].size = tegra_carveout_size;
