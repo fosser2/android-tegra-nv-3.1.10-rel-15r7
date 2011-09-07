@@ -629,6 +629,8 @@ lh5:	beq	lh5
 end1:
 #endif
 #ifdef CONFIG_ARM_ERRATA_752520
+	cmp	r5, #0x1F		@ not present in r1p*
+	ble	end2
 	cmp	r5, #0x29		@ present prior to r2p9
 	bge	end2
 	tst	r9, #(1 << 20)
