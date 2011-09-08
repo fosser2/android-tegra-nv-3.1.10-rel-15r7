@@ -37,6 +37,7 @@ void tegra_move_framebuffer(unsigned long to, unsigned long from,
 	unsigned long size);
 int tegra_dvfs_rail_disable_by_name(const char *reg_id);
 bool is_tegra_debug_uartport_hs(void);
+int get_tegra_uart_debug_port_id(void);
 int arb_lost_recovery(int scl_gpio, int sda_gpio);
 
 extern unsigned long tegra_bootloader_fb_start;
