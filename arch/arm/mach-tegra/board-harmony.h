@@ -24,6 +24,16 @@
 #define TPS_GPIO_EN_1V05                (HARMONY_GPIO_TPS6586X(2))
 #define TPS_GPIO_MODE_1V05              (HARMONY_GPIO_TPS6586X(3))
 
+/* WM8903 gpios For ALSA audio*/
+#define WM8903_GPIO_BASE	(TEGRA_NR_GPIOS + 32)
+#define WM8903_GP1		(WM8903_GPIO_BASE + 0)
+#define WM8903_GP2		(WM8903_GPIO_BASE + 1)
+#define WM8903_GP3		(WM8903_GPIO_BASE + 2)
+#define WM8903_GP4		(WM8903_GPIO_BASE + 3)
+#define WM8903_GP5		(WM8903_GPIO_BASE + 4)
+/*end*/
+
+
 /* WLAN pwr and reset gpio */
 #define TEGRA_GPIO_WLAN_PWR_LOW         TEGRA_GPIO_PK5
 #define TEGRA_GPIO_WLAN_RST_LOW         TEGRA_GPIO_PK6

@@ -48,6 +48,11 @@
 #include <mach/usb_phy.h>
 #include <mach/suspend.h>
 
+/*For ALSA audio*/
+#include <sound/wm8903.h>
+#include <mach/tegra_das.h>
+#include <mach/spdif.h>
+
 #include "clock.h"
 #include "board.h"
 #include "board-harmony.h"
@@ -263,23 +268,158 @@ static struct tegra_i2c_platform_data harmony_dvc_platform_data = {
 	.is_dvc		= true,
 };
 
-static struct i2c_board_info __initdata harmony_i2c_bus1_board_info[] = {
-	{
-		I2C_BOARD_INFO("wm8903", 0x1a),
+
+/*For ALSA audio Codec driver*/
+static struct wm8903_platform_data wm8903_pdata = {
+	.irq_active_low = 0,
+	.micdet_cfg = 0x83,           /* enable mic bias current */
+	.micdet_delay = 0,
+	.gpio_base = WM8903_GPIO_BASE,
+	.gpio_cfg = {
+		WM8903_GPIO_NO_CONFIG,
+		WM8903_GPIO_NO_CONFIG,
+		0,                     /* as output pin */
+		WM8903_GPn_FN_GPIO_MICBIAS_CURRENT_DETECT
+		<< WM8903_GP4_FN_SHIFT, /* as micbias current detect */
+		WM8903_GPIO_NO_CONFIG,
 	},
 };
 
-static struct tegra_audio_platform_data tegra_audio_pdata = {
-	.i2s_master	= false,
-	.dsp_master	= false,
-	.dma_on		= true,  /* use dma by default */
-	.dev_clk_rate	= 240000000,
-	.dap_clk	= "clk_dev1",
-	.audio_sync_clk = "audio_2x",
-	.mode		= AUDIO_FRAME_FORMAT_I2S,
-	.fifo_fmt	= AUDIO_FIFO_PACKED,
-	.bit_size	= AUDIO_BIT_SIZE_16,
 
+/* For ALSA audio spdif init data*/
+static struct tegra_audio_platform_data tegra_spdif_pdata = {
+	.dma_on = true,  /* use dma by default */
+	.dev_clk_rate = 5644800,
+};
+
+
+
+static struct i2c_board_info __initdata harmony_i2c_bus1_board_info[] = {
+	{
+		I2C_BOARD_INFO("wm8903", 0x1a),
+		/*For ALSA audio*/
+		.platform_data = &wm8903_pdata,
+	},
+};
+
+/* For ALSA audio replacing old platform data with I2S1 and I2S2 data*/
+static struct tegra_audio_platform_data tegra_audio_pdata[] = {
+	/* For I2S1 */
+	[0] = {
+		.i2s_master	= true,
+		.dma_on		= true,  /* use dma by default */
+		.i2s_master_clk = 44100,
+		.dev_clk_rate	= 11289600,
+		.dap_clk	= "clk_dev1",
+		.audio_sync_clk = "audio_2x",
+		.mode		= AUDIO_FRAME_FORMAT_I2S,
+		.fifo_fmt	= AUDIO_FIFO_PACKED,
+		.bit_size	= AUDIO_BIT_SIZE_16,
+		.i2s_bus_width  = 32,
+		.dsp_bus_width  = 16,
+	},
+	/* For I2S2 */
+	[1] = {
+		.i2s_master	= true,
+		.dma_on		= true,  /* use dma by default */
+		.i2s_master_clk = 8000,
+		.dsp_master_clk = 8000,
+		.dev_clk_rate	= 2000000,
+		.dap_clk	= "clk_dev1",
+		.audio_sync_clk = "audio_2x",
+		.mode		= AUDIO_FRAME_FORMAT_DSP,
+		.fifo_fmt	= AUDIO_FIFO_16_LSB,
+		.bit_size	= AUDIO_BIT_SIZE_16,
+		.i2s_bus_width  = 32,
+		.dsp_bus_width  = 16,
+	}
+};
+
+/* Platform Data For ALSA audio */
+static struct tegra_das_platform_data tegra_das_pdata = {
+	.dap_clk = "clk_dev1",
+	.tegra_dap_port_info_table = {
+		/* I2S1 <--> DAC1 <--> DAP1 <--> Hifi Codec */
+		[0] = {
+			.dac_port = tegra_das_port_i2s1,
+			.dap_port = tegra_das_port_dap1,
+			.codec_type = tegra_audio_codec_type_hifi,
+			.device_property = {
+				.num_channels = 2,
+				.bits_per_sample = 16,
+				.rate = 44100,
+				.dac_dap_data_comm_format =
+						dac_dap_data_format_i2s,
+			},
+		},
+		[1] = {
+			.dac_port = tegra_das_port_none,
+			.dap_port = tegra_das_port_none,
+			.codec_type = tegra_audio_codec_type_none,
+			.device_property = {
+				.num_channels = 0,
+				.bits_per_sample = 0,
+				.rate = 0,
+				.dac_dap_data_comm_format = 0,
+			},
+		},
+		[2] = {
+			.dac_port = tegra_das_port_none,
+			.dap_port = tegra_das_port_none,
+			.codec_type = tegra_audio_codec_type_none,
+			.device_property = {
+				.num_channels = 0,
+				.bits_per_sample = 0,
+				.rate = 0,
+				.dac_dap_data_comm_format = 0,
+			},
+		},
+		/* I2S2 <--> DAC2 <--> DAP4 <--> BT SCO Codec */
+		[3] = {
+			.dac_port = tegra_das_port_i2s2,
+			.dap_port = tegra_das_port_dap4,
+			.codec_type = tegra_audio_codec_type_bluetooth,
+			.device_property = {
+				.num_channels = 1,
+				.bits_per_sample = 16,
+				.rate = 8000,
+				.dac_dap_data_comm_format =
+					dac_dap_data_format_dsp,
+			},
+		},
+		[4] = {
+			.dac_port = tegra_das_port_none,
+			.dap_port = tegra_das_port_none,
+			.codec_type = tegra_audio_codec_type_none,
+			.device_property = {
+				.num_channels = 0,
+				.bits_per_sample = 0,
+				.rate = 0,
+				.dac_dap_data_comm_format = 0,
+			},
+		},
+	},
+
+	.tegra_das_con_table = {
+		[0] = {
+			.con_id = tegra_das_port_con_id_hifi,
+			.num_entries = 2,
+			.con_line = {
+				[0] = {tegra_das_port_i2s1, tegra_das_port_dap1, true},
+				[1] = {tegra_das_port_dap1, tegra_das_port_i2s1, false},
+			},
+		},
+		[1] = {
+			.con_id = tegra_das_port_con_id_bt_codec,
+			.num_entries = 4,
+			.con_line = {
+				[0] = {tegra_das_port_i2s2, tegra_das_port_dap4, true},
+				[1] = {tegra_das_port_dap4, tegra_das_port_i2s2, false},
+				[2] = {tegra_das_port_i2s1, tegra_das_port_dap1, true},
+				[3] = {tegra_das_port_dap1, tegra_das_port_i2s1, false},
+			},
+		},
+	}
 };
 
 static void harmony_i2c_init(void)
@@ -312,6 +452,10 @@ static struct platform_device *harmony_devices[] __initdata = {
 	&tegra_spi_device4,
 	&tegra_gart_device,
 	&tegra_i2s_device1,
+	/*Added For ALSA audio*/
+	&tegra_i2s_device2,
+	&tegra_spdif_device,
+	&tegra_das_device,
 };
 
 static __initdata struct tegra_clk_init_table harmony_clk_init_table[] = {
@@ -454,8 +598,12 @@ static void __init tegra_harmony_init(void)
 
 	tegra_ehci3_device.dev.platform_data = &tegra_ehci_pdata;
 
-	tegra_i2s_device1.dev.platform_data = &tegra_audio_pdata;
-
+	/* Added For ALSA audio */
+	tegra_i2s_device1.dev.platform_data = &tegra_audio_pdata[0];
+	tegra_i2s_device2.dev.platform_data = &tegra_audio_pdata[1];
+	tegra_spdif_device.dev.platform_data = &tegra_spdif_pdata;
+	tegra_das_device.dev.platform_data = &tegra_das_pdata;
+	/* end */
 	platform_add_devices(harmony_devices, ARRAY_SIZE(harmony_devices));
 
 	harmony_panel_init();
