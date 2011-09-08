@@ -776,7 +776,7 @@ static struct tegra_ehci_platform_data tegra_ehci_uhsic_pdata = {
 	.phy_type = TEGRA_USB_PHY_TYPE_HSIC,
 	.phy_config = &uhsic_phy_config,
 	.operating_mode = TEGRA_USB_HOST,
-	.power_down_on_bus_suspend = 1,
+	.power_down_on_bus_suspend = 0,
 };
 
 static struct tegra_ehci_platform_data tegra_ehci_pdata[] = {
@@ -870,6 +870,22 @@ static int enterprise_usb_hsic_preresume(void)
 	return 0;
 }
 
+static int enterprise_usb_hsic_phy_ready(void)
+{
+#ifdef CONFIG_TEGRA_BB_XMM_POWER
+	baseband_xmm_set_power_status(BBXMM_PS_L0);
+#endif
+	return 0;
+}
+
+static int enterprise_usb_hsic_phy_off(void)
+{
+#ifdef CONFIG_TEGRA_BB_XMM_POWER
+	baseband_xmm_set_power_status(BBXMM_PS_L3);
+#endif
+	return 0;
+}
+
 static void enterprise_usb_init(void)
 {
 #ifdef CONFIG_USB_ANDROID_RNDIS
@@ -953,6 +969,8 @@ static void enterprise_baseband_init(void)
 		tegra_ehci_uhsic_pdata.power_down_on_bus_suspend = 0;
 		uhsic_phy_config.postsuspend = enterprise_usb_hsic_postsupend;
 		uhsic_phy_config.preresume = enterprise_usb_hsic_preresume;
+		uhsic_phy_config.usb_phy_ready = enterprise_usb_hsic_phy_ready;
+		uhsic_phy_config.post_phy_off = enterprise_usb_hsic_phy_off;
 		/* baseband-power.ko will register ehci2 device */
 		tegra_ehci2_device.dev.platform_data
 			= &tegra_ehci_uhsic_pdata;
