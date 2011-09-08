@@ -545,14 +545,16 @@ static irqreturn_t nct1008_irq(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static void nct1008_power_control(struct nct1008_data *data, bool is_enable)
+static void nct1008_power_control(struct device *dev,
+	struct nct1008_data *data, bool is_enable)
 {
 	int ret;
 	if (!data->nct_reg) {
-		data->nct_reg = regulator_get(NULL, "vdd_nct1008");
+		data->nct_reg = regulator_get(dev, "vdd");
 		if (IS_ERR_OR_NULL(data->nct_reg)) {
-			dev_warn(&data->client->dev, "Error in getting the "
-				"regulator handle for vdd_nct1008\n");
+			dev_warn(&data->client->dev, "Error [%d] in"
+				"getting the regulator handle for vdd of %s\n",
+				data->nct_reg, dev_name(dev));
 			data->nct_reg = NULL;
 			return;
 		}
@@ -774,7 +776,7 @@ static int __devinit nct1008_probe(struct i2c_client *client,
 	i2c_set_clientdata(client, data);
 	mutex_init(&data->mutex);
 
-	nct1008_power_control(data, true);
+	nct1008_power_control(&client->dev, data, true);
 	err = nct1008_configure_sensor(data);	/* sensor is in standby */
 	if (err < 0) {
 		dev_err(&client->dev, "\n error file: %s : %s(), line=%d ",
@@ -810,7 +812,7 @@ static int __devinit nct1008_probe(struct i2c_client *client,
 
 error:
 	dev_err(&client->dev, "\n exit %s, err=%d ", __func__, err);
-	nct1008_power_control(data, false);
+	nct1008_power_control(&client->dev, data, false);
 	if (data->nct_reg)
 		regulator_put(data->nct_reg);
 	kfree(data);
@@ -824,7 +826,7 @@ static int __devexit nct1008_remove(struct i2c_client *client)
 	free_irq(data->client->irq, data);
 	cancel_work_sync(&data->work);
 	sysfs_remove_group(&client->dev.kobj, &nct1008_attr_group);
-	nct1008_power_control(data, false);
+	nct1008_power_control(&client->dev, data, false);
 	if (data->nct_reg)
 		regulator_put(data->nct_reg);
 	kfree(data);
