@@ -39,6 +39,12 @@ enum nvhost_power_action {
 
 typedef void (*nvhost_modulef)(struct nvhost_module *mod, enum nvhost_power_action action);
 
+struct nvhost_module_client {
+	struct list_head node;
+	unsigned long rate[NVHOST_MODULE_MAX_CLOCKS];
+	void *priv;
+};
+
 struct nvhost_module {
 	const char *name;
 	nvhost_modulef func;
@@ -51,6 +57,7 @@ struct nvhost_module {
 	wait_queue_head_t idle;
 	struct nvhost_module *parent;
 	int powergate_id;
+	struct list_head client_list;
 };
 
 int nvhost_module_init(struct nvhost_module *mod, const char *name,
@@ -61,6 +68,12 @@ void nvhost_module_suspend(struct nvhost_module *mod, bool system_suspend);
 
 void nvhost_module_busy(struct nvhost_module *mod);
 void nvhost_module_idle_mult(struct nvhost_module *mod, int refs);
+int nvhost_module_add_client(struct nvhost_module *mod, void *priv);
+void nvhost_module_remove_client(struct nvhost_module *mod, void *priv);
+int nvhost_module_get_rate(struct nvhost_module *mod, unsigned long *rate,
+			int index);
+int nvhost_module_set_rate(struct nvhost_module *mod, void *priv,
+			unsigned long rate, int index);
 
 static inline bool nvhost_module_powered(struct nvhost_module *mod)
 {
