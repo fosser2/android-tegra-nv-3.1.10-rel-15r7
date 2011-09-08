@@ -65,9 +65,6 @@
 #include "fuse.h"
 #include "baseband-xmm-power.h"
 
-static unsigned long ramconsole_start;
-static unsigned long ramconsole_size;
-
 static struct usb_mass_storage_platform_data tegra_usb_fsg_platform = {
 	.vendor = "NVIDIA",
 	.product = "Tegra 3",
@@ -1109,14 +1106,6 @@ static void cardhu_sata_init(void)
 static void cardhu_sata_init(void) { }
 #endif
 
-static void cardhu_ramconsole_init(void)
-{
-	struct resource *res;
-	res = platform_get_resource(&ram_console_device, IORESOURCE_MEM, 0);
-	res->start = ramconsole_start;
-	res->end = res->start + ramconsole_size - 1;
-}
-
 static void __init tegra_cardhu_init(void)
 {
 	tegra_common_init();
@@ -1131,7 +1120,6 @@ static void __init tegra_cardhu_init(void)
 	cardhu_uart_init();
 	snprintf(usb_serial_num, sizeof(usb_serial_num), "%llx", tegra_chip_uid());
 	andusb_plat.serial_number = kstrdup(usb_serial_num, GFP_KERNEL);
-	cardhu_ramconsole_init();
 	platform_add_devices(cardhu_devices, ARRAY_SIZE(cardhu_devices));
 	cardhu_audio_init();
 	cardhu_sdhci_init();
@@ -1160,21 +1148,24 @@ static void __init tegra_cardhu_init(void)
 
 static void __init tegra_cardhu_reserve(void)
 {
+	struct resource *res;
 	long ret;
-	ramconsole_size = SZ_1M;
-	ramconsole_start = memblock_end_of_DRAM() - ramconsole_size;
-	ret = memblock_remove(ramconsole_start, ramconsole_size);
-	if (ret) {
-		ramconsole_size = 0;
-		pr_err("Failed to reserve memory block for ram console\n");
-	}
-
 #if defined(CONFIG_NVMAP_CONVERT_CARVEOUT_TO_IOVMM)
 	/* support 1920X1200 with 24bpp */
 	tegra_reserve(0, SZ_8M + SZ_1M, SZ_8M + SZ_1M);
 #else
 	tegra_reserve(SZ_128M, SZ_8M, SZ_8M);
 #endif
+
+	res = platform_get_resource(&ram_console_device, IORESOURCE_MEM, 0);
+	res->start = memblock_end_of_DRAM() - SZ_1M;
+	res->end = res->start + SZ_1M - 1;
+	ret = memblock_remove(res->start, SZ_1M);
+	if (ret) {
+		ram_console_device.resource = NULL;
+		ram_console_device.num_resources = 0;
+		pr_err("Failed to reserve memory block for ram console\n");
+	}
 }
 
 MACHINE_START(CARDHU, "cardhu")
