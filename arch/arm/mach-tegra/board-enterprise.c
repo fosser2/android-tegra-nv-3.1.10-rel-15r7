@@ -37,6 +37,7 @@
 #include <linux/spi/spi.h>
 #include <linux/tegra_uart.h>
 #include <linux/fsl_devices.h>
+#include <linux/memblock.h>
 
 #include <mach/clk.h>
 #include <mach/iomap.h>
@@ -716,6 +717,19 @@ static struct platform_device tegra_camera = {
 	.id = -1,
 };
 
+static struct resource ram_console_resources[] = {
+	{
+		.flags = IORESOURCE_MEM,
+	},
+};
+
+static struct platform_device ram_console_device = {
+	.name 		= "ram_console",
+	.id 		= -1,
+	.num_resources	= ARRAY_SIZE(ram_console_resources),
+	.resource	= ram_console_resources,
+};
+
 static struct platform_device *enterprise_devices[] __initdata = {
 	&tegra_usb_fsg_device,
 	&androidusb_device,
@@ -735,6 +749,7 @@ static struct platform_device *enterprise_devices[] __initdata = {
 #if defined(CONFIG_CRYPTO_DEV_TEGRA_AES)
 	&tegra_aes_device,
 #endif
+	&ram_console_device,
 };
 
 static struct usb_phy_plat_data tegra_usb_phy_pdata[] = {
@@ -1002,11 +1017,23 @@ static void __init tegra_enterprise_init(void)
 
 static void __init tegra_enterprise_reserve(void)
 {
+	struct resource *res;
+	long ret;
 #if defined(CONFIG_NVMAP_CONVERT_CARVEOUT_TO_IOVMM)
 	tegra_reserve(0, SZ_4M, SZ_8M);
 #else
 	tegra_reserve(SZ_128M, SZ_4M, SZ_8M);
 #endif
+
+	res = platform_get_resource(&ram_console_device, IORESOURCE_MEM, 0);
+	res->start = memblock_end_of_DRAM() - SZ_1M;
+	res->end = res->start + SZ_1M - 1;
+	ret = memblock_remove(res->start, SZ_1M);
+	if (ret) {
+		ram_console_device.resource = NULL;
+		ram_console_device.num_resources = 0;
+		pr_err("Failed to reserve memory block for ram console\n");
+	}
 }
 
 MACHINE_START(TEGRA_ENTERPRISE, "tegra_enterprise")
