@@ -417,6 +417,8 @@ static const char *get_module_clk_id_tegra3(const char *module, int index,
 			info->default_rate = HOST_EMC_FLOOR;
 		else if (strcmp(name, "gr2d") == 0)
 			info->default_rate = 0;
+		else if (strcmp(name, "epp") == 0)
+			info->default_rate = 0;
 		else
 			info->default_rate = UINT_MAX;
 	}
