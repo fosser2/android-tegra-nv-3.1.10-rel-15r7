@@ -240,6 +240,9 @@ fail_spdif_open:
 
 int spdif_get_device_property(int mode, struct tegra_spdif_property *spdifprop)
 {
+	if (!spinfo)
+		return -ENOENT;
+
 	memcpy(spdifprop,
 		&spinfo->spdev[mode].ch_prop,
 		sizeof(struct tegra_spdif_property));
