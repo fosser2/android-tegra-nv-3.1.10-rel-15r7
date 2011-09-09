@@ -303,6 +303,7 @@ static int cardhu_panel_enable(void)
 		gpio_set_value(pm313_lvds_shutdown, 1);
 	} else if ((display_board_info.board_id == BOARD_DISPLAY_E1247 &&
 			board_info.board_id == BOARD_PM269) ||
+			(board_info.board_id == BOARD_E1257) ||
 			(board_info.board_id == BOARD_PM305) ||
 			(board_info.board_id == BOARD_PM311))
 		gpio_set_value(e1247_pm269_lvds_shutdown, 1);
@@ -330,6 +331,7 @@ static int cardhu_panel_disable(void)
 		gpio_set_value(pm313_lvds_shutdown, 0);
 	} else if ((display_board_info.board_id == BOARD_DISPLAY_E1247 &&
 			board_info.board_id == BOARD_PM269) ||
+			(board_info.board_id == BOARD_E1257) ||
 			(board_info.board_id == BOARD_PM305) ||
 			(board_info.board_id == BOARD_PM311)) {
 		gpio_set_value(e1247_pm269_lvds_shutdown, 0);
@@ -1131,6 +1133,7 @@ int __init cardhu_panel_init(void)
 #endif
 	} else if ((display_board_info.board_id == BOARD_DISPLAY_E1247 &&
 				board_info.board_id == BOARD_PM269) ||
+				(board_info.board_id == BOARD_E1257) ||
 				(board_info.board_id == BOARD_PM305) ||
 				(board_info.board_id == BOARD_PM311)) {
 		gpio_request(e1247_pm269_lvds_shutdown, "lvds_shutdown");

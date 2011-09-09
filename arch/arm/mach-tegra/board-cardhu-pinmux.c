@@ -566,6 +566,7 @@ int __init cardhu_pinmux_init(void)
 	case BOARD_PM269:
 	case BOARD_PM305:
 	case BOARD_PM311:
+	case BOARD_E1257:
 		tegra_pinmux_config_table(cardhu_pinmux_e118x,
 					ARRAY_SIZE(cardhu_pinmux_e118x));
 		tegra_pinmux_config_table(unused_pins_lowpower,
@@ -684,6 +685,7 @@ int __init cardhu_pins_state_init(void)
 					ARRAY_SIZE(pin_lpm_cardhu_common));
 
 	if ((board_info.board_id == BOARD_PM269) ||
+		(board_info.board_id == BOARD_E1257) ||
 		(board_info.board_id == BOARD_PM305) ||
 		(board_info.board_id == BOARD_PM311)) {
 		if (display_board_info.board_id == BOARD_DISPLAY_PM313) {
