@@ -1347,6 +1347,8 @@ static struct snd_soc_dai_ops wm8753_dai_ops_hifi_mode4	= {
 	.set_sysclk	= wm8753_set_dai_sysclk,
 };
 
+static struct snd_soc_dai_ops wm8753_dai_ops_voice_dummy;
+
 static const struct snd_soc_dai wm8753_all_dai[] = {
 /* DAI HiFi mode 1 */
 {	.name = "WM8753 HiFi",
@@ -1423,6 +1425,11 @@ static const struct snd_soc_dai wm8753_all_dai[] = {
 /* DAI Voice mode 3 - dummy */
 {	.name = "WM8753 Voice",
 	.id = 3,
+	.playback = {
+		.stream_name = "Dummy Voice Playback",},
+	.capture = {
+		.stream_name = "Dummy Capture",},
+	.ops = &wm8753_dai_ops_voice_dummy,
 },
 /* DAI HiFi mode 4 */
 {	.name = "WM8753 HiFi",
