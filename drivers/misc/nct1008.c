@@ -374,6 +374,69 @@ static const struct attribute_group nct1008_attr_group = {
 	.attrs = nct1008_attributes,
 };
 
+#ifdef CONFIG_DEBUG_FS
+#include <linux/debugfs.h>
+#include <linux/seq_file.h>
+static void print_regs(const char *header, struct seq_file *s,
+		int start_offset, int end_offset)
+{
+	struct nct1008_data *nct_data = s->private;
+	int i;
+	u8 ret;
+
+	seq_printf(s, "%s\n", header);
+	for (i = start_offset; i <= end_offset; ++i) {
+		ret = i2c_smbus_read_byte_data(nct_data->client, i);
+		if (ret >= 0)
+			seq_printf(s, "Addr = 0x%02x Reg 0x%02x Value "
+				"0x%02x\n", nct_data->client->addr, i, ret);
+		else
+			seq_printf(s, "%s: line=%d, i2c read error=%d\n",
+			__func__, __LINE__, ret);
+	}
+	seq_printf(s, "------------------\n");
+}
+
+static int dbg_nct1008_show(struct seq_file *s, void *unused)
+{
+	seq_printf(s, "nct1008 Registers\n");
+	seq_printf(s, "------------------\n");
+	print_regs("Regs 00-08",     s, 0x00, 0x08);
+	print_regs("Regs 10-14",     s, 0x10, 0x14);
+	print_regs("Reg 19",         s, 0x19, 0x19);
+	print_regs("Regs 20-22",     s, 0x20, 0x22);
+	return 0;
+}
+
+static int dbg_nct1008_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, dbg_nct1008_show, inode->i_private);
+}
+
+static const struct file_operations debug_fops = {
+	.open		= dbg_nct1008_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+
+static int __init nct1008_debuginit(struct nct1008_data *nct)
+{
+	int err;
+	err = debugfs_create_file("nct1008", S_IRUGO, NULL,
+			nct, &debug_fops);
+	if (err < 0)
+		pr_err("Error: %s debugfs not supported, error=%d\n",
+			__func__, err);
+	return err;
+}
+#else
+static int __init nct1008_debuginit(struct nct1008_data *nct)
+{
+	return 0;
+}
+#endif
+
 static int nct1008_enable(struct i2c_client *client)
 {
 	struct nct1008_data *data = i2c_get_clientdata(client);
@@ -852,6 +915,10 @@ static int __devinit nct1008_probe(struct i2c_client *client,
 			__func__, __LINE__, err);
 		goto error;
 	}
+
+	err = nct1008_debuginit(data);
+	if (err < 0)
+		err = 0; /* without debugfs we may continue */
 
 	/* switch to extended mode reports correct temperature
 	 * from next measurement cycle */
