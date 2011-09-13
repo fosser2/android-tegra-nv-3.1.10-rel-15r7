@@ -851,9 +851,6 @@ static void __init tegra_ventana_init(void)
 #ifdef CONFIG_KEYBOARD_GPIO
 	ventana_keys_init();
 #endif
-#ifdef CONFIG_KEYBOARD_TEGRA
-	ventana_kbc_init();
-#endif
 
 	ventana_wired_jack_init();
 	ventana_usb_init();
