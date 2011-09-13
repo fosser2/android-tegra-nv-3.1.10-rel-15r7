@@ -24,6 +24,7 @@
 #include <linux/resource.h>
 #include <asm/mach-types.h>
 #include <linux/platform_device.h>
+#include <linux/earlysuspend.h>
 #include <linux/pwm_backlight.h>
 #include <linux/nvhost.h>
 #include <mach/nvmap.h>
