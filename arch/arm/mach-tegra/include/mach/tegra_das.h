@@ -107,7 +107,11 @@ typedef enum tegra_das_port_t {
 
 #define MAX_DAP_PORTS	(tegra_das_port_i2s4 + 1)
 #endif
-/* defines possible hardware connected to DAP */
+/* Defines possible hardware connected to DAP
+ * Also, custom codec types to support
+ * TDM Audio based codecs like DSPs,
+ * MOST or generic interfaces on I2S
+ * */
 enum tegra_audio_codec_type {
 	tegra_audio_codec_type_none = 0,
 	tegra_audio_codec_type_hifi,
@@ -115,6 +119,11 @@ enum tegra_audio_codec_type {
 	tegra_audio_codec_type_bluetooth,
 	tegra_audio_codec_type_baseband,
 	tegra_audio_codec_type_fm_radio,
+	tegra_audio_codec_type_custom_1,
+	tegra_audio_codec_type_custom_2,
+	tegra_audio_codec_type_custom_3,
+	tegra_audio_codec_type_custom_4,
+	tegra_audio_codec_type_custom_5,
 };
 
 /* index for possible connection based on the use case */

@@ -1151,6 +1151,41 @@ static inline int init_spdif_port(int fifo_mode)
 	return 0;
 }
 
+static void init_custom_codec_ports(void)
+{
+	const struct tegra_dap_property *port_info =
+			tegra_das_pdata.tegra_dap_port_info_table;
+	int max_tbl_index =
+			ARRAY_SIZE(tegra_das_pdata.tegra_dap_port_info_table);
+	int i = 0;
+	struct audio_dev_property dev_prop;
+	int port_idx = tegra_das_port_none;
+	struct am_ch_info *ch = NULL;
+	enum tegra_audio_codec_type codec_type;
+
+	for (i = 0 ; i < max_tbl_index; i++) {
+		codec_type = port_info[i].codec_type;
+		if (
+			(codec_type >= tegra_audio_codec_type_custom_1) &&
+			(codec_type <= tegra_audio_codec_type_custom_5)
+		   ) {
+
+			memset(&dev_prop,
+					0 , sizeof(struct audio_dev_property));
+			tegra_das_get_device_property(codec_type, &dev_prop);
+			port_idx = tegra_das_get_device_i2s_port(codec_type);
+			if (port_idx != tegra_das_port_none) {
+				ch = &aud_manager->i2s_ch[port_idx];
+				ch->sfmt.bitsize =
+					get_bit_size(dev_prop.bits_per_sample);
+				ch->sfmt.channels = dev_prop.num_channels - 1;
+				ch->sfmt.samplerate = dev_prop.rate;
+			}
+		}
+	}
+	return;
+}
+
 static inline int init_device_port(enum tegra_audio_codec_type codec_type)
 {
 	struct audio_dev_property dev_prop;
@@ -1210,6 +1245,8 @@ int tegra_das_open(void)
 					tegra_audio_codec_type_bluetooth);
 
 	init_spdif_port(AUDIO_TX_MODE);
+
+	init_custom_codec_ports();
 
 	return err;
 

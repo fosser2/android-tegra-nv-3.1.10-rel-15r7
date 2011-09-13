@@ -28,7 +28,8 @@ extern struct snd_soc_dai tegra_i2s_dai[];
 extern struct snd_soc_platform tegra_soc_platform;
 
 static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
-				struct snd_pcm_hw_params *params)
+				struct snd_pcm_hw_params *params,
+				int tegra_audio_codec_num)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
@@ -41,12 +42,10 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 
 	data_fmt = dac_dap_data_format_i2s;
 
-#ifdef CONFIG_ARCH_TEGRA_2x_SOC
-	data_fmt = tegra_das_get_codec_data_fmt(tegra_audio_codec_type_hifi);
-	if (tegra_das_is_port_master(tegra_audio_codec_type_hifi))
+	data_fmt = tegra_das_get_codec_data_fmt(tegra_audio_codec_num);
+	if (tegra_das_is_port_master(tegra_audio_codec_num))
 		dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
 	else
-#endif
 		dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
 
 	if ((data_fmt & dac_dap_data_format_tdm))
@@ -73,6 +72,22 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 	}
 
 	return 0;
+}
+
+static int tegra_hifi_hw_params_codec_1(struct snd_pcm_substream *substream,
+				struct snd_pcm_hw_params *params)
+{
+	return tegra_hifi_hw_params(substream,
+					params,
+					tegra_audio_codec_type_custom_1);
+}
+
+static int tegra_hifi_hw_params_codec_2(struct snd_pcm_substream *substream,
+				struct snd_pcm_hw_params *params)
+{
+	return tegra_hifi_hw_params(substream,
+					params,
+					tegra_audio_codec_type_custom_2);
 }
 
 void tegra_ext_control(struct snd_soc_codec *codec, int new_con)
@@ -110,8 +125,14 @@ int tegra_soc_resume_post(struct platform_device *pdev)
 	return 0;
 }
 
-static struct snd_soc_ops tegra_hifi_ops = {
-	.hw_params = tegra_hifi_hw_params,
+static struct snd_soc_ops tegra_hifi_ops_codec_1 = {
+	.hw_params = tegra_hifi_hw_params_codec_1,
+	.startup = tegra_codec_startup,
+	.shutdown = tegra_codec_shutdown,
+};
+
+static struct snd_soc_ops tegra_hifi_ops_codec_2 = {
+	.hw_params = tegra_hifi_hw_params_codec_2,
 	.startup = tegra_codec_startup,
 	.shutdown = tegra_codec_shutdown,
 };
@@ -171,13 +192,13 @@ generic_codec_init_fail:
  * as only one of them can be active at the same time
  * */
 static struct snd_soc_dai_link tegra_soc_dai[] = {
-	TEGRA_CREATE_SOC_DAI_LINK("Generic DIT Codec", "Multi-8",
+	TEGRA_CREATE_SOC_DAI_LINK("DIT Codec", "I2S-Digital",
 				  &tegra_i2s_dai[0], &generic_dit_stub_dai,
-				  &tegra_hifi_ops),
+				  &tegra_hifi_ops_codec_1),
 
-	TEGRA_CREATE_SOC_DAI_LINK("Generic DIT Codec", "Multi-16",
-				  &tegra_i2s_dai[1],
-				  &generic_dit_stub_dai, &tegra_hifi_ops),
+	TEGRA_CREATE_SOC_DAI_LINK("DIT Codec", "I2S-Digital",
+				  &tegra_i2s_dai[1], &generic_dit_stub_dai,
+				  &tegra_hifi_ops_codec_2),
 };
 
 static struct tegra_audio_data audio_data = {
