@@ -183,13 +183,17 @@ __tegra_lp1_reset:
 	/* the CPU and system bus are running at 32KHz and executing from
 	 * IRAM when this code is executed; immediately switch to CLKM and
 	 * enable PLLP. */
+
 	mov32	r0, TEGRA_CLK_RESET_BASE
+#ifndef CONFIG_TRUSTED_FOUNDATIONS
+	/* secure code handles 32KHz to CLKM/OSC clock switch */
 	mov	r1, #(1<<28)
 	str	r1, [r0, #CLK_RESET_SCLK_BURST]
 	str	r1, [r0, #CLK_RESET_CCLK_BURST]
 	mov	r1, #0
 	str	r1, [r0, #CLK_RESET_SCLK_DIVIDER]
 	str	r1, [r0, #CLK_RESET_CCLK_DIVIDER]
+#endif
 
 	ldr	r1, [r0, #CLK_RESET_PLLM_BASE]
 	tst	r1, #(1<<30)

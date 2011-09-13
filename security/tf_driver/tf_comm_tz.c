@@ -195,7 +195,7 @@ static inline void tf_smc_nyield(void)
 }
 
 /* Yields the Secure World */
-int tf_schedule_secure_world(struct tf_comm *comm, bool prepare_exit)
+int tf_schedule_secure_world(struct tf_comm *comm)
 {
 	tf_set_current_time(comm);
 
@@ -503,7 +503,7 @@ int tf_pm_hibernate(struct tf_comm *comm)
 		}
 
 		spin_unlock(&(comm->lock));
-		(void)tf_schedule_secure_world(comm, false);
+		(void)tf_schedule_secure_world(comm);
 	}
 
 	/* now wait for the answer, dispatching other answers */
@@ -597,7 +597,7 @@ int tf_pm_hibernate(struct tf_comm *comm)
 		 * no need to check its timeout and schedule() the current
 		 * thread
 		 */
-		(void)tf_schedule_secure_world(comm, false);
+		(void)tf_schedule_secure_world(comm);
 	} /* while (1) */
 
 	printk(KERN_INFO "tf_driver: hibernate.\n");
@@ -833,7 +833,7 @@ int tf_init(struct tf_comm *comm)
 	 */
 
 	/* yield for the first time */
-	(void)tf_schedule_secure_world(comm, false);
+	(void)tf_schedule_secure_world(comm);
 
 	dprintk(KERN_INFO "tf_init(): Success\n");
 	return S_SUCCESS;

@@ -151,6 +151,11 @@ ENTRY(tegra_lp2_startup)
 	str	r1, [r0]
 	dsb
 
+#ifdef CONFIG_TRUSTED_FOUNDATIONS
+	/* wake up */
+	smc	0
+#endif
+
 	adr	r4, __tegra_lp2_data
 	ldmia	r4, {r5, r7, r12}
 	mov	r1, r12			@ ctx_restore = __cortex_a9_restore
