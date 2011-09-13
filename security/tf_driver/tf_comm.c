@@ -1211,11 +1211,7 @@ static int tf_send_recv(struct tf_comm *comm,
 	union tf_command *command,
 	struct tf_answer_struct *answerStruct,
 	struct tf_connection *connection,
-	int bKillable
-	#ifdef CONFIG_TF_ZEBRA
-	, bool *secure_is_idle
-	#endif
-	)
+	int bKillable)
 {
 	int result;
 	u64 timeout;
@@ -1228,6 +1224,10 @@ static int tf_send_recv(struct tf_comm *comm,
 #endif
 	dprintk(KERN_INFO "[pid=%d] tf_send_recv(%p)\n",
 		 current->pid, command);
+
+#ifdef CONFIG_TF_ZEBRA
+	tf_clock_timer_start();
+#endif
 
 #ifdef CONFIG_FREEZER
 	saved_flags = current->flags;
@@ -1249,17 +1249,6 @@ copy_answers:
 
 #ifdef CONFIG_FREEZER
 	if (unlikely(freezing(current))) {
-
-#ifdef CONFIG_TF_ZEBRA
-		if (!(*secure_is_idle)) {
-			if (tf_schedule_secure_world(comm, true) ==
-				STATUS_PENDING)
-				goto copy_answers;
-
-			tf_l4sec_clkdm_allow_idle(true);
-			*secure_is_idle = true;
-		}
-#endif
 
 		dprintk(KERN_INFO
 			"Entering refrigerator.\n");
@@ -1366,13 +1355,9 @@ copy_answers:
 	 */
 #ifdef CONFIG_TF_ZEBRA
 schedule_secure_world:
-	if (*secure_is_idle) {
-		tf_l4sec_clkdm_wakeup(true, false);
-		*secure_is_idle = false;
-	}
 #endif
 
-	result = tf_schedule_secure_world(comm, false);
+	result = tf_schedule_secure_world(comm);
 	if (result < 0)
 		goto exit;
 	goto copy_answers;
@@ -1399,18 +1384,6 @@ wait:
 			"prepare to sleep 0x%lx jiffies\n",
 			nRelativeTimeoutJiffies);
 
-#ifdef CONFIG_TF_ZEBRA
-	if (!(*secure_is_idle)) {
-		if (tf_schedule_secure_world(comm, true) == STATUS_PENDING) {
-			finish_wait(&comm->wait_queue, &wait);
-			wait_prepared = false;
-			goto copy_answers;
-		}
-		tf_l4sec_clkdm_allow_idle(true);
-		*secure_is_idle = true;
-	}
-#endif
-
 	/* go to sleep */
 	if (schedule_timeout(nRelativeTimeoutJiffies) == 0)
 		dprintk(KERN_INFO
@@ -1428,16 +1401,6 @@ exit:
 		finish_wait(&comm->wait_queue, &wait);
 		wait_prepared = false;
 	}
-
-#ifdef CONFIG_TF_ZEBRA
-	if ((!(*secure_is_idle)) && (result != -EIO)) {
-		if (tf_schedule_secure_world(comm, true) == STATUS_PENDING)
-			goto copy_answers;
-
-		tf_l4sec_clkdm_allow_idle(true);
-		*secure_is_idle = true;
-	}
-#endif
 
 #ifdef CONFIG_FREEZER
 	current->flags &= ~(PF_FREEZER_NOSIG);
@@ -1468,9 +1431,6 @@ int tf_send_receive(struct tf_comm *comm,
 	long ret_affinity;
 	cpumask_t saved_cpu_mask;
 	cpumask_t local_cpu_mask = CPU_MASK_NONE;
-#endif
-#ifdef CONFIG_TF_ZEBRA
-	bool secure_is_idle = true;
 #endif
 
 	answerStructure.answer = answer;
@@ -1509,11 +1469,7 @@ int tf_send_receive(struct tf_comm *comm,
 	 * Send the command
 	 */
 	error = tf_send_recv(comm,
-		command, &answerStructure, connection, bKillable
-		#ifdef CONFIG_TF_ZEBRA
-		, &secure_is_idle
-		#endif
-		);
+		command, &answerStructure, connection, bKillable);
 
 	if (!bKillable && sigkill_pending()) {
 		if ((command->header.message_type ==
@@ -1594,11 +1550,7 @@ int tf_send_receive(struct tf_comm *comm,
 			connection->device_context;
 
 		error = tf_send_recv(comm,
-			command, &answerStructure, connection, false
-			#ifdef CONFIG_TF_ZEBRA
-			, &secure_is_idle
-			#endif
-			);
+			command, &answerStructure, connection, false);
 		if (error == -EINTR) {
 			/*
 			* Another thread already sent
@@ -1640,11 +1592,7 @@ int tf_send_receive(struct tf_comm *comm,
 
 destroy_context:
 	error = tf_send_recv(comm,
-	command, &answerStructure, connection, false
-	#ifdef CONFIG_TF_ZEBRA
-	, &secure_is_idle
-	#endif
-	);
+	command, &answerStructure, connection, false);
 
 	/*
 	 * tf_send_recv cannot return an error because

@@ -465,6 +465,12 @@ ENTRY(__cortex_a9_restore)
 
 	mcr	p15, 2, r0, c0, c0, 0	@ csselr
 	mcr	p15, 0, r1, c1, c0, 0	@ sctlr
+#ifndef CONFIG_TRUSTED_FOUNDATIONS
+	/*
+	 * Restoring ACTRL / PCTLR needs to be done by secure code
+	 * as not all bits of ACTRL are writable (and none of PCTLR)
+	 * by non-secure code.
+	 */
 	tst	r2, #(0x1 << 6)
 	orrne	r2, r2, #(1 << 0)	@ sync FW bit with SMP state
 	mcr	p15, 0, r2, c1, c0, 1	@ actlr
@@ -475,8 +481,6 @@ ENTRY(__cortex_a9_restore)
 	orreq	r3, r3, #(3<<8)		@ set MAXCLKLATENCY to 3 on G
 	orrne	r3, r3, #(2<<8)		@ set MAXCLKLATENCY to 2 on LP
 #endif
-#ifndef CONFIG_TRUSTED_FOUNDATIONS
-	//TL : moved to secure
 	mcr	p15, 0, r3, c15, c0, 0	@ pctlr
 #endif
 

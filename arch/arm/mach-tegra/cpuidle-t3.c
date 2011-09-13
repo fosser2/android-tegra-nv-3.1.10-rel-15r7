@@ -116,13 +116,6 @@ bool tegra_lp2_is_allowed(struct cpuidle_device *dev,
 	if (!tegra_all_cpus_booted)
 		return false;
 
-#ifdef CONFIG_TRUSTED_FOUNDATIONS
-	/* For now, we don't understand this behavior...
-	 * Without this check tt will generate the MC_DECERR msg!
-	 */
-	if (num_online_cpus() > 1)
-		return false;
-#endif
 	/* On A01, lp2 on slave cpu's cause cpu hang randomly.
 	 * Refer to Bug 804085.
 	 */
@@ -391,19 +384,22 @@ static int tegra_lp2_debug_show(struct seq_file *s, void *data)
 			(idle_stats.lp2_count ?: 1));
 
 	seq_printf(s, "\n");
-	seq_printf(s, "lp2 ready time:                 %8llu %8llu %8llu %8llu %8llu ms\n",
+	seq_printf(s, "lp2 ready time:%16s %8llu %8llu %8llu %8llu %8llu ms\n",
+		"",
 		div64_u64(idle_stats.cpu_wants_lp2_time[0], 1000),
 		div64_u64(idle_stats.cpu_wants_lp2_time[1], 1000),
 		div64_u64(idle_stats.cpu_wants_lp2_time[2], 1000),
 		div64_u64(idle_stats.cpu_wants_lp2_time[3], 1000),
 		div64_u64(idle_stats.cpu_wants_lp2_time[4], 1000));
-	seq_printf(s, "lp2 time:                       %8llu %8llu %8llu %8llu %8llu ms\n",
+	seq_printf(s, "lp2 time:%22s %8llu %8llu %8llu %8llu %8llu ms\n",
+		"",
 		div64_u64(idle_stats.in_lp2_time[0], 1000),
 		div64_u64(idle_stats.in_lp2_time[1], 1000),
 		div64_u64(idle_stats.in_lp2_time[2], 1000),
 		div64_u64(idle_stats.in_lp2_time[3], 1000),
 		div64_u64(idle_stats.in_lp2_time[4], 1000));
-	seq_printf(s, "lp2 %:                          %7d%% %7d%% %7d%% %7d%% %7d%%\n",
+	seq_printf(s, "lp2 %%:%26s %7d%% %7d%% %7d%% %7d%% %7d%%\n",
+		"",
 		(int)(idle_stats.cpu_wants_lp2_time[0] ?
 			div64_u64(idle_stats.in_lp2_time[0] * 100,
 			idle_stats.cpu_wants_lp2_time[0]) : 0),
