@@ -581,7 +581,8 @@ static void __init uart_debug_init(void)
 			((board_info.board_id == BOARD_E1186) ||
 			(board_info.board_id == BOARD_E1187) ||
 			(board_info.board_id == BOARD_PM269))) ||
-			(board_info.board_id == BOARD_E1256))
+			(board_info.board_id == BOARD_E1256) ||
+			(board_info.board_id == BOARD_E1257))
 				debug_port_id = 1;
 	}
 	switch (debug_port_id) {

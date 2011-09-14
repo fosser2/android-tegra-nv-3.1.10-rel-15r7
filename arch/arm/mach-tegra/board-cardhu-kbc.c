@@ -113,6 +113,7 @@ int __init cardhu_kbc_init(void)
 		return 0;
 
 	if ((board_info.board_id == BOARD_PM269) ||
+		(board_info.board_id == BOARD_E1257) ||
 		(board_info.board_id == BOARD_PM305) ||
 		(board_info.board_id == BOARD_PM311)) {
 		cardhu_kbc_platform_data.plain_keycode = plain_kbd_keycode_pm269;
@@ -237,6 +238,7 @@ int __init cardhu_keys_init(void)
 	tegra_get_board_info(&board_info);
 	if (!((board_info.board_id == BOARD_E1198) ||
 		(board_info.board_id == BOARD_E1291) ||
+		(board_info.board_id == BOARD_E1257) ||
 		(board_info.board_id == BOARD_PM305) ||
 		(board_info.board_id == BOARD_PM311) ||
 		(board_info.board_id == BOARD_PM269)))
@@ -260,6 +262,7 @@ int __init cardhu_keys_init(void)
 
 	/* Register on-key through pmu interrupt */
 	if ((board_info.board_id == BOARD_E1291) ||
+		(board_info.board_id == BOARD_E1257) ||
 		(board_info.board_id == BOARD_PM305) ||
 		(board_info.board_id == BOARD_PM311) ||
 		(board_info.board_id == BOARD_PM269))
