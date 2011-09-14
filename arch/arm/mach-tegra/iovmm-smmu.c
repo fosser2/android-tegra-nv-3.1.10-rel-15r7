@@ -34,7 +34,7 @@
 #include <asm/cacheflush.h>
 #include <asm/page.h>
 #include <asm/cacheflush.h>
-
+#include "tegra_smmu.h"
 #include <mach/iovmm.h>
 #include <mach/iomap.h>
 
@@ -923,7 +923,8 @@ static struct tegra_iovmm_device_ops tegra_iovmm_smmu_ops = {
 static int smmu_probe(struct platform_device *pdev)
 {
 	struct smmu_device *smmu = NULL;
-	struct resource *regs = NULL, *window = NULL, *regs2 = NULL;
+	struct resource *regs = NULL, *regs2 = NULL;
+	struct tegra_smmu_window *window = NULL;
 	int e, asid;
 
 	if (!pdev) {
@@ -944,7 +945,7 @@ static int smmu_probe(struct platform_device *pdev)
 
 	regs = platform_get_resource_byname(pdev, IORESOURCE_MEM, "mc");
 	regs2 = platform_get_resource_byname(pdev, IORESOURCE_MEM, "ahbarb");
-	window = platform_get_resource_byname(pdev, IORESOURCE_MEM, "smmu");
+	window = tegra_smmu_window(0);
 
 	if (!regs || !regs2 || !window) {
 		pr_err(DRIVER_NAME ": No SMMU resources\n");
