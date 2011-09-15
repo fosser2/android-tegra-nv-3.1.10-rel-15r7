@@ -213,7 +213,6 @@ static __initdata struct tegra_clk_init_table cardhu_clk_init_table[] = {
 	{ "pll_a",	NULL,		552960000,	false},
 	{ "pll_a_out0",	NULL,		12288000,	false},
 	{ "d_audio",	"pll_a_out0",	12288000,	false},
-	{ "vi_sensor",	"pll_p",	150000000,	false},
 	{ NULL,		NULL,		0,		0},
 };
 
