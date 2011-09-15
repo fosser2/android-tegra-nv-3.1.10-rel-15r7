@@ -127,6 +127,7 @@ static int wired_switch_notify(struct notifier_block *self,
 
 	return NOTIFY_OK;
 }
+#endif
 
 void tegra_jack_suspend(void)
 {
@@ -152,6 +153,7 @@ void tegra_jack_resume(void)
 	}
 }
 
+#ifdef CONFIG_SWITCH
 static struct notifier_block wired_switch_nb = {
 	.notifier_call = wired_switch_notify,
 };
@@ -251,10 +253,10 @@ static int tegra_wired_jack_probe(struct platform_device *pdev)
 	tegra_wired_jack_conf.cdc_irq = cdc_irq;
 	tegra_wired_jack_conf.en_spkr = en_spkr;
 
+#ifdef CONFIG_SWITCH
 	// Communicate the jack connection state at device bootup
 	tegra_switch_set_state(get_headset_state());
 
-#ifdef CONFIG_SWITCH
 	snd_soc_jack_notifier_register(tegra_wired_jack,
 				       &wired_switch_nb);
 #endif
