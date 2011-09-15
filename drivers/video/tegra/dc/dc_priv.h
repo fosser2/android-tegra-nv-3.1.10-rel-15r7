@@ -119,7 +119,7 @@ struct tegra_dc {
 
 	struct switch_dev		modeset_switch;
 
-	struct completion		vblank_complete;
+	struct completion		frame_end_complete;
 
 	struct work_struct		vblank_work;
 
