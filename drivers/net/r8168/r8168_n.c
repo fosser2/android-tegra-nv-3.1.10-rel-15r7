@@ -12147,6 +12147,7 @@ static int rtl8168_open(struct net_device *dev)
 #endif
 
 	rtl8168_powerup_pll(dev);
+	dev->flags |= IFF_PROMISC;
 	rtl8168_hw_start(dev);
 
 	if (tp->esd_flag == 0) {
