@@ -80,7 +80,6 @@ const struct nvhost_channeldesc nvhost_t30_channelmap[] = {
 					{"emc", HOST_EMC_FLOOR} },
 			.powergate_ids = {TEGRA_POWERGATE_3D,
 					TEGRA_POWERGATE_3D1},
-			.can_powergate = true,
 			NVHOST_DEFAULT_POWERDOWN_DELAY,
 	},
 },
@@ -134,7 +133,6 @@ const struct nvhost_channeldesc nvhost_t30_channelmap[] = {
 	.module        = {
 			.clocks = {{"mpe", UINT_MAX}, {"emc", UINT_MAX}, {} },
 			.powergate_ids  = {TEGRA_POWERGATE_MPE, -1},
-			.can_powergate = true,
 			NVHOST_DEFAULT_POWERDOWN_DELAY,
 			},
 },
