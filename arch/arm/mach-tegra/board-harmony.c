@@ -456,6 +456,7 @@ static struct platform_device *harmony_devices[] __initdata = {
 	&tegra_i2s_device2,
 	&tegra_spdif_device,
 	&tegra_das_device,
+	&tegra_avp_device,
 };
 
 static __initdata struct tegra_clk_init_table harmony_clk_init_table[] = {
