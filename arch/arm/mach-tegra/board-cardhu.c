@@ -540,6 +540,7 @@ static void cardhu_i2c_init(void)
 
 	/* setting audio codec on i2c_4 */
 	i2c_register_board_info(4, cardhu_i2c_bus1_board_info, 1);
+	pr_info("The audio codec type is %d\n", get_audio_codec_type());
 
 	platform_device_register(&tegra_i2c_device5);
 	platform_device_register(&tegra_i2c_device4);
