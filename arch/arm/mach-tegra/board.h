@@ -80,6 +80,11 @@ enum power_supply_type {
 	power_supply_battery,
 };
 
+enum audio_codec_type {
+	audio_codec_none,
+	audio_codec_wm8903,
+};
+
 void tegra_get_board_info(struct board_info *);
 void tegra_get_pmu_board_info(struct board_info *bi);
 void tegra_get_display_board_info(struct board_info *bi);
@@ -96,5 +101,6 @@ int get_core_edp(void);
 enum panel_type get_panel_type(void);
 int tegra_get_modem_id(void);
 enum power_supply_type get_power_supply_type(void);
+enum audio_codec_type get_audio_codec_type(void);
 
 #endif
