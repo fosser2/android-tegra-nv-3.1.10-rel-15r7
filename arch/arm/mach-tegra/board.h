@@ -67,5 +67,6 @@ struct board_info {
 };
 
 void tegra_get_board_info(struct board_info *);
+unsigned long  get_board_personality(void);
 
 #endif

@@ -86,6 +86,7 @@ unsigned long tegra_lp0_vec_size;
 bool tegra_lp0_vec_relocate;
 unsigned long tegra_grhost_aperture;
 static   bool is_tegra_debug_uart_hsport;
+static unsigned long board_personality;
 
 static struct board_info tegra_board_info = {
 	.board_id = -1,
@@ -363,8 +364,21 @@ bool is_tegra_debug_uartport_hs(void)
 {
 	return is_tegra_debug_uart_hsport;
 }
-
 __setup("debug_uartport=", tegra_debug_uartport);
+
+static int __init tegra_board_personality(char *info)
+{
+	char *p = info;
+	board_personality = memparse(p, &p);
+	return 1;
+}
+
+unsigned long get_board_personality(void)
+{
+	return board_personality;
+}
+
+__setup("personality=", tegra_board_personality);
 
 void tegra_get_board_info(struct board_info *bi)
 {
