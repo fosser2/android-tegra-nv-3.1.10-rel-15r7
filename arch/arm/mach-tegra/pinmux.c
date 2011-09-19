@@ -34,6 +34,8 @@
 
 static const struct tegra_pingroup_desc *const pingroups = tegra_soc_pingroups;
 static const struct tegra_drive_pingroup_desc *const drive_pingroups = tegra_soc_drive_pingroups;
+static const int *gpio_to_pingroups_map =  gpio_to_pingroup;
+
 
 static char *tegra_mux_names[TEGRA_MAX_MUX] = {
 	[TEGRA_MUX_AHB_CLK] = "AHB_CLK",
@@ -219,7 +221,7 @@ static const char *pupd_name(unsigned long val)
 
 static const char *lock_name(unsigned long val)
 {
-	switch(val) {
+	switch (val) {
 	case TEGRA_PIN_LOCK_DEFAULT:
 		return "LOCK_DEFUALT";
 
@@ -235,7 +237,7 @@ static const char *lock_name(unsigned long val)
 
 static const char *od_name(unsigned long val)
 {
-	switch(val) {
+	switch (val) {
 	case TEGRA_PIN_OD_DEFAULT:
 		return "OD_DEFAULT";
 
@@ -251,7 +253,7 @@ static const char *od_name(unsigned long val)
 
 static const char *ioreset_name(unsigned long val)
 {
-	switch(val) {
+	switch (val) {
 	case TEGRA_PIN_IO_RESET_DEFAULT:
 		return "IO_RESET_DEFAULT";
 
@@ -289,6 +291,11 @@ static inline unsigned long pg_readl(unsigned long offset)
 static inline void pg_writel(unsigned long value, unsigned long offset)
 {
 	writel(value, IO_TO_VIRT(TEGRA_APB_MISC_BASE) + offset);
+}
+
+int tegra_pinmux_get_pingroup(int gpio_nr)
+{
+	return gpio_to_pingroup[gpio_nr];
 }
 
 static int tegra_pinmux_set_func(const struct tegra_pingroup_config *config)
