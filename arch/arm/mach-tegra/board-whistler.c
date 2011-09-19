@@ -759,6 +759,8 @@ static void whistler_usb_init(void)
 
 static void __init tegra_whistler_init(void)
 {
+	unsigned long board_personality;
+
 	tegra_common_init();
 	tegra_clk_init_from_table(whistler_clk_init_table);
 	whistler_pinmux_init();
@@ -786,7 +788,10 @@ static void __init tegra_whistler_init(void)
 	whistler_codec_init();
 	whistler_power_off_init();
 	whistler_emc_init();
-	whistler_baseband_ph450_init();
+
+	board_personality = get_board_personality();
+	if (board_personality != 0x05)
+		whistler_baseband_ph450_init();
 }
 
 int __init tegra_whistler_protected_aperture_init(void)
