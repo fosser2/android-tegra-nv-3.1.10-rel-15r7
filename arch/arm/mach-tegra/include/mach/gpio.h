@@ -26,6 +26,7 @@
 #define ARCH_NR_GPIOS		(TEGRA_NR_GPIOS + 128)
 
 #include <asm-generic/gpio.h>
+#include "pinmux.h"
 
 #define gpio_get_value		__gpio_get_value
 #define gpio_set_value		__gpio_set_value
@@ -57,5 +58,5 @@ static inline int irq_to_gpio(unsigned int irq)
 
 void tegra_gpio_enable(int gpio);
 void tegra_gpio_disable(int gpio);
-
+void tegra_gpio_set_tristate(int gpio, enum tegra_tristate ts);
 #endif
