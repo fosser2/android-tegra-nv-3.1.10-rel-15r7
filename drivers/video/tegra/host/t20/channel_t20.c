@@ -59,8 +59,8 @@ const struct nvhost_channeldesc nvhost_t20_channelmap[] = {
 			 BIT(NVSYNCPT_VBLANK0) | BIT(NVSYNCPT_VBLANK1),
 	.modulemutexes = BIT(NVMODMUTEX_DISPLAYA) | BIT(NVMODMUTEX_DISPLAYB),
 	.module        = {
-			NVHOST_MODULE_NO_POWERGATING,
-			NVHOST_DEFAULT_POWERDOWN_DELAY,
+			NVHOST_MODULE_NO_POWERGATE_IDS,
+			NVHOST_DEFAULT_CLOCKGATE_DELAY,
 			},
 },
 {
@@ -74,7 +74,7 @@ const struct nvhost_channeldesc nvhost_t20_channelmap[] = {
 			.prepare_poweroff = power_off_3d,
 			.clocks = {{"gr3d", UINT_MAX}, {"emc", UINT_MAX}, {} },
 			.powergate_ids = {TEGRA_POWERGATE_3D, -1},
-			NVHOST_DEFAULT_POWERDOWN_DELAY,
+			NVHOST_DEFAULT_CLOCKGATE_DELAY,
 			},
 },
 {
@@ -88,8 +88,8 @@ const struct nvhost_channeldesc nvhost_t20_channelmap[] = {
 			.clocks = {{"gr2d", UINT_MAX} ,
 					{"epp", UINT_MAX} ,
 					{"emc", UINT_MAX} },
-			NVHOST_MODULE_NO_POWERGATING,
-			.powerdown_delay = 0,
+			NVHOST_MODULE_NO_POWERGATE_IDS,
+			.clockgate_delay = 0,
 			}
 },
 {
@@ -97,8 +97,8 @@ const struct nvhost_channeldesc nvhost_t20_channelmap[] = {
 	.name	 = "isp",
 	.syncpts = 0,
 	.module         = {
-			NVHOST_MODULE_NO_POWERGATING,
-			NVHOST_DEFAULT_POWERDOWN_DELAY,
+			NVHOST_MODULE_NO_POWERGATE_IDS,
+			NVHOST_DEFAULT_CLOCKGATE_DELAY,
 			},
 },
 {
@@ -111,8 +111,8 @@ const struct nvhost_channeldesc nvhost_t20_channelmap[] = {
 	.modulemutexes = BIT(NVMODMUTEX_VI),
 	.exclusive     = true,
 	.module        = {
-			NVHOST_MODULE_NO_POWERGATING,
-			NVHOST_DEFAULT_POWERDOWN_DELAY,
+			NVHOST_MODULE_NO_POWERGATE_IDS,
+			NVHOST_DEFAULT_CLOCKGATE_DELAY,
 			}
 },
 {
@@ -127,7 +127,7 @@ const struct nvhost_channeldesc nvhost_t20_channelmap[] = {
 	.module        = {
 			.clocks = {{"mpe", UINT_MAX}, {"emc", UINT_MAX}, {} },
 			.powergate_ids = {TEGRA_POWERGATE_MPE, -1},
-			NVHOST_DEFAULT_POWERDOWN_DELAY,
+			NVHOST_DEFAULT_CLOCKGATE_DELAY,
 			},
 },
 {
@@ -136,8 +136,8 @@ const struct nvhost_channeldesc nvhost_t20_channelmap[] = {
 	.syncpts       = BIT(NVSYNCPT_DSI),
 	.modulemutexes = BIT(NVMODMUTEX_DSI),
 	.module        = {
-			NVHOST_MODULE_NO_POWERGATING,
-			NVHOST_DEFAULT_POWERDOWN_DELAY,
+			NVHOST_MODULE_NO_POWERGATE_IDS,
+			NVHOST_DEFAULT_CLOCKGATE_DELAY,
 			},
 }};
 
