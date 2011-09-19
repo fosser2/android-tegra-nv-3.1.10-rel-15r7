@@ -247,8 +247,8 @@ static const struct snd_soc_dapm_route aic326x_audio_map[] = {
 	{"IN2R", NULL, "Ext Mic"},
 
 	/* Line in */
-	{"RECL", NULL, "Linein"},
-	{"RECR", NULL, "Linein"},
+	{"IN2L", NULL, "Linein"},
+	{"IN2R", NULL, "Linein"},
 };
 
 #if 0
