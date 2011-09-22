@@ -30,31 +30,8 @@
 # US5,307,459, US5,434,872, US5,732,094, US6,570,884, US6,115,776, and US6,327,625.
 ################################################################################
 
-KVER		:= $(shell uname -r)
-KDIR		:= /lib/modules/$(KVER)/build
-KMISC		:= /lib/modules/$(KVER)/kernel/drivers/net/
-KEXT		:= $(shell echo $(KVER) | sed -ne 's/^2\.[567]\..*/k/p')o
-KFLAG		:= 2$(shell echo $(KVER) | sed -ne 's/^2\.[4]\..*/4/p')x
-
 EXTRA_CFLAGS += -DCONFIG_R8168_NAPI
 EXTRA_CFLAGS += -DCONFIG_R8168_VLAN
 
-modules:
-ifeq ($(KFLAG),24x)
-	$(MAKE) -f Makefile_linux24x
-else
-	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD)/src modules
-	strip --strip-debug r8168.$(KEXT)
-endif
-
-clean:
-	rm -rf *.o *.ko *~ core* .dep* .*.d .*.cmd *.mod.c *.a *.s .*.flags .tmp_versions Module.symvers Modules.symvers Module.markers *.order
-
-
-install:
-	install -m 744 -c r8168.$(KEXT) $(KMISC)
-
-ifneq ($(KFLAG),24x)
-obj-m += r8168.o
-r8168-objs :=  r8168_n.o r8168_asf.o rtl_eeprom.o rtltool.o
-endif#($(KFLAG),24x)
+obj-$(CONFIG_R8168) += r8168.o
+r8168-objs := r8168_n.o r8168_asf.o rtl_eeprom.o rtltool.o
