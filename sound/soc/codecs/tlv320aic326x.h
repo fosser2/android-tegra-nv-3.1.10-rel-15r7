@@ -52,6 +52,7 @@
 #define AIC3262_FORMATS	(SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S20_3LE \
 			 | SNDRV_PCM_FMTBIT_S24_3LE | SNDRV_PCM_FMTBIT_S32_LE)
 
+#define AIC3262_FREQ_12288000 12288000
 #define AIC3262_FREQ_12000000 12000000
 #define AIC3262_FREQ_24000000 24000000
 
@@ -290,6 +291,7 @@ struct aic3262_priv {
 	s32 master;
 	u8 book_no;
 	u8 page_no;
+	struct snd_soc_codec codec;
 };
 
 /*

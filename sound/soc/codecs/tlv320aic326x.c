@@ -63,7 +63,7 @@
 #ifdef DEBUG
 	#define DBG(x...)	printk(x)
 #else
-	#define DBG(x...) while (0)
+	#define DBG(x...) do {} while (0)
 #endif
 
 #ifdef AIC3262_TiLoad
@@ -91,6 +91,7 @@ static int soc_static_freq_config = 1;
  *****************************************************************************
  */
 static struct snd_soc_device *aic3262_socdev;
+static struct snd_soc_codec *aic3262_codec;
 
 /*
  *****************************************************************************
@@ -149,7 +150,7 @@ static int aic3262_set_dai_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt);
 static int aic3262_set_bias_level(struct snd_soc_codec *codec,
 						enum snd_soc_bias_level level);
 
-u8 aic3262_read(struct snd_soc_codec *codec, u16 reg);
+static u8 aic3262_read(struct snd_soc_codec *codec, u16 reg);
 
 static int __new_control_info(struct snd_kcontrol *kcontrol,
 			      struct snd_ctl_elem_info *uinfo);
@@ -159,7 +160,7 @@ static int __new_control_get(struct snd_kcontrol *kcontrol,
 
 static int __new_control_put(struct snd_kcontrol *kcontrol,
 			     struct snd_ctl_elem_value *ucontrol);
-int aic3262_change_book(struct snd_soc_codec *codec, u8 new_book);
+static int aic3262_change_book(struct snd_soc_codec *codec, u8 new_book);
 
 #ifdef DAC_INDEPENDENT_VOL
 /*
@@ -260,7 +261,7 @@ static int n_control_put(struct snd_kcontrol *kcontrol,
 
 	err = snd_soc_update_bits_locked(codec, reg, val_mask, val);
 	if (err < 0) {
-		printk("Error while updating bits\n");
+		printk(KERN_ERR "Error while updating bits\n");
 		return err;
 	}
 
@@ -725,10 +726,14 @@ static const struct aic3262_rate_divs aic3262_divs[] = {
 	/* 44.1k rate */
 	{12000000, 44100, 1, 7, 5264, 128, 8, 2, 128, 8, 2, 4,
 	{{0, 60, 1}, {0, 61, 1} } },
+	{12288000, 44100, 1, 7, 3548, 128, 8, 2, 128, 8, 2, 4,
+	{{0, 60, 1}, {0, 61, 1} } },
 	{24000000, 44100, 1, 3, 7632, 128, 4, 4, 64, 4, 4, 4,
 	{{0, 60, 1}, {0, 61, 1} } },
 	/* 48k rate */
 	{12000000, 48000, 1, 8, 1920, 128, 8, 2, 128, 8, 2, 4,
+	{{0, 60, 1}, {0, 61, 1} } },
+	{12288000, 48000, 1, 8, 52, 128, 8, 2, 128, 8, 2, 4,
 	{{0, 60, 1}, {0, 61, 1} } },
 	{24000000, 48000, 1, 4, 960, 128, 4, 4, 128, 4, 4, 4,
 	{{0, 60, 1}, {0, 61, 1} } },
@@ -1023,7 +1028,7 @@ static const struct aic3262_configs aic3262_reg_init[] = {
 	{0, MIC_BIAS_CNTL, 0x66},
 	/*   ASI1 Configuration */
 	{0, ASI1_BUS_FMT, 0},
-	{0, ASI1_BWCLK_CNTL_REG, 0x24},
+	{0, ASI1_BWCLK_CNTL_REG, 0x00},		/* originaly 0x24*/
 	{0, ASI1_BCLK_N_CNTL, 1},
 	{0, ASI1_BCLK_N, 0x84},
 
@@ -1428,9 +1433,9 @@ static int aic3262_add_widgets(struct snd_soc_codec *codec)
 {
 	int i;
 
-	for (i = 0; i < ARRAY_SIZE(aic3262_dapm_widgets); i++) {
+	for (i = 0; i < ARRAY_SIZE(aic3262_dapm_widgets); i++)
 		snd_soc_dapm_new_control(codec, &aic3262_dapm_widgets[i]);
-	}
+
 	/* set up audio path interconnects */
 	DBG("#Completed adding new dapm widget controls size=%d\n",
 		ARRAY_SIZE(aic3262_dapm_widgets));
@@ -1489,7 +1494,7 @@ static int aic3262_hw_params(struct snd_pcm_substream *substream,
 		printk(KERN_ERR "sampling rate not supported\n");
 		return i;
 	}
-	printk(KERN_INFO "#aic3262_codec: Starting hw_params\n");
+
 	if (soc_static_freq_config) {
 		/*fix R value to 1 and will make P & J=K.D as varialble */
 
@@ -1551,7 +1556,7 @@ static int aic3262_hw_params(struct snd_pcm_substream *substream,
 		DBG(KERN_INFO "# writing AOSR = %d\n", aic3262_divs[i].aosr);
 	}
 
-#ifdef ASI_MULTI_FMT
+
 	data = aic3262_read(codec, ASI1_BUS_FMT);
 
 	data = data & 0xe7;
@@ -1573,7 +1578,7 @@ static int aic3262_hw_params(struct snd_pcm_substream *substream,
 
 	/* configure the respective Registers for the above configuration */
 	aic3262_write(codec, ASI1_BUS_FMT, data);
-#endif
+
 	for (j = 0; j < NO_FEATURE_REGS; j++) {
 		aic3262_write(codec,
 			      aic3262_divs[i].codec_specific_regs[j].reg_offset,
@@ -1649,6 +1654,7 @@ static int aic3262_set_dai_sysclk(struct snd_soc_dai *codec_dai,
 
 	switch (freq) {
 	case AIC3262_FREQ_12000000:
+	case AIC3262_FREQ_12288000:
 		aic3262->sysclk = freq;
 		return 0;
 	case AIC3262_FREQ_24000000:
@@ -1738,52 +1744,52 @@ static int aic3262_set_dai_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt)
 static int aic3262_set_bias_level(struct snd_soc_codec *codec,
 				  enum snd_soc_bias_level level)
 {
-	struct aic3262_priv *aic3262 = snd_soc_codec_get_drvdata(codec);
+	/*struct aic3262_priv *aic3262 = snd_soc_codec_get_drvdata(codec);*/
 	u8 value;
 
 	switch (level) {
 		/* full On */
 	case SND_SOC_BIAS_ON:
+	case SND_SOC_BIAS_PREPARE:
 		/* all power is driven by DAPM system */
 		DBG(KERN_INFO "#aic3262 codec : set_bias_on started\n");
-		if (aic3262->master) {
-			/* Switch on PLL */
-			value = aic3262_read(codec, PLL_PR_POW_REG);
-			aic3262_write(codec, PLL_PR_POW_REG, ((value | 0x80)));
 
-			/* Switch on NDAC Divider */
-			value = aic3262_read(codec, NDAC_DIV_POW_REG);
-			aic3262_write(codec, NDAC_DIV_POW_REG,
-				((value & 0x7f) | (0x80)));
+		/* Switch on PLL */
+		value = aic3262_read(codec, PLL_PR_POW_REG);
+		aic3262_write(codec, PLL_PR_POW_REG, ((value | 0x80)));
 
-			/* Switch on MDAC Divider */
-			value = aic3262_read(codec, MDAC_DIV_POW_REG);
-			aic3262_write(codec, MDAC_DIV_POW_REG,
-				((value & 0x7f) | (0x80)));
+		/* Switch on NDAC Divider */
+		value = aic3262_read(codec, NDAC_DIV_POW_REG);
+		aic3262_write(codec, NDAC_DIV_POW_REG,
+			((value & 0x7f) | (0x80)));
 
-			/* Switch on NADC Divider */
-			value = aic3262_read(codec, NADC_DIV_POW_REG);
-			aic3262_write(codec, NADC_DIV_POW_REG,
-				((value & 0x7f) | (0x80)));
+		/* Switch on MDAC Divider */
+		value = aic3262_read(codec, MDAC_DIV_POW_REG);
+		aic3262_write(codec, MDAC_DIV_POW_REG,
+			((value & 0x7f) | (0x80)));
 
-			/* Switch on MADC Divider */
-			value = aic3262_read(codec, MADC_DIV_POW_REG);
-			aic3262_write(codec, MADC_DIV_POW_REG,
-				((value & 0x7f) | (0x80)));
+		/* Switch on NADC Divider */
+		value = aic3262_read(codec, NADC_DIV_POW_REG);
+		aic3262_write(codec, NADC_DIV_POW_REG,
+			((value & 0x7f) | (0x80)));
+
+		/* Switch on MADC Divider */
+		value = aic3262_read(codec, MADC_DIV_POW_REG);
+		aic3262_write(codec, MADC_DIV_POW_REG,
+			((value & 0x7f) | (0x80)));
 
 
-			aic3262_write(codec, ADC_CHANNEL_POW, 0xc2);
-			aic3262_write(codec, ADC_FINE_GAIN, 0x00);
+		aic3262_write(codec, ADC_CHANNEL_POW, 0xc2);
+		aic3262_write(codec, ADC_FINE_GAIN, 0x00);
 
-			DBG("#aic3262 codec : set_bias_on complete\n");
+		DBG("#aic3262 codec : set_bias_on complete\n");
 
-		}
 		break;
 
 		/* partial On */
-	case SND_SOC_BIAS_PREPARE:
+/*	case SND_SOC_BIAS_PREPARE:
 		break;
-
+*/
 		/* Off, with power */
 	case SND_SOC_BIAS_STANDBY:
 		/*
@@ -1793,66 +1799,66 @@ static int aic3262_set_bias_level(struct snd_soc_codec *codec,
 
 		DBG(KERN_INFO "#aic3262 codec : set_bias_stby started\n");
 
-		if (aic3262->master) {
-			DBG("#aic3262 codec : set_bias_stby inside if condn\n");
+		DBG("#aic3262 codec : set_bias_stby inside if condn\n");
 
-			/* Switch off NDAC Divider */
-			value = aic3262_read(codec, NDAC_DIV_POW_REG);
-			aic3262_write(codec, NDAC_DIV_POW_REG,
-				(value & 0x7f));
+		/* Switch off NDAC Divider */
+		value = aic3262_read(codec, NDAC_DIV_POW_REG);
+		aic3262_write(codec, NDAC_DIV_POW_REG,
+			(value & 0x7f));
 
-			/* Switch off MDAC Divider */
-			value = aic3262_read(codec, MDAC_DIV_POW_REG);
-			aic3262_write(codec, MDAC_DIV_POW_REG,
-				(value & 0x7f));
+		/* Switch off MDAC Divider */
+		value = aic3262_read(codec, MDAC_DIV_POW_REG);
+		aic3262_write(codec, MDAC_DIV_POW_REG,
+			(value & 0x7f));
 
-			/* Switch off NADC Divider */
-			value = aic3262_read(codec, NADC_DIV_POW_REG);
-			aic3262_write(codec, NADC_DIV_POW_REG,
-				(value & 0x7f));
+		/* Switch off NADC Divider */
+		value = aic3262_read(codec, NADC_DIV_POW_REG);
+		aic3262_write(codec, NADC_DIV_POW_REG,
+			(value & 0x7f));
 
-			/* Switch off MADC Divider */
-			value = aic3262_read(codec, MADC_DIV_POW_REG);
-			aic3262_write(codec, MADC_DIV_POW_REG,
-				(value & 0x7f));
-			/* Switch off PLL */
-			value = aic3262_read(codec, PLL_PR_POW_REG);
-			aic3262_write(codec, PLL_PR_POW_REG, (value & 0x7f));
+		/* Switch off MADC Divider */
+		value = aic3262_read(codec, MADC_DIV_POW_REG);
+		aic3262_write(codec, MADC_DIV_POW_REG,
+			(value & 0x7f));
 
-			DBG("#aic3262 codec : set_bias_stby complete\n");
-		}
+		/* Switch off PLL */
+		value = aic3262_read(codec, PLL_PR_POW_REG);
+		aic3262_write(codec, PLL_PR_POW_REG, (value & 0x7f));
+
+		DBG("#aic3262 codec : set_bias_stby complete\n");
+
 		break;
 
 		/* Off, without power */
 	case SND_SOC_BIAS_OFF:
 		/* force all power off */
-		if (aic3262->master) {
-			/* Switch off PLL */
-			value = aic3262_read(codec, PLL_PR_POW_REG);
-			aic3262_write(codec,
-				PLL_PR_POW_REG, (value & ~(0x01 << 7)));
 
-			/* Switch off NDAC Divider */
-			value = aic3262_read(codec, NDAC_DIV_POW_REG);
-			aic3262_write(codec, NDAC_DIV_POW_REG,
-				(value & ~(0x01 << 7)));
+		/* Switch off PLL */
+		value = aic3262_read(codec, PLL_PR_POW_REG);
+		aic3262_write(codec,
+			PLL_PR_POW_REG, (value & ~(0x01 << 7)));
 
-			/* Switch off MDAC Divider */
-			value = aic3262_read(codec, MDAC_DIV_POW_REG);
-			aic3262_write(codec, MDAC_DIV_POW_REG,
-				(value & ~(0x01 << 7)));
+		/* Switch off NDAC Divider */
+		value = aic3262_read(codec, NDAC_DIV_POW_REG);
+		aic3262_write(codec, NDAC_DIV_POW_REG,
+			(value & ~(0x01 << 7)));
 
-			/* Switch off NADC Divider */
-			value = aic3262_read(codec, NADC_DIV_POW_REG);
-			aic3262_write(codec, NADC_DIV_POW_REG,
-				(value & ~(0x01 << 7)));
+		/* Switch off MDAC Divider */
+		value = aic3262_read(codec, MDAC_DIV_POW_REG);
+		aic3262_write(codec, MDAC_DIV_POW_REG,
+			(value & ~(0x01 << 7)));
 
-			/* Switch off MADC Divider */
-			value = aic3262_read(codec, MADC_DIV_POW_REG);
-			aic3262_write(codec, MADC_DIV_POW_REG,
-				(value & ~(0x01 << 7)));
-			value = aic3262_read(codec, ASI1_BCLK_N);
-		}
+		/* Switch off NADC Divider */
+		value = aic3262_read(codec, NADC_DIV_POW_REG);
+		aic3262_write(codec, NADC_DIV_POW_REG,
+			(value & ~(0x01 << 7)));
+
+		/* Switch off MADC Divider */
+		value = aic3262_read(codec, MADC_DIV_POW_REG);
+		aic3262_write(codec, MADC_DIV_POW_REG,
+			(value & ~(0x01 << 7)));
+		value = aic3262_read(codec, ASI1_BCLK_N);
+
 		break;
 	}
 	codec->bias_level = level;
@@ -1905,6 +1911,29 @@ static int aic3262_resume(struct platform_device *pdev)
 	return 0;
 }
 
+/*
+ *----------------------------------------------------------------------------
+ * Function : aic3262_hw_read
+ * Purpose  : This is a low level harware read function.
+ *
+ *----------------------------------------------------------------------------
+ */
+unsigned int aic3262_hw_read(struct snd_soc_codec *codec, unsigned int count)
+{
+	struct i2c_client *client = codec->control_data;
+	unsigned int buf;
+
+	if (count > (sizeof(unsigned int)))
+	    return 0;
+
+	i2c_master_recv(client, (char *)&buf, count);
+	return buf;
+}
+
+
+
+
+
 #if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
 /*
  *----------------------------------------------------------------------------
@@ -1923,15 +1952,23 @@ static int aic3262_codec_probe(struct i2c_client *i2c,
 			const struct i2c_device_id *id)
 {
 	int ret;
-	struct snd_soc_device *socdev = aic3262_socdev;
-	struct snd_soc_codec *codec = socdev->card->codec;
-	struct aic3262_priv *aic3262 = snd_soc_codec_get_drvdata(codec);
 
-	DBG(KERN_INFO "aic3262_codec_probe : function starting\n\n");
-	DBG(KERN_INFO "aic3262_codec_probe : socdev %x codec %x\n\n",
-			(unsigned int) socdev, (unsigned int) codec);
+	struct snd_soc_codec *codec;
+	struct aic3262_priv *aic3262;
 
-	i2c_set_clientdata(i2c, codec);
+	aic3262 = kzalloc(sizeof(struct aic3262_priv), GFP_KERNEL);
+
+	if (!aic3262)
+		return -ENOMEM;
+
+
+	codec = aic3262_codec = &aic3262->codec;
+
+	mutex_init(&codec->mutex);
+	INIT_LIST_HEAD(&codec->dapm_widgets);
+	INIT_LIST_HEAD(&codec->dapm_paths);
+
+	DBG(KERN_INFO " in codec_probe entered\n");
 	codec->control_data = i2c;
 	codec->dev = &i2c->dev;
 	codec->name = "tlv320aic3262";
@@ -1944,35 +1981,89 @@ static int aic3262_codec_probe(struct i2c_client *i2c,
 	codec->reg_cache_size = sizeof(aic3262_reg);
 	codec->reg_cache =
 	    kmemdup(aic3262_reg, sizeof(aic3262_reg), GFP_KERNEL);
-	if (codec->reg_cache == NULL) {
+
+	if (!codec->reg_cache) {
 		printk(KERN_ERR "aic3262: kmemdup failed\n");
 		return -ENOMEM;
 	}
 
-	tlv320aic3262_dai.dev = &i2c->dev;
+	codec->hw_write = (hw_write_t) aic3262_write__;
+	codec->hw_read = aic3262_hw_read;
+
+	snd_soc_codec_set_drvdata(codec, aic3262);
+	i2c_set_clientdata(i2c, codec);
+
 
 	aic3262->page_no = 0;
 	aic3262->book_no = 0;
 
-	/* Switch to default Book 0 and Page 0
-		first before codec register programming */
+
+	tlv320aic3262_dai.dev = &i2c->dev;
+
 	reg_def_conf(codec);
 
+	aic3262_codec = codec;
+	ret = snd_soc_register_codec(codec);
+	if (ret != 0) {
+		printk(KERN_ERR "Failed to register codec: %d\n", ret);
+		goto err_irq;
+	}
 
-	/* register pcms */
+	ret = snd_soc_register_dai(&tlv320aic3262_dai);
+	if (ret != 0) {
+		printk(KERN_ERR "Failed to register DAI: %d\n", ret);
+		goto err_codec;
+	}
+
+	return ret;
+err_codec:
+	snd_soc_unregister_codec(codec);
+
+err_irq:
+	if (i2c->irq)
+		free_irq(i2c->irq, aic3262);
+
+	return ret;
+
+}
+#endif /*#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)*/
+
+/*
+ *----------------------------------------------------------------------------
+ * Function : aic3262_probe
+ * Purpose  : This is first driver function called by the SoC core driver.
+ *
+ *----------------------------------------------------------------------------
+ */
+static int aic3262_probe(struct platform_device *pdev)
+{
+	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
+	struct snd_soc_codec *codec = aic3262_codec;
+	/*struct aic3262_priv *aic3262 = snd_soc_codec_get_drvdata(codec);*/
+	int ret = 0;
+
+	if (socdev == NULL) {
+		printk(KERN_ERR
+		"\nAIC3262_Probe: platform_get_drvdata returned NULL\r\n");
+		return -ENODEV;
+	}
+	socdev->card->codec = codec;
+
 	ret = snd_soc_new_pcms(socdev, SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1);
 	if (ret < 0) {
-		printk(KERN_ERR "aic3262: failed to create pcms\n");
-		goto pcm_err;
+	    printk(KERN_ERR "aic3262: failed to create pcms\n");
+	    goto pcm_err;
 	}
+
+	aic3262_socdev = socdev;
+
 
 	/* off, with power on */
 	aic3262_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
 	aic3262_add_controls(codec);
 	aic3262_add_widgets(codec);
 
-	/*	mute all devices */
-	aic3262_mute(codec->dai, 1);
+/*	aic3262_mute(codec->dai, 1);*/
 
 	return ret;
 
@@ -1980,7 +2071,50 @@ pcm_err:
 	kfree(codec->reg_cache);
 	printk(KERN_INFO "aic3262.c : aic3262_init : function end error\n\n");
 	return ret;
+
 }
+
+/*
+ *----------------------------------------------------------------------------
+ * Function : aic3262_remove
+ * Purpose  : to remove aic3262 soc device
+ *
+ *----------------------------------------------------------------------------
+ */
+static int aic3262_remove(struct platform_device *pdev)
+{
+	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
+	struct snd_soc_codec *codec = socdev->card->codec;
+
+	/* power down chip */
+	if (codec->control_data)
+		aic3262_set_bias_level(codec, SND_SOC_BIAS_OFF);
+
+	snd_soc_free_pcms(socdev);
+	snd_soc_dapm_free(socdev);
+	kfree(snd_soc_codec_get_drvdata(codec));
+	kfree(codec);
+
+	return 0;
+}
+
+
+/*
+ *----------------------------------------------------------------------------
+ * @struct  snd_soc_codec_device |
+ *          This structure is soc audio codec device sturecute which pointer
+ *          to basic functions aic3262_probe(), aic3262_remove(),
+ *          aic3262_suspend() and aic3262_resume()
+ *----------------------------------------------------------------------------
+ */
+struct snd_soc_codec_device soc_codec_dev_aic3262 = {
+	.probe = aic3262_probe,
+	.remove = aic3262_remove,
+	.suspend = aic3262_suspend,
+	.resume = aic3262_resume,
+};
+EXPORT_SYMBOL_GPL(soc_codec_dev_aic3262);
+
 
 /*
  *----------------------------------------------------------------------------
@@ -2017,137 +2151,20 @@ static struct i2c_driver tlv320aic3262_i2c_driver = {
 	.id_table = tlv320aic3262_id,
 };
 
-#endif /*#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)*/
-
-/*
- *----------------------------------------------------------------------------
- * Function : aic3262_hw_read
- * Purpose  : This is a low level harware read function.
- *
- *----------------------------------------------------------------------------
- */
-unsigned int
-aic3262_hw_read(struct snd_soc_codec *codec, unsigned int count)
-{
-	struct i2c_client *client = codec->control_data;
-	unsigned int buf;
-
-	if (count > sizeof(unsigned int))
-	    return 0;
-
-	i2c_master_recv(client, (char *)&buf, count);
-	return buf;
-}
-/*
- *----------------------------------------------------------------------------
- * Function : aic3262_probe
- * Purpose  : This is first driver function called by the SoC core driver.
- *
- *----------------------------------------------------------------------------
- */
-static int aic3262_probe(struct platform_device *pdev)
-{
-	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec;
-	struct aic3262_priv *aic3262;
-	int ret = 0;
-
-	if (socdev == NULL) {
-		printk(KERN_ERR
-		"\n %s platform_get_drvdata NULL\r\n", __func__);
-		return -ENODEV;
-	}
-	/* Perform Kernel Memory allocation for the snd_soc_codec and
-	* aic3262_priv structures
-	*/
-	codec = kzalloc(sizeof(struct snd_soc_codec), GFP_KERNEL);
-	if (!codec)
-		return -ENOMEM;
-
-	aic3262 = kzalloc(sizeof(struct aic3262_priv), GFP_KERNEL);
-	if (!aic3262) {
-		kfree(codec);
-		return -ENOMEM;
-	}
-
-	snd_soc_codec_set_drvdata(codec, aic3262);
-	socdev->card->codec = codec;
-	mutex_init(&codec->mutex);
-	INIT_LIST_HEAD(&codec->dapm_widgets);
-	INIT_LIST_HEAD(&codec->dapm_paths);
-
-	aic3262_socdev = socdev;
-#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
-		codec->hw_write = (hw_write_t) aic3262_write__;
-		codec->hw_read = aic3262_hw_read;
-		ret = i2c_add_driver(&tlv320aic3262_i2c_driver);
-		if (ret != 0)
-			printk(KERN_ERR "can't add i2c driver");
-#else
-	/* Add other interfaces here */
-#endif
-#ifdef AIC3262_TiLoad
-	ret = aic3262_driver_init(codec);
-	if (ret < 0)
-		printk(KERN_ERR
-		"\naic3262_probe :TiLoad Initialization failed\n");
-#endif
-	return ret;
-}
-
-/*
- *----------------------------------------------------------------------------
- * Function : aic3262_remove
- * Purpose  : to remove aic3262 soc device
- *
- *----------------------------------------------------------------------------
- */
-static int aic3262_remove(struct platform_device *pdev)
-{
-	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec = socdev->card->codec;
-
-	/* power down chip */
-	if (codec->control_data)
-		aic3262_set_bias_level(codec, SND_SOC_BIAS_OFF);
-
-	snd_soc_free_pcms(socdev);
-	snd_soc_dapm_free(socdev);
-#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
-	i2c_del_driver(&tlv320aic3262_i2c_driver);
-#endif
-	kfree(snd_soc_codec_get_drvdata(codec));
-	kfree(codec);
-
-	return 0;
-}
-
-/*
- *----------------------------------------------------------------------------
- * @struct  snd_soc_codec_device |
- *          This structure is soc audio codec device sturecute which pointer
- *          to basic functions aic3262_probe(), aic3262_remove(),
- *          aic3262_suspend() and aic3262_resume()
- *----------------------------------------------------------------------------
- */
-struct snd_soc_codec_device soc_codec_dev_aic3262 = {
-	.probe = aic3262_probe,
-	.remove = aic3262_remove,
-	.suspend = aic3262_suspend,
-	.resume = aic3262_resume,
-};
-EXPORT_SYMBOL_GPL(soc_codec_dev_aic3262);
-
 static int __init tlv320aic3262_modinit(void)
 {
-	return snd_soc_register_dai(&tlv320aic3262_dai);
+	int ret = i2c_add_driver(&tlv320aic3262_i2c_driver);
+
+	return ret;
+
 }
 
 module_init(tlv320aic3262_modinit);
 
 static void __exit tlv320aic3262_exit(void)
 {
-	snd_soc_unregister_dai(&tlv320aic3262_dai);
+	i2c_del_driver(&tlv320aic3262_i2c_driver);
+
 }
 
 module_exit(tlv320aic3262_exit);

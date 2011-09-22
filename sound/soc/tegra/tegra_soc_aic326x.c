@@ -181,9 +181,9 @@ void tegra_ext_control(struct snd_soc_codec *codec, int new_con)
 		snd_soc_dapm_disable_pin(codec, "EarPiece");
 
 	if (new_con & TEGRA_SPK)
-		snd_soc_dapm_enable_pin(codec, "Int Spk");
+		snd_soc_dapm_enable_pin(codec, "SPK out");
 	else
-		snd_soc_dapm_disable_pin(codec, "Int Spk");
+		snd_soc_dapm_disable_pin(codec, "SPK out");
 
 	if (new_con & TEGRA_EXT_MIC)
 		snd_soc_dapm_enable_pin(codec, "Ext Mic");
@@ -205,6 +205,8 @@ void tegra_ext_control(struct snd_soc_codec *codec, int new_con)
 	else
 		snd_soc_dapm_disable_pin(codec, "Headset In");
 
+	/* set to headphone as default */
+	snd_soc_dapm_enable_pin(codec, "Headphone");
 
 	/* signal a DAPM event */
 	snd_soc_dapm_sync(codec);
@@ -217,7 +219,7 @@ static const struct snd_soc_dapm_widget aic326x_tegra_dapm_widgets[] = {
 	SND_SOC_DAPM_HP("EarPiece", NULL),
 	SND_SOC_DAPM_HP("Headset Out", NULL),
 	SND_SOC_DAPM_MIC("Headset In", NULL),
-	SND_SOC_DAPM_SPK("Int Spk", NULL),
+	SND_SOC_DAPM_SPK("SPK out", NULL),
 	SND_SOC_DAPM_MIC("Ext Mic", NULL),
 	SND_SOC_DAPM_LINE("Linein", NULL),
 };
@@ -239,8 +241,8 @@ static const struct snd_soc_dapm_route aic326x_audio_map[] = {
 	{"IN2L", NULL, "Headset In"},
 
 	/* build-in speaker */
-	{"Int Spk", NULL, "SPKL"},
-	{"Int Spk", NULL, "SPKR"},
+	{"SPK out", NULL, "SPKL"},
+	{"SPK out", NULL, "SPKR"},
 
 	/* external mic is stero */
 	{"IN2L", NULL, "Ext Mic"},
@@ -303,7 +305,7 @@ static int aic326x_codec_init(struct snd_soc_codec *codec)
 		}*/
 
 		/* Default to OFF */
-		/*tegra_ext_control(codec, TEGRA_AUDIO_OFF);*/
+		tegra_ext_control(codec, TEGRA_AUDIO_OFF);
 
 		ret = tegra_controls_init(codec);
 		if (ret < 0) {
@@ -428,6 +430,7 @@ static int __init aic326x_tegra_init(void)
 		goto fail;
 	}
 
+#if 0
 	aic326x_reg = regulator_get(NULL, "avddio_audio");
 	if (IS_ERR(aic326x_reg)) {
 		ret = PTR_ERR(aic326x_reg);
@@ -440,6 +443,7 @@ static int __init aic326x_tegra_init(void)
 		pr_err("aic326x regulator enable failed\n");
 		goto err_put_regulator;
 	}
+#endif
 	return 0;
 
 fail:
@@ -450,16 +454,20 @@ fail:
 
 	return ret;
 
+#if 0
 err_put_regulator:
 	regulator_put(aic326x_reg);
 	return ret;
+#endif
 }
 
 static void __exit aic326x_tegra_exit(void)
 {
 	platform_device_unregister(tegra_snd_device);
+#if 0
 	regulator_disable(aic326x_reg);
 	regulator_put(aic326x_reg);
+#endif
 
 	if (aic326x_jack) {
 		gpio_free(aic326x_jack->gpio);
