@@ -46,9 +46,9 @@ extern void nvhost_3dctx_restore_indirect(u32 *ptr, u32 offset_reg,
 extern void nvhost_3dctx_restore_end(u32 *ptr);
 extern struct nvhost_hwctx *nvhost_3dctx_alloc_common(
 		struct nvhost_channel *ch, bool map_restore);
-extern void nvhost_3dctx_get(struct nvhost_hwctx *ctx);
-extern void nvhost_3dctx_free(struct kref *ref);
-extern void nvhost_3dctx_put(struct nvhost_hwctx *ctx);
-extern void nvhost_3dctx_prepare_power_off(struct nvhost_module *mod);
+void nvhost_3dctx_get(struct nvhost_hwctx *ctx);
+void nvhost_3dctx_free(struct kref *ref);
+void nvhost_3dctx_put(struct nvhost_hwctx *ctx);
+int nvhost_3dctx_prepare_power_off(struct nvhost_module *mod);
 
 #endif
