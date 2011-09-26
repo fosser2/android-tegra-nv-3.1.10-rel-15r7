@@ -267,8 +267,6 @@ void tegra_idle_enter_lp2_cpu_0(struct cpuidle_device *dev,
 void tegra_idle_enter_lp2_cpu_n(struct cpuidle_device *dev,
 	struct cpuidle_state *state)
 {
-	u32 twd_ctrl;
-	u32 twd_load;
 	s64 request;
 	s64 sleep_time;
 	ktime_t enter;
@@ -285,8 +283,6 @@ void tegra_idle_enter_lp2_cpu_n(struct cpuidle_device *dev,
 		tegra_flow_wfi(dev);
 		return;
 	}
-	sleep_time = request - tegra_lp2_exit_latency;
-	tegra_lp2_set_trigger(sleep_time);
 
 	idle_stats.tear_down_count[cpu_number(dev->cpu)]++;
 
@@ -302,8 +298,6 @@ void tegra_idle_enter_lp2_cpu_n(struct cpuidle_device *dev,
 	stop_critical_timings();
 	/* gic_cpu_exit(0); - we want to wake cpu_n on gic interrupt */
 	barrier();
-	twd_ctrl = readl(twd_base + 0x8);
-	twd_load = readl(twd_base + 0);
 
 	spin_lock(&lp2_map_lock);
 	tegra_cpu_lp2_map |= (1 << dev->cpu);
@@ -327,8 +321,6 @@ void tegra_idle_enter_lp2_cpu_n(struct cpuidle_device *dev,
 	tegra_cpu_lp2_map &= ~(1 << dev->cpu);
 	spin_unlock(&lp2_map_lock);
 
-	writel(twd_ctrl, twd_base + 0x8);
-	writel(twd_load, twd_base + 0);
 	gic_cpu_init(0, IO_ADDRESS(TEGRA_ARM_PERIF_BASE) + 0x100);
 	tegra_unmask_irq(IRQ_LOCALTIMER);
 
@@ -336,16 +328,14 @@ void tegra_idle_enter_lp2_cpu_n(struct cpuidle_device *dev,
 	writel(smp_processor_id(), EVP_CPU_RSVD_VECTOR);
 	start_critical_timings();
 
-	if (sleep_time)
-		tegra_lp2_set_trigger(0);
 	/*
 	 * TODO: is it worth going back to wfi if no interrupt is pending
 	 * and the requested sleep time has not passed?
 	 */
 
 	exit = ktime_get();
-	idle_stats.in_lp2_time[cpu_number(dev->cpu)] +=
-		ktime_to_us(ktime_sub(exit, enter));
+	sleep_time = ktime_to_us(ktime_sub(exit, enter));
+	idle_stats.in_lp2_time[cpu_number(dev->cpu)] += sleep_time;
 
 	return;
 }
