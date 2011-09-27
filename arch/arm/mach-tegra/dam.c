@@ -40,7 +40,7 @@ struct dam_context {
 	bool		ch_alloc[DAM_NUM_INPUT_CHANNELS];
 	bool		ch_inuse[DAM_NUM_INPUT_CHANNELS];
 	int		ch_insamplerate[DAM_NUM_INPUT_CHANNELS];
-	int		ctrlreg_cache[DAM_CTRL_REGINDEX];
+	int		ctrlreg_cache[DAM_CTRL_REGINDEX + 1];
 	struct clk	*dam_clk;
 	int		clk_refcnt;
 	int		dma_ch[dam_ch_maxnum];
@@ -98,7 +98,9 @@ void dam_ch1_set_gain(int ifc,int gain);
 
 static inline void dam_writel(int ifc, u32 val, u32 reg)
 {
+	struct dam_context *ch = &dam_cont_info[ifc];
 	__raw_writel(val, dam_base[ifc] + reg);
+	ch->ctrlreg_cache[(reg >> 2)] = val;
 	DAM_DEBUG_PRINT("dam write 0x%p: %08x\n", dam_base[ifc] + reg, val);
 }
 
@@ -394,7 +396,6 @@ int dam_suspend(int ifc)
 	ch = &dam_cont_info[ifc];
 
 	dam_save_ctrl_registers(ifc);
-	dam_disable_clock(ifc);
 
 	return 0;
 }
@@ -404,7 +405,6 @@ int dam_resume(int ifc)
 	struct dam_context *ch;
 	ch = &dam_cont_info[ifc];
 
-	dam_enable_clock(ifc);
 	dam_restore_ctrl_registers(ifc);
 
 	return 0;
@@ -438,6 +438,7 @@ void dam_disable_clock(int ifc)
 		ch->clk_refcnt--;
 		if ((ch->clk_refcnt == 0)  &&
 			(ch->dam_clk)) {
+			dam_suspend(ifc);
 			clk_disable(ch->dam_clk);
 		}
 	}
@@ -463,6 +464,7 @@ int dam_enable_clock(int ifc)
 			err = PTR_ERR(ch->dam_clk);
 			goto fail_dam_clock;
 		}
+		dam_resume(ifc);
 	}
 
 	ch->clk_refcnt++;
@@ -480,20 +482,26 @@ EXPORT_SYMBOL(dam_enable_clock);
 
 int dam_set_acif(int ifc, int chtype, struct audio_cif *cifInfo)
 {
+	struct dam_context *ch;
 	unsigned int reg_addr = (unsigned int)dam_base[ifc];
+	unsigned int reg_index = 0;
 	bool found = true;
 
+	ch = &dam_cont_info[ifc];
 	switch (chtype) {
 	case dam_ch_out:
 		reg_addr += DAM_AUDIOCIF_OUT_CTRL_0;
+		reg_index = (DAM_AUDIOCIF_OUT_CTRL_0 >> 2);
 		break;
 	case dam_ch_in0:
 		/*always Mono channel*/
 		cifInfo->client_channels = AUDIO_CHANNEL_1;
 		reg_addr += DAM_AUDIOCIF_CH0_CTRL_0;
+		reg_index = (DAM_AUDIOCIF_CH0_CTRL_0 >> 2);
 		break;
 	case dam_ch_in1:
 		reg_addr += DAM_AUDIOCIF_CH1_CTRL_0;
+		reg_index = (DAM_AUDIOCIF_CH1_CTRL_0 >> 2);
 		break;
 	default:
 		found = false;
@@ -501,7 +509,8 @@ int dam_set_acif(int ifc, int chtype, struct audio_cif *cifInfo)
 	}
 
 	if (found == true)
-		audio_switch_set_acif(reg_addr, cifInfo);
+		ch->ctrlreg_cache[reg_index] =
+				audio_switch_set_acif(reg_addr, cifInfo);
 
 	return 0;
 }

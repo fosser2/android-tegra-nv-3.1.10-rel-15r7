@@ -269,10 +269,12 @@ void audio_switch_dump_registers(int ifc)
 void audio_switch_clear_rx_port(int rxport)
 {
 	audio_switch_writel(ahub_reginfo[rxport].regbase, 0);
+	ahub_reginfo[rxport].regcache = 0;
 }
 void audio_switch_set_rx_port(int rxport, int txport)
 {
 	audio_switch_writel(ahub_reginfo[rxport].regbase, (1 << txport));
+	ahub_reginfo[rxport].regcache = (1 << txport);
 }
 
 int audio_switch_get_rx_port(int rxport)
@@ -300,7 +302,7 @@ void ahub_restore_registers(void)
 }
 
 /* audiocif control */
-void audio_switch_set_acif(int addr, struct audio_cif *cifInfo)
+u32 audio_switch_set_acif(int addr, struct audio_cif *cifInfo)
 {
 	u32 val;
 
@@ -341,6 +343,8 @@ void audio_switch_set_acif(int addr, struct audio_cif *cifInfo)
 	__raw_writel(val, addr);
 
 	AHUB_DEBUG_PRINT("acif value written 0x%x: %08x\n", addr, val);
+
+	return val;
 }
 
 
@@ -352,6 +356,7 @@ static inline void apbif_writel(int ifc, u32 val, u32 reg)
 		(unsigned int)ch->virt_base + reg, val);
 
 	__raw_writel(val, ch->virt_base + reg);
+	ch->reg_cache[(reg >> 2)] = val;
 }
 
 static inline u32 apbif_readl(int ifc, u32 reg)
@@ -767,11 +772,13 @@ int audio_apbif_set_acif(int ifc, int fifo_mode, struct audio_cif *cifInfo)
 	ch =  &apbif_channels[ifc];
 
 	if (fifo_mode == AUDIO_TX_MODE) {
-		audio_switch_set_acif((unsigned int)ch->virt_base +
-		 APBIF_AUDIOCIF_TX0_CTRL_0, cifInfo);
+		ch->reg_cache[(APBIF_AUDIOCIF_TX0_CTRL_0 >> 2)] =
+			audio_switch_set_acif((unsigned int)ch->virt_base +
+				APBIF_AUDIOCIF_TX0_CTRL_0, cifInfo);
 	} else {
-		audio_switch_set_acif((unsigned int)ch->virt_base +
-		 APBIF_AUDIOCIF_RX0_CTRL_0, cifInfo);
+		ch->reg_cache[(APBIF_AUDIOCIF_RX0_CTRL_0 >> 2)] =
+			audio_switch_set_acif((unsigned int)ch->virt_base +
+				APBIF_AUDIOCIF_RX0_CTRL_0, cifInfo);
 	}
 	return 0;
 }

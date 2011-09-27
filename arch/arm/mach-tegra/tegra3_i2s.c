@@ -74,10 +74,14 @@ static struct audio_cif  audiocif;
 
 static inline void i2s_writel(int ifc, u32 val, u32 reg)
 {
+	struct i2s_controller_info *info = &i2s_cont_info[ifc];
+
 	I2S_DEBUG_PRINT("i2s Write 0x%x : %08x\n",
 		(unsigned int)i2s_base[ifc] + reg, val);
 
 	__raw_writel(val, i2s_base[ifc] + reg);
+
+	info->i2s_regcache[(reg >> 2)] = val;
 }
 
 static inline u32 i2s_readl(int ifc, u32 reg)
@@ -794,8 +798,9 @@ int i2s_set_acif(int ifc, int fifo_mode, struct audio_cif *cifInfo)
 	int apbif_ifc = i2s_get_apbif_channel(ifc, fifo_mode);
 
 	if (fifo_mode == AUDIO_TX_MODE)
-		audio_switch_set_acif((unsigned int)i2s_base[ifc] +
-			 I2S_AUDIOCIF_I2STX_CTRL_0, cifInfo);
+		info->i2s_regcache[(I2S_AUDIOCIF_I2STX_CTRL_0 >> 2)] =
+			audio_switch_set_acif((unsigned int)i2s_base[ifc] +
+				 I2S_AUDIOCIF_I2STX_CTRL_0, cifInfo);
 	else {
 		struct audio_cif  reccifInfo;
 		memcpy(&reccifInfo, cifInfo, sizeof(struct audio_cif));
@@ -805,7 +810,8 @@ int i2s_set_acif(int ifc, int fifo_mode, struct audio_cif *cifInfo)
 		 (cifInfo->client_channels == AUDIO_CHANNEL_1))
 			reccifInfo.client_channels = AUDIO_CHANNEL_2;
 
-		audio_switch_set_acif((unsigned int)i2s_base[ifc] +
+		info->i2s_regcache[(I2S_AUDIOCIF_I2SRX_CTRL_0 >> 2)] =
+			audio_switch_set_acif((unsigned int)i2s_base[ifc] +
 				 I2S_AUDIOCIF_I2SRX_CTRL_0, &reccifInfo);
 	}
 

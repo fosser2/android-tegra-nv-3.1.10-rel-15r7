@@ -119,7 +119,7 @@ int  apbif_get_channel(int regindex, int fifo_mode);
 void apbif_soft_reset(int ifc, int fifo_mode, int enable);
 void apbif_fifo_write(int ifc, int fifo_mode, u32 data);
 u32 apbif_fifo_read(int ifc, int fifo_mode);
-void audio_switch_set_acif(int addr, struct audio_cif *cifInfo);
+u32 audio_switch_set_acif(int addr, struct audio_cif *cifInfo);
 int  audio_switch_get_rx_port(int rxport);
 void audio_switch_set_rx_port(int rxport, int txport);
 void audio_switch_clear_rx_port(int rxport);
