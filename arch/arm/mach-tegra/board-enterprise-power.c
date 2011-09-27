@@ -265,6 +265,10 @@ static struct tps80031_bg_platform_data battery_gauge_data = {
 		.name   = "tps80031-battery-gauge",	\
 		.platform_data = &battery_gauge_data,	\
 	}
+#define TPS_GPADC()					\
+	{						\
+		.name	= "tps80031-gpadc",		\
+	}
 
 static struct tps80031_subdev_info tps80031_devs[] = {
 	TPS_REG(VIO, vio),
@@ -286,6 +290,7 @@ static struct tps80031_subdev_info tps80031_devs[] = {
 	TPS_RTC(),
 	TPS_BATTERY(),
 	TPS_BATTERY_GAUGE(),
+	TPS_GPADC(),
 };
 
 struct tps80031_32kclock_plat_data clk32k_pdata = {
