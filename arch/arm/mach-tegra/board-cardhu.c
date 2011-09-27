@@ -763,19 +763,6 @@ static struct platform_device tegra_camera = {
 	.id = -1,
 };
 
-static struct resource ram_console_resources[] = {
-	{
-		.flags = IORESOURCE_MEM,
-	},
-};
-
-static struct platform_device ram_console_device = {
-	.name 		= "ram_console",
-	.id 		= -1,
-	.num_resources	= ARRAY_SIZE(ram_console_resources),
-	.resource	= ram_console_resources,
-};
-
 static struct platform_device *cardhu_devices[] __initdata = {
 	&pmu_device,
 #if defined(CONFIG_RTC_DRV_TEGRA)
@@ -798,7 +785,6 @@ static struct platform_device *cardhu_devices[] __initdata = {
 #if defined(CONFIG_CRYPTO_DEV_TEGRA_AES)
 	&tegra_aes_device,
 #endif
-	&ram_console_device,
 };
 
 
@@ -1124,6 +1110,7 @@ static void __init tegra_cardhu_init(void)
 	snprintf(usb_serial_num, sizeof(usb_serial_num), "%llx", tegra_chip_uid());
 	andusb_plat.serial_number = kstrdup(usb_serial_num, GFP_KERNEL);
 	platform_add_devices(cardhu_devices, ARRAY_SIZE(cardhu_devices));
+	tegra_ram_console_debug_init();
 	cardhu_audio_init();
 	cardhu_sdhci_init();
 	cardhu_regulator_init();
@@ -1160,15 +1147,7 @@ static void __init tegra_cardhu_reserve(void)
 	tegra_reserve(SZ_128M, SZ_8M, SZ_8M);
 #endif
 
-	res = platform_get_resource(&ram_console_device, IORESOURCE_MEM, 0);
-	res->start = memblock_end_of_DRAM() - SZ_1M;
-	res->end = res->start + SZ_1M - 1;
-	ret = memblock_remove(res->start, SZ_1M);
-	if (ret) {
-		ram_console_device.resource = NULL;
-		ram_console_device.num_resources = 0;
-		pr_err("Failed to reserve memory block for ram console\n");
-	}
+	tegra_ram_console_debug_reserve(SZ_1M);
 }
 
 MACHINE_START(CARDHU, "cardhu")
