@@ -598,7 +598,7 @@ static int tegra_sdhci_suspend(struct platform_device *pdev, pm_message_t state)
 static int tegra_sdhci_resume(struct platform_device *pdev)
 {
 	struct tegra_sdhci_host *host = platform_get_drvdata(pdev);
-	int ret = 0, prev_card_present_stat = 0;
+	int ret = 0;
 
 	if (host->card_always_on && is_card_sdio(host->sdhci->mmc->card)) {
 		int ret = 0;
@@ -630,15 +630,17 @@ static int tegra_sdhci_resume(struct platform_device *pdev)
 	if (ret)
 		pr_err("%s: failed, error = %d\n", __func__, ret);
 
-       if (host->cd_gpio != -1) {
+	if (host->cd_gpio != -1) {
+		int prev_card_present_stat = 0;
+
 		prev_card_present_stat = host->card_present;
 
 		host->card_present =
 			(gpio_get_value(host->cd_gpio) == host->cd_gpio_polarity);
 
-		if(prev_card_present_stat != host->card_present)
+		if (prev_card_present_stat != host->card_present)
 			sdhci_card_detect_callback(host->sdhci);
-       }
+	}
 
 	return ret;
 }
