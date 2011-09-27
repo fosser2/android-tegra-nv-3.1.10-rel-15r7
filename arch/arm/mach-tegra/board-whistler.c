@@ -146,6 +146,7 @@ static void __init whistler_uart_init(void)
 {
 	int i;
 	struct clk *c;
+	unsigned long board_personality;
 
 	for (i = 0; i < ARRAY_SIZE(uart_parent_clk); ++i) {
 		c = tegra_get_clock_by_name(uart_parent_clk[i].name);
@@ -164,9 +165,17 @@ static void __init whistler_uart_init(void)
 	tegra_uartb_device.dev.platform_data = &whistler_uart_pdata;
 	tegra_uartc_device.dev.platform_data = &whistler_uart_pdata;
 
-	/* Register low speed only if it is selected */
-	if (!is_tegra_debug_uartport_hs())
-		uart_debug_init();
+	/* Register low speed only if it is selected
+	 *  Debug UART can not be hard coded to UARTA.. Modem needs it.
+	 *  Check if the modem personality indicates a MOdem in use before
+	 *  before initializing debug uart.
+	 */
+	if (!is_tegra_debug_uartport_hs()) {
+		board_personality = get_board_personality();
+		if ((board_personality != 0x0) && (board_personality != 0x2))
+			uart_debug_init();
+	}
+
 
 	platform_add_devices(whistler_uart_devices,
 				ARRAY_SIZE(whistler_uart_devices));
@@ -790,8 +799,9 @@ static void __init tegra_whistler_init(void)
 	whistler_emc_init();
 
 	board_personality = get_board_personality();
-	if (board_personality != 0x05)
+	if ((board_personality == 0x0) || (board_personality == 0x2))
 		whistler_baseband_ph450_init();
+
 }
 
 int __init tegra_whistler_protected_aperture_init(void)
