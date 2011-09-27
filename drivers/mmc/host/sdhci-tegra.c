@@ -615,7 +615,6 @@ static int tegra_sdhci_resume(struct platform_device *pdev)
 	int ret = 0;
 
 	if (host->card_always_on && is_card_sdio(host->sdhci->mmc->card)) {
-		int ret = 0;
 
 		if (device_may_wakeup(&pdev->dev))
 			disable_irq_wake(host->sdhci->irq);
@@ -633,10 +632,9 @@ static int tegra_sdhci_resume(struct platform_device *pdev)
 		return 0;
 	}
 
-	if (host->cd_gpio != -1) {
-		int prev_card_present_stat = 0;
 
-		prev_card_present_stat = host->card_present;
+	if (host->cd_gpio != -1) {
+		int prev_card_present_stat = host->card_present;
 
 		host->card_present =
 			(gpio_get_value(host->cd_gpio) == host->cd_gpio_polarity);
@@ -644,6 +642,7 @@ static int tegra_sdhci_resume(struct platform_device *pdev)
 		if (prev_card_present_stat != host->card_present)
 			sdhci_card_detect_callback(host->sdhci);
 	}
+
 	if(host->card_present){
 		if(host->is_rail_enabled == 0){
 			if (host->reg_vdd_slot)
@@ -659,7 +658,6 @@ static int tegra_sdhci_resume(struct platform_device *pdev)
         ret = sdhci_resume_host(host->sdhci);
         if (ret)
  		pr_err("%s: failed, error = %d\n", __func__, ret);
-
 
 	return ret;
 }
