@@ -147,14 +147,14 @@ static int tegra_idle_enter_lp2(struct cpuidle_device *dev,
 
 	smp_rmb();
 
-	if (state != dev->last_state)
-		return (int)us;	/* skip lp2 stats if we've been in lp3 */
-
-	state->exit_latency = tegra_lp2_exit_latency;
-	state->target_residency = tegra_lp2_exit_latency +
-		tegra_lp2_power_off_time;
-	if (state->target_residency < tegra_lp2_min_residency)
-		state->target_residency = tegra_lp2_min_residency;
+	/* update lp2 latency only if actually exiting from lp2 state */
+	if (state == dev->last_state) {
+		state->exit_latency = tegra_lp2_exit_latency;
+		state->target_residency = tegra_lp2_exit_latency +
+			tegra_lp2_power_off_time;
+		if (state->target_residency < tegra_lp2_min_residency)
+			state->target_residency = tegra_lp2_min_residency;
+	}
 
 	tegra_idle_stats_lp2_time(dev->cpu, us);
 
