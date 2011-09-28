@@ -26,7 +26,7 @@
 #include "../codecs/wm8903.h"
 
 static struct platform_device *tegra_snd_device;
-
+static struct tegra_audio_data audio_data;
 extern struct snd_soc_dai tegra_i2s_dai[];
 extern struct snd_soc_dai tegra_spdif_dai;
 extern struct snd_soc_dai tegra_generic_codec_dai[];
@@ -175,28 +175,6 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 		CtrlReg |= ADCL_ENA;
 		snd_soc_write(codec, WM8903_POWER_MANAGEMENT_6, CtrlReg);
 
-#else
-
-		/* Enabling Digital mic as default*/
-		/* Set GP1_FN as DMIC_LR */
-		CtrlReg = DMIC_CLK_OUT | GPIO_DIR_OUT;
-		snd_soc_write(codec, WM8903_GPIO_CONTROL_1, CtrlReg);
-
-		/* Set GP2_FN as DMIC_DAT */
-		CtrlReg = DMIC_DAT_DATA_IN | GPIO_DIR_IN;
-		snd_soc_write(codec, WM8903_GPIO_CONTROL_2, CtrlReg);
-
-		/* Enable ADC Digital volumes */
-		VolumeCtrlReg = ADC_DIGITAL_VOL_17_625_DB;
-
-		snd_soc_write(codec, WM8903_ADC_DIGITAL_VOLUME_LEFT,
-				VolumeCtrlReg);
-		snd_soc_write(codec, WM8903_ADC_DIGITAL_VOLUME_RIGHT,
-				VolumeCtrlReg);
-
-		/* Enable DIG_MIC */
-		CtrlReg = WM8903_ADC_DIG_MIC;
-		snd_soc_write(codec, WM8903_CLOCK_RATE_TEST_4, CtrlReg);
 #endif
 	}
 
@@ -399,6 +377,7 @@ static int tegra_dapm_event_int_spk(struct snd_soc_dapm_widget* w,
 static int tegra_dapm_event_int_mic(struct snd_soc_dapm_widget* w,
 				    struct snd_kcontrol* k, int event)
 {
+	int val;
 	if (tegra_wired_jack_conf.en_mic_int != -1)
 		gpio_set_value_cansleep(tegra_wired_jack_conf.en_mic_int,
 			SND_SOC_DAPM_EVENT_ON(event) ? 1 : 0);
@@ -406,6 +385,38 @@ static int tegra_dapm_event_int_mic(struct snd_soc_dapm_widget* w,
 	if (tegra_wired_jack_conf.en_mic_ext != -1)
 		gpio_set_value_cansleep(tegra_wired_jack_conf.en_mic_ext,
 			SND_SOC_DAPM_EVENT_ON(event) ? 0 : 1);
+
+	if (SND_SOC_DAPM_EVENT_ON(event)) {
+		/* Enabling Digital mic as default*/
+		/* Set GP1_FN as DMIC_LR */
+		val = DMIC_CLK_OUT | GPIO_DIR_OUT;
+		snd_soc_write(audio_data.codec, WM8903_GPIO_CONTROL_1, val);
+
+		/* Set GP2_FN as DMIC_DAT */
+		val = DMIC_DAT_DATA_IN | GPIO_DIR_IN;
+		snd_soc_write(audio_data.codec, WM8903_GPIO_CONTROL_2, val);
+
+		/* Enable ADC Digital volumes */
+		val = ADC_DIGITAL_VOL_9DB;
+
+		snd_soc_write(audio_data.codec, WM8903_ADC_DIGITAL_VOLUME_LEFT,
+				val);
+		snd_soc_write(audio_data.codec, WM8903_ADC_DIGITAL_VOLUME_RIGHT,
+				val);
+
+		/* Enable DIG_MIC */
+		val = WM8903_ADC_DIG_MIC;
+		snd_soc_write(audio_data.codec, WM8903_CLOCK_RATE_TEST_4, val);
+
+		/* Disable analog inputs */
+		val = 0;
+		snd_soc_write(audio_data.codec, WM8903_POWER_MANAGEMENT_0, val);
+
+		/* Enable ADC */
+		val = snd_soc_read(audio_data.codec, WM8903_POWER_MANAGEMENT_6);
+		val |= ADCL_ENA;
+		snd_soc_write(audio_data.codec,WM8903_POWER_MANAGEMENT_6, val);
+	}
 
 	return 0;
 }
@@ -413,6 +424,7 @@ static int tegra_dapm_event_int_mic(struct snd_soc_dapm_widget* w,
 static int tegra_dapm_event_ext_mic(struct snd_soc_dapm_widget* w,
 				    struct snd_kcontrol* k, int event)
 {
+	int val;
 	if (tegra_wired_jack_conf.en_mic_ext != -1)
 		gpio_set_value_cansleep(tegra_wired_jack_conf.en_mic_ext,
 			SND_SOC_DAPM_EVENT_ON(event) ? 1 : 0);
@@ -420,6 +432,34 @@ static int tegra_dapm_event_ext_mic(struct snd_soc_dapm_widget* w,
 	if (tegra_wired_jack_conf.en_mic_int != -1)
 		gpio_set_value_cansleep(tegra_wired_jack_conf.en_mic_int,
 			SND_SOC_DAPM_EVENT_ON(event) ? 0 : 1);
+
+	if (SND_SOC_DAPM_EVENT_ON(event)) {
+		/* Single Ended Mic */
+		val = CM_DISABLED | SINGLE_ENDED_MODE | IN1L_SEL_N | IN2L_SEL_P;
+		/* Mic Setting */
+		snd_soc_write(audio_data.codec, WM8903_ANALOGUE_LEFT_INPUT_1,
+				val);
+		snd_soc_write(audio_data.codec,WM8903_ANALOGUE_RIGHT_INPUT_1,
+				val);
+
+		/* Duplicate left ADC data on both channels */
+		val = snd_soc_read(audio_data.codec, WM8903_AUDIO_INTERFACE_0);
+		val  = SET_REG_VAL(val, 0x1, B06_AIF_ADCR, 0x0);
+		val  = SET_REG_VAL(val, 0x1, B06_AIF_ADCL, 0x0);
+		snd_soc_write(audio_data.codec, WM8903_AUDIO_INTERFACE_0, val);
+		/* Enable analog inputs */
+		val = INL_ENA;
+		snd_soc_write(audio_data.codec, WM8903_POWER_MANAGEMENT_0, val);
+
+		/* Enable ADC */
+		val = snd_soc_read(audio_data.codec, WM8903_POWER_MANAGEMENT_6);
+		val |= ADCL_ENA;
+		snd_soc_write(audio_data.codec, WM8903_POWER_MANAGEMENT_6, val);
+
+		/* Disable DIG_MIC */
+		val = 0;
+		snd_soc_write(audio_data.codec, WM8903_CLOCK_RATE_TEST_4, val);
+	}
 
 	return 0;
 }
@@ -428,7 +468,7 @@ static int tegra_dapm_event_ext_mic(struct snd_soc_dapm_widget* w,
 static const struct snd_soc_dapm_widget tegra_dapm_widgets[] = {
 	SND_SOC_DAPM_HP("Headphone", NULL),
 	SND_SOC_DAPM_HP("Headset Out", NULL),
-	SND_SOC_DAPM_MIC("Headset In", NULL),
+	SND_SOC_DAPM_MIC("Headset In", tegra_dapm_event_ext_mic),
 	SND_SOC_DAPM_SPK("Lineout", NULL),
 	SND_SOC_DAPM_SPK("Int Spk", tegra_dapm_event_int_spk),
 	SND_SOC_DAPM_MIC("Ext Mic", tegra_dapm_event_ext_mic),
@@ -484,14 +524,14 @@ static int tegra_codec_init(struct snd_soc_codec *codec)
 			err = -ENODEV;
 			goto wm8903_init_fail;
 		}
-
+#if defined(CONFIG_ARCH_TEGRA_2x_SOC)
 		err = tegra_das_enable_mclk();
 		if (err) {
 			pr_err(" Failed to enable dap mclk \n");
 			err = -ENODEV;
 			goto wm8903_init_fail;
 		}
-
+#endif
 		/* Add tegra specific widgets */
 		snd_soc_dapm_new_controls(codec, tegra_dapm_widgets,
 					ARRAY_SIZE(tegra_dapm_widgets));
