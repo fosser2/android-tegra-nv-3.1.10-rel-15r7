@@ -38,7 +38,7 @@
 struct dam_context {
 	int		outsamplerate;
 	bool		ch_alloc[DAM_NUM_INPUT_CHANNELS];
-	bool		ch_inuse[DAM_NUM_INPUT_CHANNELS];
+	int		ch_enable_refcnt[DAM_NUM_INPUT_CHANNELS];
 	int		ch_insamplerate[DAM_NUM_INPUT_CHANNELS];
 	int		ctrlreg_cache[DAM_CTRL_REGINDEX];
 	struct clk	*dam_clk;
@@ -129,26 +129,46 @@ void dam_dump_registers(int ifc)
 
 void dam_enable(int ifc, int on, int chtype)
 {
-	u32 val;
+	u32 old_val, new_val;
 	struct dam_context *ch = &dam_cont_info[ifc];
 
 	check_dam_ifc(ifc);
+	if (on) {
+		if (chtype == dam_ch_in0) {
+			if (ch->ch_enable_refcnt[dam_ch_in0] == 0)
+				dam_ch0_enable(ifc, on);
 
-	if (chtype == dam_ch_in0) {
-		dam_ch0_enable(ifc, on);
-		ch->ch_inuse[dam_ch_in0] = (on)? true : false;
-	} else if (chtype == dam_ch_in1) {
-		dam_ch1_enable(ifc, on);
-		ch->ch_inuse[dam_ch_in1] = (on)? true : false;
+			ch->ch_enable_refcnt[dam_ch_in0]++;
+
+		} else if (chtype == dam_ch_in1) {
+			if (ch->ch_enable_refcnt[dam_ch_in1] == 0)
+				dam_ch1_enable(ifc, on);
+
+			ch->ch_enable_refcnt[dam_ch_in1]++;
+		}
+	} else {
+		if (chtype == dam_ch_in0) {
+			ch->ch_enable_refcnt[dam_ch_in0]--;
+
+			if (ch->ch_enable_refcnt[dam_ch_in0] == 0)
+				dam_ch0_enable(ifc, on);
+		} else if (chtype == dam_ch_in1) {
+			ch->ch_enable_refcnt[dam_ch_in1]--;
+
+			if (ch->ch_enable_refcnt[dam_ch_in1] == 0)
+				dam_ch1_enable(ifc, on);
+		}
 	}
 
-	val = dam_readl(ifc, DAM_CTRL_0);
+	old_val = new_val = dam_readl(ifc, DAM_CTRL_0);
 
-	val &= ~DAM_CTRL_0_DAM_EN;
-	val |= ((ch->ch_inuse[dam_ch_in0] || ch->ch_inuse[dam_ch_in1])) ?
-		DAM_CTRL_0_DAM_EN : 0;
+	new_val &= ~DAM_CTRL_0_DAM_EN;
+	new_val |= ((ch->ch_enable_refcnt[dam_ch_in0] ||
+				ch->ch_enable_refcnt[dam_ch_in1])) ?
+				DAM_CTRL_0_DAM_EN : 0;
 
-	dam_writel(ifc, val, DAM_CTRL_0);
+	if (old_val != new_val)
+		dam_writel(ifc, new_val, DAM_CTRL_0);
 
 }
 EXPORT_SYMBOL(dam_enable);
