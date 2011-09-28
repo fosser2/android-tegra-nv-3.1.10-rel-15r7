@@ -41,7 +41,7 @@ int __init audio_wired_jack_init(void)
 	int ret;
 
 	tegra_gpio_enable(audio_wr_jack_conf.hp_det_n);
-
+	tegra_gpio_enable(audio_wr_jack_conf.cdc_irq);
 	ret = platform_device_register(&audio_hs_jack_device);
 	return ret;
 }
