@@ -582,8 +582,11 @@ static int cache_maint(struct nvmap_client *client, struct nvmap_handle *h,
 	}
 
 	wmb();
-	if (h->flags == NVMAP_HANDLE_UNCACHEABLE ||
-	    h->flags == NVMAP_HANDLE_WRITE_COMBINE || start == end)
+#if defined(CONFIG_ARCH_TEGRA_2x_SOC)
+	if (h->flags == NVMAP_HANDLE_WRITE_COMBINE)
+		goto out;
+#endif
+	if (h->flags == NVMAP_HANDLE_UNCACHEABLE || start == end)
 		goto out;
 
 	if (fast_cache_maint(client, h, start, end, op))
