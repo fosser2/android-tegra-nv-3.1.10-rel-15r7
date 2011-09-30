@@ -62,9 +62,9 @@ static struct regulator_consumer_supply tps80031_vio_supply[] = {
 	REGULATOR_SUPPLY("avdd_usb_pll", NULL),
 	REGULATOR_SUPPLY("vddio_cam", NULL),
 	REGULATOR_SUPPLY("pwrdet_cam", NULL),
-	REGULATOR_SUPPLY("vddio_sdmmc1", NULL),
+	REGULATOR_SUPPLY("vddio_sdmmc", "sdhci-tegra.0"),
 	REGULATOR_SUPPLY("pwrdet_sdmmc1", NULL),
-	REGULATOR_SUPPLY("vddio_sdmmc4", NULL),
+	REGULATOR_SUPPLY("vddio_sdmmc", "sdhci-tegra.3"),
 	REGULATOR_SUPPLY("pwrdet_sdmmc4", NULL),
 	REGULATOR_SUPPLY("avdd_hdmi_pll", NULL),
 	REGULATOR_SUPPLY("vddio_gps", NULL),
@@ -346,7 +346,7 @@ static int gpio_switch_vdd_fuse_en_voltages[] = {3300};
 static struct regulator_consumer_supply gpio_switch_sdmmc3_vdd_sel_supply[] = {
 	REGULATOR_SUPPLY("vddio_sdmmc3_2v85_1v8", NULL),
 	REGULATOR_SUPPLY("sdmmc3_compu_pu", NULL),
-	REGULATOR_SUPPLY("vddio_sdmmc3", NULL),
+	REGULATOR_SUPPLY("vddio_sdmmc", "sdhci-tegra.2"),
 	REGULATOR_SUPPLY("vsys_3v7", NULL),
 };
 static int gpio_switch_sdmmc3_vdd_sel_voltages[] = {2850};
