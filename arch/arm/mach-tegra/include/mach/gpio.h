@@ -59,4 +59,5 @@ static inline int irq_to_gpio(unsigned int irq)
 void tegra_gpio_enable(int gpio);
 void tegra_gpio_disable(int gpio);
 void tegra_gpio_set_tristate(int gpio, enum tegra_tristate ts);
+void tegra_gpio_init_configure(unsigned gpio, bool is_input, int value);
 #endif
