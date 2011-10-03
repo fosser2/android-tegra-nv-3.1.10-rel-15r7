@@ -93,6 +93,7 @@ static int aic326x_hifi_hw_params(struct snd_pcm_substream *substream,
 	}
 
 	sys_clk = clk_get_rate(audio_data->dap_mclk);
+
 	err = snd_soc_dai_set_sysclk(codec_dai, 0, sys_clk, SND_SOC_CLOCK_IN);
 	if (err < 0) {
 		pr_err("codec_dai clock not set\n");
@@ -109,6 +110,90 @@ static int aic326x_hifi_hw_params(struct snd_pcm_substream *substream,
 }
 
 static int aic326x_hifi_hw_free(struct snd_pcm_substream *substream)
+{
+	return 0;
+}
+
+static int aic326x_voice_hw_params(struct snd_pcm_substream *substream,
+					struct snd_pcm_hw_params *params)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
+	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
+	struct tegra_audio_data* audio_data = rtd->socdev->codec_data;
+	enum dac_dap_data_format data_fmt;
+	int dai_flag = 0, sys_clk;
+	int err;
+	bool master_port = false;
+
+	if (!strcmp(rtd->dai->stream_name, "Tegra BT Voice Call")) {
+		master_port = tegra_das_is_port_master(
+				tegra_audio_codec_type_bluetooth);
+
+		data_fmt = tegra_das_get_codec_data_fmt(
+				tegra_audio_codec_type_bluetooth);
+	}
+	else if (!strcmp(rtd->dai->stream_name, "Tegra Voice Call")) {
+		master_port = tegra_das_is_port_master(
+				tegra_audio_codec_type_voice);
+
+		data_fmt = tegra_das_get_codec_data_fmt(
+				tegra_audio_codec_type_baseband);
+	}
+	else {/* Tegra BT-SCO Voice */
+		master_port = tegra_das_is_port_master(
+				tegra_audio_codec_type_bluetooth);
+
+		data_fmt = tegra_das_get_codec_data_fmt
+			(tegra_audio_codec_type_bluetooth);
+	}
+
+	if (master_port == true)
+		dai_flag |= SND_SOC_DAIFMT_CBM_CFM;
+	else
+		dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
+
+	/* We are supporting DSP and I2s format for now */
+	if (data_fmt & dac_dap_data_format_dsp)
+		dai_flag |= SND_SOC_DAIFMT_DSP_A;
+	else
+		dai_flag |= SND_SOC_DAIFMT_I2S;
+
+	err = snd_soc_dai_set_fmt(codec_dai, dai_flag);
+	if (err < 0) {
+		pr_err("codec_dai fmt not set \n");
+		return err;
+	}
+
+	err = snd_soc_dai_set_fmt(cpu_dai, dai_flag);
+	if (err < 0) {
+		pr_err("cpu_dai fmt not set \n");
+		return err;
+	}
+
+	sys_clk = clk_get_rate(audio_data->dap_mclk);
+	err = snd_soc_dai_set_sysclk(codec_dai, 0, sys_clk, SND_SOC_CLOCK_IN);
+	if (err < 0) {
+		pr_err("cpu_dai clock not set\n");
+		return err;
+	}
+
+	err = snd_soc_dai_set_sysclk(cpu_dai, 0, sys_clk, SND_SOC_CLOCK_IN);
+	if (err < 0) {
+		pr_err("cpu_dai clock not set\n");
+		return err;
+	}
+
+	return 0;
+}
+
+static int aic326x_voice_hw_free(struct snd_pcm_substream *substream)
+{
+	return 0;
+}
+
+static int aic326x_spdif_hw_params(struct snd_pcm_substream *substream,
+					struct snd_pcm_hw_params *params)
 {
 	return 0;
 }
@@ -163,6 +248,17 @@ static struct snd_soc_ops aic326x_hifi_ops = {
 	.hw_free   = aic326x_hifi_hw_free,
 	.startup = aic326x_codec_startup,
 	.shutdown = aic326x_codec_shutdown,
+};
+
+static struct snd_soc_ops aic326x_voice_ops = {
+	.hw_params = aic326x_voice_hw_params,
+	.hw_free   = aic326x_voice_hw_free,
+	.startup = aic326x_codec_startup,
+	.shutdown = aic326x_codec_shutdown,
+};
+
+static struct snd_soc_ops aic326x_spdif_ops = {
+	.hw_params = aic326x_spdif_hw_params,
 };
 
 void tegra_ext_control(struct snd_soc_codec *codec, int new_con)
@@ -385,6 +481,31 @@ static struct snd_soc_dai_link tegra_soc_dai[] = {
 		.init = aic326x_codec_init,
 		.ops = &aic326x_hifi_ops,
 	},
+	{
+		.name = "Tegra-Voice",
+		.stream_name = "Tegra BT-SCO Voice",
+		.cpu_dai = &tegra_i2s_dai[1],
+		.codec_dai = &tegra_generic_codec_dai[TEGRA_BT_CODEC_ID],
+		.init = aic326x_codec_init,
+		.ops = &aic326x_voice_ops,
+	},
+	{
+		.name = "Tegra-spdif",
+		.stream_name = "Tegra Spdif",
+		.cpu_dai = &tegra_spdif_dai,
+		.codec_dai = &tegra_generic_codec_dai[TEGRA_SPDIF_CODEC_ID],
+		.init = aic326x_codec_init,
+		.ops = &aic326x_spdif_ops,
+	},
+	{
+		.name = "Tegra-voice-call",
+		.stream_name = "Tegra Voice Call",
+		.cpu_dai = &tegra_generic_codec_dai[TEGRA_BB_CODEC_ID],
+		.codec_dai = &tlv320aic3262_dai,
+		.init = aic326x_codec_init,
+		.ops = &aic326x_voice_ops,
+	},
+
 };
 
 static struct tegra_audio_data aic326x_audio_data = {
