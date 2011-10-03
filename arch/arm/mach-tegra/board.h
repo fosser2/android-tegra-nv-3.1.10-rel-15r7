@@ -7,6 +7,8 @@
  *	Colin Cross <ccross@google.com>
  *	Erik Gilling <konkers@google.com>
  *
+ * Copyright (C) 2010-2011, NVIDIA Corporation
+ *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
  * may be copied, distributed, and modified under those terms.
@@ -85,6 +87,9 @@ enum power_supply_type {
 enum audio_codec_type {
 	audio_codec_none,
 	audio_codec_wm8903,
+	audio_codec_wm8753,
+	audio_codec_maxim98089,
+	audio_codec_aic3262,
 };
 
 void tegra_get_board_info(struct board_info *);

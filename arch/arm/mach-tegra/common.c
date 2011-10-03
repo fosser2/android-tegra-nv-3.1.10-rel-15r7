@@ -564,6 +564,12 @@ static int __init tegra_audio_codec_type(char *info)
 	char *p = info;
 	if (!strncmp(p, "wm8903", 6))
 		audio_codec_name = audio_codec_wm8903;
+	else if (!strncmp(p, "wm8753", 6))
+		audio_codec_name = audio_codec_wm8753;
+	else if (!strncmp(p, "maxim98089", 10))
+		audio_codec_name = audio_codec_maxim98089;
+	else if (!strncmp(p, "aic3262", 7))
+		audio_codec_name = audio_codec_aic3262;
 	else
 		audio_codec_name = audio_codec_none;
 
