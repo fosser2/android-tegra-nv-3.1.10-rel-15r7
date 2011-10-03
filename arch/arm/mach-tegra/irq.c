@@ -217,31 +217,46 @@ void tegra_set_lp0_wake_pads(u64 wake_enb, u64 wake_level, u64 wake_any)
 }
 
 #ifdef CONFIG_PM
-static void tegra_irq_handle_wake_helper(unsigned long wake_status)
+static void tegra_irq_handle_wake_helper(u64 wake_sts_val)
 {
 	int wake;
 	int irq;
 	struct irq_desc *desc;
+	unsigned long wake_status;
+	u8 i = 0;
+#ifndef CONFIG_ARCH_TEGRA_2x_SOC
+	u8 num_of_wake_registers = 2;
+#else
+	u8 num_of_wake_registers = 1;
+#endif
+	u8 size = sizeof(wake_status) * BITS_PER_BYTE;
 
-	for_each_set_bit(wake, &wake_status, sizeof(wake_status) * 8) {
-		irq = tegra_wake_to_irq(wake);
-		if (!irq) {
-			pr_info("Resume caused by WAKE%d\n", wake);
+	for (i = 0; i < num_of_wake_registers; i++, wake_sts_val >>= size) {
+		wake_status = wake_sts_val & 0xffffffff;
+		if (!wake_status)
 			continue;
+		for_each_set_bit(wake, &wake_status, size) {
+			irq = tegra_wake_to_irq(wake);
+			if (!irq) {
+				pr_info("Resume caused by WAKE%d\n",
+					wake + (i * size));
+				continue;
+			}
+
+			desc = irq_to_desc(irq);
+			if (!desc || !desc->action || !desc->action->name) {
+				pr_info("Resume caused by WAKE%d, irq %d\n",
+					wake + (i * size), irq);
+				continue;
+			}
+
+			pr_info("Resume caused by WAKE%d, %s\n",
+				wake + (i * size), desc->action->name);
+
+			tegra_wake_irq_count[wake]++;
+
+			generic_handle_irq(irq);
 		}
-
-		desc = irq_to_desc(irq);
-		if (!desc || !desc->action || !desc->action->name) {
-			pr_info("Resume caused by WAKE%d, irq %d\n", wake, irq);
-			continue;
-		}
-
-		pr_info("Resume caused by WAKE%d, %s\n", wake,
-			desc->action->name);
-
-		tegra_wake_irq_count[wake]++;
-
-		generic_handle_irq(irq);
 	}
 }
 
@@ -249,10 +264,7 @@ static void tegra_irq_handle_wake(void)
 {
 	u64 wake_status = read_pmc_wake_status();
 
-	tegra_irq_handle_wake_helper((unsigned long)wake_status);
-#ifndef CONFIG_ARCH_TEGRA_2x_SOC
-	tegra_irq_handle_wake_helper((unsigned long)(wake_status >> 32));
-#endif
+	tegra_irq_handle_wake_helper(wake_status);
 }
 #endif
 
