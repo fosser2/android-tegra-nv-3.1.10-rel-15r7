@@ -25,10 +25,14 @@
 #include <linux/resource.h>
 #include <linux/platform_device.h>
 #include <linux/err.h>
+#include <linux/interrupt.h>
+#include <linux/irq.h>
+#include <linux/device.h>
+#include <linux/usb.h>
+#include <linux/wakelock.h>
 #include <asm/mach-types.h>
 #include <mach/pinmux.h>
 #include <mach/spi.h>
-
 #include "clock.h"
 #include "devices.h"
 #include "gpio-names.h"
@@ -48,6 +52,9 @@
 #define MODEM_PWR_ON	TEGRA_GPIO_PV1
 #define MODEM_RESET	TEGRA_GPIO_PV0
 
+#define ENABLE_AUTO_SUSPEND     0
+#define ENABLE_HOST_RECOVERY    0	/* flashless only feature */
+
 /* Rainbow1 and 570 */
 #define AWR		TEGRA_GPIO_PZ0
 #define CWR		TEGRA_GPIO_PY6
@@ -57,7 +64,29 @@
 /* PH450 */
 #define AP2MDM_ACK2	TEGRA_GPIO_PU2
 #define MDM2AP_ACK2	TEGRA_GPIO_PV2
+#define BB_RST_OUT      TEGRA_GPIO_PV3
 
+struct ph450_priv {
+unsigned int wake_gpio;
+	unsigned int wake_cnt;
+	unsigned int restart_gpio;
+	struct mutex lock;
+	struct wake_lock wake_lock;
+	unsigned int vid;
+	unsigned int pid;
+	struct usb_device *udev;
+	struct usb_interface *intf;
+	struct workqueue_struct *wq;
+	struct delayed_work power_cycle_work;
+};
+
+static struct usb_device_id modem_list[] = {
+	{
+	.match_flags = USB_DEVICE_ID_MATCH_VENDOR,
+	.idVendor = 0x1983,
+	},
+	{},
+};
 
 struct whistler_baseband {
 	struct tegra_clk_init_table *clk_init;

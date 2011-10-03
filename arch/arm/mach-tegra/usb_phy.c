@@ -393,17 +393,14 @@ static void utmip_pad_power_on(struct tegra_usb_phy *phy)
 	void __iomem *base = phy->pad_regs;
 
 	clk_enable(phy->pad_clk);
-
 	spin_lock_irqsave(&utmip_pad_lock, flags);
 
-	if (utmip_pad_count++ == 0) {
-		val = readl(base + UTMIP_BIAS_CFG0);
-		val &= ~(UTMIP_OTGPD | UTMIP_BIASPD);
-		writel(val, base + UTMIP_BIAS_CFG0);
-	}
+	utmip_pad_count++;
+	val = readl(base + UTMIP_BIAS_CFG0);
+	val &= ~(UTMIP_OTGPD | UTMIP_BIASPD);
+	writel(val, base + UTMIP_BIAS_CFG0);
 
 	spin_unlock_irqrestore(&utmip_pad_lock, flags);
-
 	clk_disable(phy->pad_clk);
 }
 
@@ -882,9 +879,6 @@ static int null_phy_power_on(struct tegra_usb_phy *phy, bool is_dpd)
 	void __iomem *base = phy->regs;
 	struct tegra_ulpi_config *config = phy->config;
 
-	if (config->preinit)
-		config->preinit();
-
 	if (!config->trimmer)
 		config->trimmer = &default_trimmer;
 
@@ -895,6 +889,9 @@ static int null_phy_power_on(struct tegra_usb_phy *phy, bool is_dpd)
 	val = readl(base + ULPI_TIMING_CTRL_0);
 	val |= ULPI_OUTPUT_PINMUX_BYP | ULPI_CLKOUT_PINMUX_BYP;
 	writel(val, base + ULPI_TIMING_CTRL_0);
+
+	if (config->pre_phy_on && config->pre_phy_on())
+		return -EAGAIN;
 
 	val = readl(base + USB_SUSP_CTRL);
 	val |= ULPI_PHY_ENABLE;
@@ -919,6 +916,7 @@ static int null_phy_power_on(struct tegra_usb_phy *phy, bool is_dpd)
 	/* enable null phy mode */
 	val = ULPIS2S_ENA;
 	val |= ULPIS2S_PLLU_MASTER_BLASTER60;
+	val |= ULPIS2S_SUPPORT_DISCONNECT;
 	val |= ULPIS2S_SPARE((phy->mode == TEGRA_USB_PHY_MODE_HOST) ? 3 : 1);
 	writel(val, base + ULPIS2S_CTRL);
 
@@ -963,20 +961,27 @@ static int null_phy_power_on(struct tegra_usb_phy *phy, bool is_dpd)
 						     USB_PHY_CLK_VALID))
 		pr_err("%s: timeout waiting for phy to stabilize\n", __func__);
 
-	if (config->postinit)
-		config->postinit();
+	if (config->post_phy_on && config->post_phy_on())
+		return -EAGAIN;
 
 	return 0;
 }
 
-static void null_phy_power_off(struct tegra_usb_phy *phy, bool is_dpd)
+static int null_phy_power_off(struct tegra_usb_phy *phy, bool is_dpd)
 {
 	unsigned long val;
 	void __iomem *base = phy->regs;
+	struct tegra_ulpi_config *config = phy->config;
+
+	if (config->pre_phy_off && config->pre_phy_off())
+		return -EAGAIN;
 
 	val = readl(base + ULPI_TIMING_CTRL_0);
 	val &= ~ULPI_CLK_PADOUT_ENA;
 	writel(val, base + ULPI_TIMING_CTRL_0);
+
+	if (config->post_phy_off && config->post_phy_off())
+		return -EAGAIN;
 }
 
 static int uhsic_phy_power_on(struct tegra_usb_phy *phy, bool is_dpd)

@@ -52,6 +52,10 @@ struct tegra_ulpi_config {
 	const struct tegra_ulpi_trimmer *trimmer;
 	int (*preinit)(void);
 	int (*postinit)(void);
+	int (*pre_phy_on)(void);
+	int (*post_phy_on)(void);
+	int (*pre_phy_off)(void);
+	int (*post_phy_off)(void);
 };
 
 struct tegra_uhsic_config {
