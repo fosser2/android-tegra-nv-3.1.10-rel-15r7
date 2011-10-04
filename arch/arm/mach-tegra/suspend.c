@@ -734,7 +734,7 @@ void tegra_suspend_dram(bool do_lp0)
 	restore_cpu_complex();
 
 #ifdef CONFIG_CACHE_L2X0
-	l2x0_restart();
+	__cortex_a9_l2x0_reenable();
 #endif
 
 	if (!do_lp0) {
