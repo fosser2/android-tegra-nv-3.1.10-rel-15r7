@@ -338,3 +338,7 @@ config TEGRA_BB_XMM_POWER2
 	  insert this LKM to initiate 2nd USB enumeration power sequence
 	  - after modem software has been downloaded to flashless device.
 
+config TEGRA_THERMAL_SYSFS
+	bool "Enable Thermal driver to use Thermal Sysfs infrastructure"
+	depends on THERMAL
+	default n
