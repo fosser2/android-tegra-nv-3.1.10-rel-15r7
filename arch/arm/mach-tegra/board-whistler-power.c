@@ -247,9 +247,9 @@ static struct tegra_suspend_platform_data whistler_suspend_data = {
 	.separate_req	= false,
 	.corereq_high	= true,
 	.sysclkreq_high	= true,
-	.wake_enb	= TEGRA_WAKE_KBC_EVENT,
+	.wake_enb	= TEGRA_WAKE_KBC_EVENT | TEGRA_WAKE_GPIO_PS0,
 	.wake_high	= 0,
-	.wake_low	= 0,
+	.wake_low	= TEGRA_WAKE_GPIO_PS0,
 	.wake_any	= TEGRA_WAKE_KBC_EVENT,
 };
 
