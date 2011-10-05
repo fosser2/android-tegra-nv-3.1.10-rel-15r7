@@ -212,6 +212,11 @@ static __initdata struct tegra_clk_init_table cardhu_clk_init_table[] = {
 	{ "extern1",	"pll_a_out0",	0,	true},
 	{ "clk_out_1",	"extern1",	0,	true},
 	{ "d_audio",	"pll_a_out0",	12288000,	false},
+	{ "i2c1",	"pll_p",	3200000,	false},
+	{ "i2c2",	"pll_p",	3200000,	false},
+	{ "i2c3",	"pll_p",	3200000,	false},
+	{ "i2c4",	"pll_p",	3200000,	false},
+	{ "i2c5",	"pll_p",	3200000,	false},
 	{ NULL,		NULL,		0,		0},
 };
 
