@@ -38,6 +38,7 @@
 #include <linux/tegra_uart.h>
 #include <linux/fsl_devices.h>
 #include <linux/memblock.h>
+#include <linux/nfc/pn544.h>
 
 #include <mach/clk.h>
 #include <mach/iomap.h>
@@ -403,11 +404,23 @@ static struct max98088_pdata max98088_pdata = {
 	/* receiver output configuration */
 	.receiver_mode = 0,	/* 0 = amplifier, 1 = line output */
 };
+
+static struct pn544_i2c_platform_data nfc_pdata = {
+		.irq_gpio = TEGRA_GPIO_PS4,
+		.ven_gpio = TEGRA_GPIO_PM6,
+		.firm_gpio= 0,
+};
+
 static struct i2c_board_info __initdata enterprise_i2c_bus1_board_info[] = {
 	{
 		I2C_BOARD_INFO("max98088", 0x10),
 		.platform_data = &max98088_pdata,
 		.irq = TEGRA_GPIO_TO_IRQ(TEGRA_GPIO_PW3),
+	},
+	{
+		I2C_BOARD_INFO("pn544", 0x28),
+		.platform_data = &nfc_pdata,
+		.irq = TEGRA_GPIO_TO_IRQ(TEGRA_GPIO_PS4),
 	},
 };
 
@@ -988,6 +1001,12 @@ static void enterprise_baseband_init(void)
 	}
 }
 
+static void enterprise_nfc_init(void)
+{
+	tegra_gpio_enable(TEGRA_GPIO_PS4);
+	tegra_gpio_enable(TEGRA_GPIO_PM6);
+}
+
 static void __init tegra_enterprise_init(void)
 {
 	char serial[20];
@@ -1018,6 +1037,7 @@ static void __init tegra_enterprise_init(void)
 	enterprise_sensors_init();
 	enterprise_suspend_init();
 	tegra_release_bootloader_fb();
+	enterprise_nfc_init();
 }
 
 static void __init tegra_enterprise_reserve(void)
