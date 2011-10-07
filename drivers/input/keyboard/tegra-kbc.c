@@ -189,6 +189,7 @@ static void tegra_kbc_report_keys(struct tegra_kbc *kbc, int *fifo)
 	if (kbc->pdata->is_filter_keys)
 		valid = tegra_kbc_filter_keys(kbc, rows_val, cols_val, valid);
 
+	/* Checking for function key */
 	for (i = 0; i < valid; i++) {
 		int k = tegra_kbc_keycode(kbc, rows_val[i], cols_val[i], false);
 		if (k == KEY_FN) {
@@ -197,14 +198,16 @@ static void tegra_kbc_report_keys(struct tegra_kbc *kbc, int *fifo)
 		}
 	}
 
+	/* Scan code to Key code */
 	j = 0;
 	for (i = 0; i < valid; i++) {
 		int k = tegra_kbc_keycode(kbc, rows_val[i], cols_val[i], fn);
-		if (likely(k != -1))
+		if (likely(k != KEY_RESERVED))
 			curr_fifo[j++] = k;
 	}
 	valid = j;
 
+	/* Identification of Key releases*/
 	for (i = 0; i < KBC_MAX_KPRESS_EVENT; i++) {
 		if (fifo[i] == -1)
 			continue;
@@ -216,9 +219,11 @@ static void tegra_kbc_report_keys(struct tegra_kbc *kbc, int *fifo)
 		}
 		if (j == valid) {
 			input_report_key(kbc->idev, fifo[i], 0);
+			input_sync(kbc->idev);
 			fifo[i] = -1;
 		}
 	}
+	/* Making the entries of new key presses to fifo[] */
 	for (j = 0; j < valid; j++) {
 		if (curr_fifo[j] == -1)
 			continue;
@@ -229,6 +234,7 @@ static void tegra_kbc_report_keys(struct tegra_kbc *kbc, int *fifo)
 		if (i != KBC_MAX_KPRESS_EVENT) {
 			fifo[i] = curr_fifo[j];
 			input_report_key(kbc->idev, fifo[i], 1);
+			input_sync(kbc->idev);
 		} else
 			WARN_ON(1);
 	}
@@ -249,13 +255,15 @@ static void tegra_kbc_key_repeat(struct work_struct *work)
 		fifo[i] = -1;
 
 	while (1) {
+		/* val is number of new entries in FIFO */
 		val = (readl(kbc->mmio + KBC_INT_0) >> 4) & 0xf;
 		if (!val) {
-			/* release any pressed keys and exit the loop */
+			/* Reporting the release of all pressed Keys, if any */
 			for (i = 0; i < ARRAY_SIZE(fifo); i++) {
 				if (fifo[i] == -1)
 					continue;
 				input_report_key(kbc->idev, fifo[i], 0);
+				input_sync(kbc->idev);
 			}
 			break;
 		}
@@ -296,6 +304,7 @@ static void tegra_kbc_setup_wakekeys(struct tegra_kbc *kbc, bool filter)
 	dev_dbg(kbc->dev, "KBC: tegra_kbc_setup_wakekeys\n");
 
 	BUG_ON(kbc->pdata->wake_key_cnt > KBC_MAX_KEY);
+
 	rst_val = (filter && (kbc->pdata->wake_key_cnt ||
 				kbc->pdata->is_wake_on_any_key)) ? ~0 : 0;
 
@@ -376,6 +385,7 @@ static int tegra_kbc_open(struct input_dev *dev)
 	tegra_kbc_config_pins(kbc);
 	tegra_kbc_setup_wakekeys(kbc, false);
 
+	/* Delay between successive scan in CP mode */
 	writel(kbc->pdata->repeat_cnt, kbc->mmio + KBC_RPT_DLY_0);
 
 	val = kbc->pdata->debounce_cnt << 4;
@@ -392,6 +402,7 @@ static int tegra_kbc_open(struct input_dev *dev)
 	 * and enable keyboard interrupts */
 	spin_lock_irqsave(&kbc->lock, flags);
 
+	/* Clearing FIFO */
 	while (1) {
 		val = readl(kbc->mmio + KBC_INT_0);
 		val >>= 4;
@@ -414,7 +425,7 @@ static irqreturn_t tegra_kbc_isr(int irq, void *args)
 
 	dev_dbg(kbc->dev, "KBC: tegra_kbc_isr\n");
 
-	/* until all keys are released, defer further processing to
+	/* Until all keys are released, defer further processing to
 	 * the polling loop in tegra_kbc_key_repeat */
 	ctl = readl(kbc->mmio + KBC_CONTROL_0);
 	ctl &= ~(1<<3);
@@ -426,6 +437,7 @@ static irqreturn_t tegra_kbc_isr(int irq, void *args)
 	writel(val, kbc->mmio + KBC_INT_0);
 
 	if (!(val & (1<<2))) {
+		/* If interrupt is not because of FIFO_CNT_INT */
 		ctl |= 1<<3;
 		writel(ctl, kbc->mmio + KBC_CONTROL_0);
 		return IRQ_HANDLED;
@@ -566,9 +578,13 @@ static int __devinit tegra_kbc_probe(struct platform_device *pdev)
 			if (!cols[j])
 				continue;
 			keycode = tegra_kbc_keycode(kbc, i, j, false);
-			if (keycode == KEY_RESERVED)
-				continue;
-			set_bit(keycode, kbc->idev->keybit);
+			if (keycode != KEY_RESERVED)
+				set_bit(keycode, kbc->idev->keybit);
+			if (kbc->fn_keycode) {
+				keycode = tegra_kbc_keycode(kbc, i, j, true);
+				if (keycode != KEY_RESERVED)
+					set_bit(keycode, kbc->idev->keybit);
+			}
 		}
 	}
 
