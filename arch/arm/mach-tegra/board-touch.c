@@ -185,9 +185,11 @@ int __init touch_init(void)
 	switch (sku) {
 #if defined(CONFIG_TOUCHSCREEN_ATMEL_MT_T9) || defined(CONFIG_TOUCHSCREEN_ATMEL_MXT)
 #if defined(CONFIG_TOUCHSCREEN_ATMEL_MXT)
+#if defined(CONFIG_MACH_CARDHU)
 	case ATMEL_TOUCHSCREEN_SKU2000:
 		init_sku2000();
 		/* Fall through	*/
+#endif
 #endif
 
 	case ATMEL_TOUCHSCREEN_SKU:
