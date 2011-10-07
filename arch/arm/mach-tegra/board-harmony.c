@@ -595,6 +595,10 @@ static void __init tegra_harmony_init(void)
 
 	harmony_keys_init();
 
+#ifdef CONFIG_KEYBOARD_TEGRA
+	harmony_kbc_init();
+#endif
+
 	harmony_regulator_init();
 
 	tegra_ehci3_device.dev.platform_data = &tegra_ehci_pdata;
