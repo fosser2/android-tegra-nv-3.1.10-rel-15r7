@@ -29,6 +29,10 @@
 #define HDMI_INFOFRAME_TYPE_MPEG_SRC	0x85
 #define HDMI_INFOFRAME_TYPE_NTSC_VBI	0x86
 
+/* Define HDMI test flags */
+#define HDMI_TEST_HDMI_OFF	(0 << 0)
+#define HDMI_TEST_HDMI_ON	(1 << 0)
+
 /* all fields little endian */
 struct hdmi_avi_infoframe {
 	/* PB0 */

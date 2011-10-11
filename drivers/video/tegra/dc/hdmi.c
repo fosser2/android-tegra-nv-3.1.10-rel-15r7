@@ -764,31 +764,47 @@ bool tegra_dc_hdmi_detect_config(struct tegra_dc *dc,
 }
 
 /* This function is used to enable DC1 and HDMI for the purpose of testing. */
-bool tegra_dc_hdmi_detect_test(struct tegra_dc *dc, unsigned char *edid_ptr)
+bool tegra_dc_hdmi_detect_test(struct tegra_dc *dc,
+					unsigned char *edid_ptr, u32 flags)
 {
 	int err;
 	struct fb_monspecs specs;
 	struct tegra_dc_hdmi_data *hdmi = tegra_dc_get_outdata(dc);
 
-	if (!dc || !hdmi || !edid_ptr) {
+	if (!dc || !hdmi) {
 		dev_err(&dc->ndev->dev, "HDMI test failed to get arguments.\n");
 		return false;
 	}
 
-	err = tegra_edid_get_monspecs_test(hdmi->edid, &specs, edid_ptr);
-	if (err < 0) {
-		dev_err(&dc->ndev->dev, "error reading edid\n");
-		goto fail;
-	}
+	if (flags && HDMI_TEST_HDMI_ON) {
+		if (!edid_ptr) {
+			dev_err(&dc->ndev->dev, "HDMI test failed."
+					" Please pass edid to test.\n");
+			return false;
+		}
 
-	err = tegra_edid_get_eld(hdmi->edid, &hdmi->eld);
-	if (err < 0) {
-		dev_err(&dc->ndev->dev, "error populating eld\n");
-		goto fail;
-	}
-	hdmi->eld_retrieved = true;
+		err = tegra_edid_get_monspecs_test(hdmi->edid, &specs,
+								edid_ptr);
+		if (err < 0) {
+			dev_err(&dc->ndev->dev, "error reading edid\n");
+			goto fail;
+		}
 
-	tegra_dc_hdmi_detect_config(dc, &specs);
+		err = tegra_edid_get_eld(hdmi->edid, &hdmi->eld);
+		if (err < 0) {
+			dev_err(&dc->ndev->dev, "error populating eld\n");
+			goto fail;
+		}
+		hdmi->eld_retrieved = true;
+
+		tegra_dc_hdmi_detect_config(dc, &specs);
+	} else {
+		tegra_dc_disable(dc);
+		tegra_fb_update_monspecs(dc->fb, NULL, NULL);
+
+		dc->connected = false;
+		tegra_dc_ext_process_hotplug(dc->ndev->id);
+	}
 
 	return true;
 
