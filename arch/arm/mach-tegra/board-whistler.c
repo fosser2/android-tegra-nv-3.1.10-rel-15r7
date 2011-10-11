@@ -470,6 +470,7 @@ static struct tegra_das_platform_data tegra_das_pdata = {
 				[3] = {tegra_das_port_dap1, tegra_das_port_i2s1, false},
 			},
 		},
+#ifdef CONFIG_SND_SOC_WM8753
 		[2] = {
 			.con_id = tegra_das_port_con_id_voicecall_no_bt,
 			.num_entries = 4,
@@ -480,6 +481,16 @@ static struct tegra_das_platform_data tegra_das_pdata = {
 				[3] = {tegra_das_port_dap1, tegra_das_port_i2s1, false},
 			},
 		},
+#else
+		[2] = {
+			.con_id = tegra_das_port_con_id_voicecall_no_bt,
+			.num_entries = 2,
+			.con_line = {
+				[0] = {tegra_das_port_dap1, tegra_das_port_dap3, true},
+				[1] = {tegra_das_port_dap3, tegra_das_port_dap1, false},
+			},
+		},
+#endif
 	}
 };
 
@@ -725,11 +736,19 @@ static void __init whistler_power_off_init(void)
 	pm_power_off = whistler_power_off;
 }
 
+#ifdef CONFIG_SND_SOC_WM8753
 static const struct i2c_board_info whistler_codec_info[] = {
 	{
 		I2C_BOARD_INFO("wm8753", 0x1a),
 	},
 };
+#else
+static const struct i2c_board_info whistler_codec_info[] = {
+	{
+		I2C_BOARD_INFO("tlv320aic3262", 0x18),
+	},
+};
+#endif
 
 static void whistler_codec_init(void)
 {
