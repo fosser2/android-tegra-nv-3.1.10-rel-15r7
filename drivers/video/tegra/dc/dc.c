@@ -1251,7 +1251,7 @@ void tegra_dc_setup_clk(struct tegra_dc *dc, struct clk *clk)
 	if (dc->out->type == TEGRA_DC_OUT_HDMI) {
 		unsigned long rate;
 		struct clk *parent_clk =
-			clk_get_sys(NULL, dc->out->parent_clk ? : "pll_d2_out0");
+			clk_get_sys(NULL, dc->out->parent_clk ? : "pll_d_out0");
 		struct clk *base_clk = clk_get_parent(parent_clk);
 
 		/* needs to match tegra_dc_hdmi_supported_modes[]
