@@ -169,7 +169,7 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
 	.slot_rail_name = NULL,
 	.vdd_max_uv = -1,
 	.vdd_min_uv = -1,
-	.max_clk = 48000000,
+	.max_clk = 104000000,
 	.is_8bit_supported = true,
 };
 
