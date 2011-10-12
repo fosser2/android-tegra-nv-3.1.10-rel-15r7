@@ -298,7 +298,7 @@ static struct tegra_dc_sd_settings enterprise_sd_settings = {
 	.use_vid_luma = false,
 	/* Default video coefficients */
 	.coeff = {5, 9, 2},
-	.fc = {0, 0},
+	.fc = {10, 0},
 	/* Immediate backlight changes */
 	.blp = {1024, 255},
 	/* Gammas: R: 2.2 G: 2.2 B: 2.2 */
