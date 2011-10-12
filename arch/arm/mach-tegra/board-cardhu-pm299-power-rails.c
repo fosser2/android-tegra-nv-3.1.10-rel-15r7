@@ -221,9 +221,29 @@ static struct ricoh583_subdev_info tps_devs_e118x_dcdc[] = {
 	TPS6591X_DEV_COMMON_E118X,
 };
 
+#define RICOH_GPIO_INIT(_init_apply, _pulldn, _output_mode, _output_val) \
+	{					\
+		.pulldn_en = _pulldn,		\
+		.output_mode_en = _output_mode,	\
+		.output_val = _output_val,	\
+		.init_apply = _init_apply,	\
+	}
+struct ricoh583_gpio_init_data ricoh_gpio_data[] = {
+	RICOH_GPIO_INIT(false, false, false, 0),
+	RICOH_GPIO_INIT(false, false, false, 0),
+	RICOH_GPIO_INIT(false, false, false, 0),
+	RICOH_GPIO_INIT(true,  false,  true, 1),
+	RICOH_GPIO_INIT(true,  false, true, 1),
+	RICOH_GPIO_INIT(false, false, false, 0),
+	RICOH_GPIO_INIT(false, false, false, 0),
+	RICOH_GPIO_INIT(false, false, false, 0),
+};
+
 static struct ricoh583_platform_data ricoh_platform = {
 	.irq_base	= RICOH583_IRQ_BASE,
 	.gpio_base	= RICOH583_GPIO_BASE,
+	.gpio_init_data = ricoh_gpio_data,
+	.num_gpioinit_data = ARRAY_SIZE(ricoh_gpio_data),
 };
 
 static struct i2c_board_info __initdata ricoh583_regulators[] = {
@@ -556,7 +576,7 @@ static int disable_load_switch_rail(
 /* common to most of boards*/
 GREG_INIT(0, en_5v_cp,		en_5v_cp,	NULL,			1,	0,	TPS6591X_GPIO_0,	false,	1,	0,	0,	0);
 GREG_INIT(1, en_5v0,		en_5v0,		NULL,			0,      0,      TPS6591X_GPIO_4,	false,	0,	0,	0,	0);
-GREG_INIT(2, en_ddr,		en_ddr,		NULL,			0,      0,      TPS6591X_GPIO_3,	false,	0,	0,	0,	0);
+GREG_INIT(2, en_ddr,		en_ddr,		NULL,			0,      0,      TPS6591X_GPIO_3,	false,	1,	0,	0,	0);
 GREG_INIT(3, en_3v3_sys,	en_3v3_sys,	NULL,			0,      0,      TPS6591X_GPIO_1,	false,	0,	0,	0,	0);
 GREG_INIT(4, en_vdd_bl,		en_vdd_bl,	NULL,			0,      0,      TEGRA_GPIO_PK3,		false,	1,	0,	0,	0);
 GREG_INIT(5, en_3v3_modem,	en_3v3_modem,	NULL,			1,      0,      TEGRA_GPIO_PD6,		false,	1,	0,	0,	0);
