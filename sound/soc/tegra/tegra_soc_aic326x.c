@@ -134,8 +134,9 @@ static int aic326x_voice_hw_params(struct snd_pcm_substream *substream,
 				tegra_audio_codec_type_bluetooth);
 	}
 	else if (!strcmp(rtd->dai->stream_name, "Tegra Voice Call")) {
+	/* FIXME: using dap1 until secondary interface is supported in codec */
 		master_port = tegra_das_is_port_master(
-				tegra_audio_codec_type_voice);
+				tegra_audio_codec_type_hifi);
 
 		data_fmt = tegra_das_get_codec_data_fmt(
 				tegra_audio_codec_type_baseband);

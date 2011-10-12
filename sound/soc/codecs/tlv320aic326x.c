@@ -27,6 +27,9 @@
  * Rev 0.3   ASoC driver support    Mistral         12.09.2011
  *	fixed the compilation issues for Whistler support(compilation
  *	errors were identified by nVidia)
+ *
+ * Rev 0.4   ASoC driver support    Mistral         27.09.2011
+ *	 The AIC326x driver ported for Nvidia cardhu.
  */
 
 /*
@@ -700,26 +703,36 @@ static const struct aic3262_rate_divs aic3262_divs[] = {
  */
 	/* 8k rate */
 	{12000000, 8000, 1, 8, 1920, 128, 12, 8, 128, 8, 6, 4,
+	 {{0, 60, 1}, {0, 61, 1} } },
+	{12288000, 8000, 1, 1, 3333, 128, 12, 8, 128, 8, 6, 4,
 	{ {0, 60, 1}, {0, 61, 1} } },
 	{24000000, 8000, 1, 4, 96, 128, 12, 8, 128, 12, 8, 4,
 	{{0, 60, 1}, {0, 61, 1} } },
 	/* 11.025k rate */
 	{12000000, 11025, 1, 1, 8816, 1024, 8, 2, 128, 8, 2, 48,
 	{{0, 60, 1}, {0, 61, 1} } },
+	{12288000, 11025, 1, 1, 8375, 1024, 8, 2, 128, 8, 2, 48,
+	{{0, 60, 1}, {0, 61, 1} } },
 	{24000000, 11025, 1, 3, 7632, 128, 8, 8, 128, 8, 8, 4,
 	{{0, 60, 1}, {0, 61, 1} } },
 	/* 16k rate */
 	{12000000, 16000, 1, 8, 1920, 128, 8, 6, 128, 8, 6, 4,
+	 {{0, 60, 1}, {0, 61, 1} } },
+	{12288000, 16000, 1, 2, 6667, 128, 8, 6, 128, 8, 6, 4,
 	{{0, 60, 1}, {0, 61, 1} } },
 	{24000000, 16000, 1, 4, 96, 128, 8, 6, 128, 8, 6, 4,
 	{{0, 60, 1}, {0, 61, 1} } },
 	/* 22.05k rate */
 	{12000000, 22050, 1, 3, 7632, 128, 8, 2, 128, 8, 2, 4,
 	{{0, 60, 1}, {0, 61, 1} } },
+	{12288000, 22050, 1, 3, 675, 128, 8, 2, 128, 8, 2, 4,
+	{{0, 60, 1}, {0, 61, 1} } },
 	{24000000, 22050, 1, 3, 7632, 128, 8, 3, 128, 8, 3, 4,
 	{{0, 60, 1}, {0, 61, 1} } },
 	/* 32k rate */
 	{12000000, 32000, 1, 5, 4613, 128, 8, 2, 128, 8, 2, 4,
+	 {{0, 60, 1}, {0, 61, 1} } },
+	{12288000, 32000, 1, 5, 3333, 128, 8, 2, 128, 8, 2, 4,
 	{{0, 60, 1}, {0, 61, 1} } },
 	{24000000, 32000, 1, 4, 96, 128, 6, 4, 128, 6, 4, 4,
 	{{0, 60, 1}, {0, 61, 1} } },
@@ -981,14 +994,14 @@ static const struct aic3262_configs aic3262_reg_init[] = {
 	{0, PASI_DAC_DP_SETUP,  0xc0},	/*DAC */
 	{0, DAC_MVOL_CONF,  0x00},	/*DAC un-muted*/
 	/* set default volumes */
-	{0, DAC_LVOL, 0x10},
-	{0, DAC_RVOL, 0x10},
+	{0, DAC_LVOL, 0x01},
+	{0, DAC_RVOL, 0x01},
 	{0, HPL_VOL,  0x3a},
 	{0, HPR_VOL,  0x3a},
 	{0, SPK_AMP_CNTL_R2, 0x14},
 	{0, SPK_AMP_CNTL_R3, 0x14},
 	{0, SPK_AMP_CNTL_R4, 0x33},
-	{0, REC_AMP_CNTL_R5, 20},
+	{0, REC_AMP_CNTL_R5, 0x82},
 	{0, RAMPR_VOL, 20},
 	{0, RAMP_CNTL_R1, 70},
 	{0, RAMP_CNTL_R2, 70},
@@ -1007,6 +1020,8 @@ static const struct aic3262_configs aic3262_reg_init[] = {
 	{0, LDAC_PTM, 0},	/*LDAC_PTM - default*/
 	{0, RDAC_PTM, 0},	/*RDAC_PTM - default*/
 	{0, HP_CTL, 0x30},	/*HP output percentage - at 75%*/
+	{0, LADC_VOL, 0x01},	/*LADC volume*/
+	{0, RADC_VOL, 0x01},	/*RADC volume*/
 
 	{0, DAC_ADC_CLKIN_REG, 0x33},	/*DAC ADC CLKIN*/
 	{0, PLL_CLKIN_REG, 0x00},	/*PLL CLKIN*/
@@ -1023,9 +1038,9 @@ static const struct aic3262_configs aic3262_reg_init[] = {
 
 	{0, ADC_CHANNEL_POW, 0xc2}, /*ladc, radc ON , SOFT STEP disabled*/
 	{0, ADC_FINE_GAIN, 0x00},   /*ladc - unmute, radc - unmute*/
-	{0, MICL_PGA, 0x3c},
-	{0, MICR_PGA, 0x3c},
-	{0, MIC_BIAS_CNTL, 0x66},
+	{0, MICL_PGA, 0x4f},
+	{0, MICR_PGA, 0x4f},
+	{0, MIC_BIAS_CNTL, 0xFC},
 	/*   ASI1 Configuration */
 	{0, ASI1_BUS_FMT, 0},
 	{0, ASI1_BWCLK_CNTL_REG, 0x00},		/* originaly 0x24*/
@@ -1678,11 +1693,11 @@ static int aic3262_set_dai_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt)
 	struct snd_soc_codec *codec = codec_dai->codec;
 	struct aic3262_priv *aic3262 = snd_soc_codec_get_drvdata(codec);
 	u8 iface_reg, clk_reg;
+	iface_reg = aic3262_read(codec, ASI1_BUS_FMT);
 	/*
-	iface_reg = aic3262_read(codec, INTERFACE_SET_REG_1);
 	iface_reg = iface_reg & ~(3 << 6 | 3 << 2);
 	*/
-	iface_reg = 0x00;
+
 	/* set master/slave audio interface */
 	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
 	case SND_SOC_DAIFMT_CBM_CFM:
@@ -1726,11 +1741,15 @@ static int aic3262_set_dai_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt)
 	case SND_SOC_DAIFMT_LEFT_J:
 		iface_reg = (iface_reg & 0x1f) | 0x60;
 		break;
+	case SND_SOC_DAIFMT_DSP_B:
+		iface_reg = (iface_reg & 0x1f) | 0x80;
+		break;
 	default:
 		printk(KERN_ERR "Invalid DAI interface format\n");
 		return -EINVAL;
 	}
 
+	aic3262_write(codec, ASI1_BUS_FMT, iface_reg);
 	return 0;
 }
 
@@ -1744,7 +1763,6 @@ static int aic3262_set_dai_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt)
 static int aic3262_set_bias_level(struct snd_soc_codec *codec,
 				  enum snd_soc_bias_level level)
 {
-	/*struct aic3262_priv *aic3262 = snd_soc_codec_get_drvdata(codec);*/
 	u8 value;
 
 	switch (level) {
@@ -2039,7 +2057,6 @@ static int aic3262_probe(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = aic3262_codec;
-	/*struct aic3262_priv *aic3262 = snd_soc_codec_get_drvdata(codec);*/
 	int ret = 0;
 
 	if (socdev == NULL) {
@@ -2062,8 +2079,7 @@ static int aic3262_probe(struct platform_device *pdev)
 	aic3262_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
 	aic3262_add_controls(codec);
 	aic3262_add_widgets(codec);
-
-/*	aic3262_mute(codec->dai, 1);*/
+	aic3262_write(codec, MIC_BIAS_CNTL, 0x66);
 
 	return ret;
 
@@ -2170,5 +2186,5 @@ static void __exit tlv320aic3262_exit(void)
 module_exit(tlv320aic3262_exit);
 
 MODULE_DESCRIPTION("ASoC TLV320AIC3262 codec driver");
-MODULE_AUTHOR("Y Preetam Sashank Reddy <preetam@mistralsolutions.com>");
+MODULE_AUTHOR("Barani Prashanth<gvbarani@mistralsolutions.com>");
 MODULE_LICENSE("GPL");
