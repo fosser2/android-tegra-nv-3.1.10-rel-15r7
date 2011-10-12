@@ -758,25 +758,9 @@ static int __devinit nct1008_configure_sensor(struct nct1008_data* data)
 	if (!pdata || !pdata->supported_hwrev)
 		return -ENODEV;
 
-	/*
-	 * Initial Configuration - device is placed in standby and
-	 * ALERT/THERM2 pin is configured as THERM2
-	 */
-	data->config = pdata->ext_range ?
-		(STANDBY_BIT | EXTENDED_RANGE_BIT) : STANDBY_BIT;
-
-	if (pdata->thermal_zones_sz)
-		data->config &= ~(THERM2_BIT | ALERT_BIT);
-	else
-		data->config |= (ALERT_BIT | THERM2_BIT);
-
-	value = data->config;
-	err = i2c_smbus_write_byte_data(client, CONFIG_WR, value);
-	if (err)
-		goto error;
-
-	/* Temperature conversion rate */
-	err = i2c_smbus_write_byte_data(client, CONV_RATE_WR, pdata->conv_rate);
+	/* Place in Standby */
+	data->config = STANDBY_BIT;
+	err = i2c_smbus_write_byte_data(client, CONFIG_WR, data->config);
 	if (err)
 		goto error;
 
@@ -791,6 +775,23 @@ static int __devinit nct1008_configure_sensor(struct nct1008_data* data)
 	value = temperature_to_value(pdata->ext_range,
 			pdata->shutdown_local_limit);
 	err = i2c_smbus_write_byte_data(client, LOCAL_THERM_LIMIT_WR, value);
+	if (err)
+		goto error;
+
+	/* set extended range mode if needed */
+	if (pdata->ext_range)
+		data->config |= EXTENDED_RANGE_BIT;
+	if (pdata->thermal_zones_sz)
+		data->config &= ~(THERM2_BIT | ALERT_BIT);
+	else
+		data->config |= (ALERT_BIT | THERM2_BIT);
+
+	err = i2c_smbus_write_byte_data(client, CONFIG_WR, data->config);
+	if (err)
+		goto error;
+
+	/* Temperature conversion rate */
+	err = i2c_smbus_write_byte_data(client, CONV_RATE_WR, pdata->conv_rate);
 	if (err)
 		goto error;
 
@@ -989,6 +990,22 @@ static struct thermal_zone_device_ops nct1008_thermal_zone_ops = {
 };
 #endif
 
+/*
+ * Manufacturer(OnSemi) recommended sequence for
+ * Extended Range mode is as follows
+ * 1. Place in Standby
+ * 2. Scale the THERM and ALERT limits
+ *	appropriately(for Extended Range mode).
+ * 3. Enable Extended Range mode.
+ *	ALERT mask/THERM2 mode may be done here
+ *	as these are not critical
+ * 4. Set Conversion Rate as required
+ * 5. Take device out of Standby
+ */
+
+/*
+ * function nct1008_probe takes care of initial configuration
+ */
 static int __devinit nct1008_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
 {
@@ -1012,6 +1029,8 @@ static int __devinit nct1008_probe(struct i2c_client *client,
 	mutex_init(&data->mutex);
 
 	nct1008_power_control(&client->dev, data, true);
+	/* extended range recommended steps 1 through 4 taken care
+	 * in nct1008_configure_sensor function */
 	err = nct1008_configure_sensor(data);	/* sensor is in standby */
 	if (err < 0) {
 		dev_err(&client->dev, "\n error file: %s : %s(), line=%d ",
@@ -1027,6 +1046,7 @@ static int __devinit nct1008_probe(struct i2c_client *client,
 	}
 	dev_info(&client->dev, "%s: initialized\n", __func__);
 
+	/* extended range recommended step 5 is in nct1008_enable function */
 	err = nct1008_enable(client);		/* sensor is running */
 	if (err < 0) {
 		dev_err(&client->dev, "Error: %s, line=%d, error=%d\n",
