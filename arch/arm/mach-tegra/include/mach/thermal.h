@@ -30,8 +30,15 @@ struct tegra_thermal {
 #endif
 };
 
+#ifndef CONFIG_ARCH_TEGRA_2x_SOC
 int tegra_thermal_init(void);
 int tegra_thermal_exit(void);
+#else
+static inline int tegra_thermal_init(void)
+{ return 0; }
+static inline int tegra_thermal_exit(void)
+{ return 0; }
+#endif
 
 struct tegra_thermal
 	*tegra_thermal_register(void *data, struct tegra_thermal_ops *ops);
