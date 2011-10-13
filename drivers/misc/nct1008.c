@@ -87,22 +87,6 @@
 
 #define MIN_SLEEP_MSEC			20
 
-struct nct1008_data {
-	struct work_struct work;
-	struct i2c_client *client;
-	struct nct1008_platform_data plat_data;
-	struct mutex mutex;
-	struct dentry *dent;
-	u8 config;
-	s8 *limits;
-	u8 limits_sz;
-	void (*alarm_fn)(bool raised);
-	struct regulator *nct_reg;
-#ifdef CONFIG_TEGRA_THERMAL_SYSFS
-	struct thermal_zone_device *thz;
-#endif
-};
-
 static inline s8 value_to_temperature(bool extended, u8 value)
 {
 	return extended ? (s8)(value - EXTENDED_RANGE_OFFSET) : (s8)value;
@@ -950,6 +934,9 @@ static int __devinit nct1008_configure_sensor(struct nct1008_data* data)
 	}
 
 	data->alarm_fn = pdata->alarm_fn;
+
+	data->current_lo_limit = -1;
+	data->current_hi_limit = -1;
 	return 0;
 error:
 	dev_err(&client->dev, "\n exit %s, err=%d ", __func__, err);
@@ -995,6 +982,70 @@ static unsigned int get_ext_mode_delay_ms(unsigned int conv_rate)
 	default:
 		return 63;
 	}
+}
+
+int nct1008_thermal_get_temp(struct nct1008_data *data, long *temp)
+{
+	return nct1008_get_temp(&data->client->dev, temp);
+}
+
+int nct1008_thermal_set_limits(struct nct1008_data *data,
+				long lo_limit_milli,
+				long hi_limit_milli)
+{
+	int err;
+	u8 value;
+	bool extended_range = data->plat_data.ext_range;
+	long lo_limit = MILLICELSIUS_TO_CELSIUS(lo_limit_milli);
+	long hi_limit = MILLICELSIUS_TO_CELSIUS(hi_limit_milli);
+
+	if (lo_limit >= hi_limit)
+		return -EINVAL;
+
+	if (data->current_lo_limit == lo_limit &&
+		data->current_hi_limit == hi_limit)
+		return 0;
+
+	if (data->current_lo_limit != lo_limit) {
+		value = temperature_to_value(extended_range, lo_limit);
+		pr_debug("%s: %d\n", __func__, value);
+		err = i2c_smbus_write_byte_data(data->client,
+				EXT_TEMP_LO_LIMIT_HI_BYTE_WR, value);
+		if (err)
+			return err;
+
+		data->current_lo_limit = lo_limit;
+	}
+
+	if (data->current_hi_limit != hi_limit) {
+		value = temperature_to_value(extended_range, hi_limit);
+		pr_debug("%s: %d\n", __func__, value);
+		err = i2c_smbus_write_byte_data(data->client,
+				EXT_TEMP_HI_LIMIT_HI_BYTE_WR, value);
+		if (err)
+			return err;
+
+		data->current_hi_limit = hi_limit;
+	}
+
+}
+
+int nct1008_thermal_set_alert(struct nct1008_data *data,
+				void (*alert_func)(void *),
+				void *alert_data)
+{
+	data->alert_func = alert_func;
+	data->alert_data = alert_data;
+
+	return 0;
+}
+
+int nct1008_thermal_set_shutdown_temp(struct nct1008_data *data,
+					long shutdown_temp)
+{
+	data->shutdown_temp = shutdown_temp;
+
+	return 0;
 }
 
 #ifdef CONFIG_TEGRA_THERMAL_SYSFS
@@ -1085,7 +1136,6 @@ static int __devinit nct1008_probe(struct i2c_client *client,
 #endif
 
 	data = kzalloc(sizeof(struct nct1008_data), GFP_KERNEL);
-
 	if (!data)
 		return -ENOMEM;
 
@@ -1160,6 +1210,9 @@ static int __devinit nct1008_probe(struct i2c_client *client,
 	data->thz = thz;
 #endif
 
+	if (data->plat_data.probe_callback)
+		data->plat_data.probe_callback(data);
+
 	return 0;
 
 error:
@@ -1189,6 +1242,7 @@ static int __devexit nct1008_remove(struct i2c_client *client)
 	nct1008_power_control(&client->dev, data, false);
 	if (data->nct_reg)
 		regulator_put(data->nct_reg);
+
 	kfree(data);
 
 	return 0;
