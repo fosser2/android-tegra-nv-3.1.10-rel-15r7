@@ -101,6 +101,7 @@ static enum power_supply_type pow_supply_type;
 static int modem_id;
 static int debug_uart_port_id;
 static enum audio_codec_type audio_codec_name;
+static int max_cpu_current;
 void (*tegra_reset)(char mode, const char *cmd);
 
 /* WARNING: There is implicit client of pllp_out3 like i2c, uart, dsi
@@ -524,6 +525,18 @@ static int __init tegra_pmu_core_edp(char *options)
 	return 1;
 }
 __setup("core_edp_mv=", tegra_pmu_core_edp);
+
+int get_maximum_cpu_current_supported(void)
+{
+	return max_cpu_current;
+}
+static int __init tegra_max_cpu_current(char *options)
+{
+	char *p = options;
+	max_cpu_current = memparse(p, &p);
+	return 1;
+}
+__setup("max_cpu_cur_ma=", tegra_max_cpu_current);
 
 static int __init tegra_debug_uartport(char *info)
 {
