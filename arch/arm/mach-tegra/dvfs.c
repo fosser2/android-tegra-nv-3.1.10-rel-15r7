@@ -41,6 +41,9 @@
 #include "dvfs.h"
 
 #define DVFS_RAIL_STATS_BIN	25
+#define DVFS_RAIL_STATS_SCALE	2
+#define DVFS_RAIL_STATS_RANGE   ((DVFS_RAIL_STATS_TOP_BIN - 1) * \
+				 DVFS_RAIL_STATS_BIN / DVFS_RAIL_STATS_SCALE)
 
 static LIST_HEAD(dvfs_rail_list);
 static DEFINE_MUTEX(dvfs_lock);
@@ -97,10 +100,17 @@ static void dvfs_rail_stats_init(struct dvfs_rail *rail, int millivolts)
 {
 	rail->stats.last_update = ktime_get();
 	if (millivolts >= rail->min_millivolts) {
-		int i = (millivolts - rail->min_millivolts) /
-			DVFS_RAIL_STATS_BIN + 1;
-		rail->stats.last_index = min(i, MAX_DVFS_FREQS);
+		int i = 1 + (2 * (millivolts - rail->min_millivolts) *
+			DVFS_RAIL_STATS_SCALE + DVFS_RAIL_STATS_BIN) /
+			(2 * DVFS_RAIL_STATS_BIN);
+		rail->stats.last_index = min(i, DVFS_RAIL_STATS_TOP_BIN);
 	}
+
+	if (rail->max_millivolts >
+	    rail->min_millivolts + DVFS_RAIL_STATS_RANGE)
+		pr_warn("tegra_dvfs: %s: stats above %d mV will be squashed\n",
+			rail->reg_id,
+			rail->min_millivolts + DVFS_RAIL_STATS_RANGE);
 }
 
 static void dvfs_rail_stats_update(
@@ -111,10 +121,14 @@ static void dvfs_rail_stats_update(
 			now, rail->stats.last_update));
 	rail->stats.last_update = now;
 
+	if (rail->stats.off)
+		return;
+
 	if (millivolts >= rail->min_millivolts) {
-		int i = (millivolts - rail->min_millivolts) /
-			DVFS_RAIL_STATS_BIN + 1;
-		rail->stats.last_index = min(i, MAX_DVFS_FREQS);
+		int i = 1 + (2 * (millivolts - rail->min_millivolts) *
+			DVFS_RAIL_STATS_SCALE + DVFS_RAIL_STATS_BIN) /
+			(2 * DVFS_RAIL_STATS_BIN);
+		rail->stats.last_index = min(i, DVFS_RAIL_STATS_TOP_BIN);
 	} else if (millivolts == 0)
 			rail->stats.last_index = 0;
 }
@@ -127,14 +141,18 @@ static void dvfs_rail_stats_pause(struct dvfs_rail *rail, ktime_t delta, bool on
 
 void tegra_dvfs_rail_off(struct dvfs_rail *rail, ktime_t now)
 {
-	if (rail)
+	if (rail) {
 		dvfs_rail_stats_update(rail, 0, now);
+		rail->stats.off = true;
+	}
 }
 
 void tegra_dvfs_rail_on(struct dvfs_rail *rail, ktime_t now)
 {
-	if (rail)
+	if (rail) {
+		rail->stats.off = false;
 		dvfs_rail_stats_update(rail, rail->millivolts, now);
+	}
 }
 
 void tegra_dvfs_rail_pause(struct dvfs_rail *rail, ktime_t delta, bool on)
@@ -702,8 +720,9 @@ static int rail_stats_show(struct seq_file *s, void *data)
 	int i;
 	struct dvfs_rail *rail;
 
-	seq_printf(s, "%-12s %-10s (bin: %dmV)\n", "millivolts", "time",
-		   DVFS_RAIL_STATS_BIN);
+	seq_printf(s, "%-12s %-10s (bin: %d.%dmV)\n", "millivolts", "time",
+		   DVFS_RAIL_STATS_BIN / DVFS_RAIL_STATS_SCALE,
+		   ((DVFS_RAIL_STATS_BIN * 100) / DVFS_RAIL_STATS_SCALE) % 100);
 
 	mutex_lock(&dvfs_lock);
 
@@ -715,12 +734,13 @@ static int rail_stats_show(struct seq_file *s, void *data)
 			cputime64_to_clock_t(msecs_to_jiffies(
 				ktime_to_ms(rail->stats.time_at_mv[0]))));
 
-		for (i = 1; i < MAX_DVFS_FREQS; i++) {
+		for (i = 1; i <= DVFS_RAIL_STATS_TOP_BIN; i++) {
 			ktime_t ktime_zero = ktime_set(0, 0);
 			if (ktime_equal(rail->stats.time_at_mv[i], ktime_zero))
 				continue;
-			seq_printf(s, "%-12d %-10llu \n", rail->min_millivolts
-				+ (i - 1) * DVFS_RAIL_STATS_BIN,
+			seq_printf(s, "%-12d %-10llu\n",
+				   rail->min_millivolts + (i - 1) *
+				   DVFS_RAIL_STATS_BIN / DVFS_RAIL_STATS_SCALE,
 				cputime64_to_clock_t(msecs_to_jiffies(
 					ktime_to_ms(rail->stats.time_at_mv[i])))
 			);

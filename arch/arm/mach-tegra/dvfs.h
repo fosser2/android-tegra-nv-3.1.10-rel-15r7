@@ -22,6 +22,7 @@
 #define _TEGRA_DVFS_H_
 
 #define MAX_DVFS_FREQS	18
+#define DVFS_RAIL_STATS_TOP_BIN	40
 
 struct clk;
 struct dvfs_rail;
@@ -44,9 +45,10 @@ struct dvfs_relationship {
 };
 
 struct rail_stats {
-	ktime_t time_at_mv[MAX_DVFS_FREQS + 1];
+	ktime_t time_at_mv[DVFS_RAIL_STATS_TOP_BIN + 1];
 	ktime_t last_update;
 	int last_index;
+	bool off;
 };
 
 struct dvfs_rail {
