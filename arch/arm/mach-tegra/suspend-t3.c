@@ -298,6 +298,16 @@ int tegra_cluster_control(unsigned int us, unsigned int flags)
 	if (flags & TEGRA_POWER_CLUSTER_IMMEDIATE)
 		us = 0;
 
+	DEBUG_CLUSTER(("%s(LP%d): %s->%s %s %s %d\r\n", __func__,
+		(flags & TEGRA_POWER_SDRAM_SELFREFRESH) ? 1 : 2,
+		is_lp_cluster() ? "LP" : "G",
+		(target_cluster == TEGRA_POWER_CLUSTER_G) ? "G" : "LP",
+		(flags & TEGRA_POWER_CLUSTER_IMMEDIATE) ? "immediate" : "",
+		(flags & TEGRA_POWER_CLUSTER_FORCE) ? "force" : "",
+		us));
+
+	local_irq_save(irq_flags);
+
 	if ((current_cluster != target_cluster) && (!timekeeping_suspended)) {
 		ktime_t now = ktime_get();
 		if (target_cluster == TEGRA_POWER_CLUSTER_G) {
@@ -314,15 +324,6 @@ int tegra_cluster_control(unsigned int us, unsigned int flags)
 		}
 	}
 
-	DEBUG_CLUSTER(("%s(LP%d): %s->%s %s %s %d\r\n", __func__,
-		(flags & TEGRA_POWER_SDRAM_SELFREFRESH) ? 1 : 2,
-		is_lp_cluster() ? "LP" : "G",
-		(target_cluster == TEGRA_POWER_CLUSTER_G) ? "G" : "LP",
-		(flags & TEGRA_POWER_CLUSTER_IMMEDIATE) ? "immediate" : "",
-		(flags & TEGRA_POWER_CLUSTER_FORCE) ? "force" : "",
-	        us));
-
-	local_irq_save(irq_flags);
 #ifdef CONFIG_PM
 	if (flags & TEGRA_POWER_SDRAM_SELFREFRESH) {
 		if (us)
