@@ -514,8 +514,10 @@ int am_set_stream_state(aud_dev_info* devinfo, bool enable)
 	else if (devinfo->dev_type == AUDIO_SPDIF_DEVICE)
 		ch = &aud_manager->spdif_ch;
 
-	if (ch->damch[dam_ch_in1] >= 0)
-		dam_enable(ch->damch[dam_ch_in1], on_off, dam_ch_in1);
+	if (fifo_mode == AUDIO_TX_MODE) {
+	    if (ch->damch[dam_ch_in1] >= 0)
+		    dam_enable(ch->damch[dam_ch_in1], on_off, dam_ch_in1);
+    }
 
 	return am_fn->aud_dev_set_stream_state(dev_id, fifo_mode, on_off);
 }
