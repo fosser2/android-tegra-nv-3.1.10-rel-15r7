@@ -2208,10 +2208,9 @@ static bool _tegra_dc_controller_enable(struct tegra_dc *dc)
 	tegra_dc_setup_clk(dc, dc->clk);
 	clk_enable(dc->clk);
 	clk_enable(dc->emc_clk);
+	enable_dc_irq(dc->irq);
 
 	tegra_dc_init(dc);
-
-	enable_dc_irq(dc->irq);
 
 	if (dc->out_ops && dc->out_ops->enable)
 		dc->out_ops->enable(dc);
