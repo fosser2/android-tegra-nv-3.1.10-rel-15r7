@@ -66,6 +66,12 @@
 #define STANDBY_BIT			BIT(6)
 #define ALERT_BIT			BIT(7)
 
+/* Status register bits */
+#define STATUS_BUSY			BIT(7)
+
+/* Worst-case wait when nct1008 is busy */
+#define BUSY_TIMEOUT_MSEC		1000
+
 /* Max Temperature Measurements */
 #define EXTENDED_RANGE_OFFSET		64U
 #define STANDARD_RANGE_MAX		127U
@@ -78,6 +84,8 @@
 
 #define CELSIUS_TO_MILLICELSIUS(x) ((x)*1000)
 #define MILLICELSIUS_TO_CELSIUS(x) ((x)/1000)
+
+#define MIN_SLEEP_MSEC			20
 
 struct nct1008_data {
 	struct work_struct work;
@@ -105,6 +113,41 @@ static inline u8 temperature_to_value(bool extended, s8 temp)
 	return extended ? (u8)(temp + EXTENDED_RANGE_OFFSET) : (u8)temp;
 }
 
+/* Wait with timeout if busy */
+static int nct1008_wait_till_busy(struct i2c_client *client)
+{
+	int intr_status;
+	int msec_left = BUSY_TIMEOUT_MSEC;
+	bool is_busy;
+
+	do {
+		intr_status = i2c_smbus_read_byte_data(client, STATUS_RD);
+
+		if (intr_status < 0) {
+			dev_err(&client->dev, "%s, line=%d, i2c read error=%d\n"
+				, __func__, __LINE__, intr_status);
+			return intr_status;
+		}
+
+		/* check for busy bit */
+		is_busy = (intr_status & STATUS_BUSY) ? true : false;
+		if (is_busy) {
+			/* fastest nct1008 conversion rate ~15msec */
+			/* using 20msec since msleep below 20 is not
+			 * guaranteed to complete in specified duration */
+			msleep(MIN_SLEEP_MSEC);
+			msec_left -= MIN_SLEEP_MSEC;
+		}
+	} while ((is_busy) && (msec_left > 0));
+
+	if (msec_left <= 0) {
+		dev_err(&client->dev, "error: nct1008 busy timed out\n");
+		return -ETIMEDOUT;
+	}
+
+	return 0;
+}
+
 static int nct1008_get_temp(struct device *dev, long *pTemp)
 {
 	struct i2c_client *client = to_i2c_client(dev);
@@ -115,6 +158,10 @@ static int nct1008_get_temp(struct device *dev, long *pTemp)
 	long temp_ext_milli;
 	long temp_local_milli;
 	u8 value;
+
+	value = nct1008_wait_till_busy(client);
+	if (value < 0)
+		goto error;
 
 	/* Read Local Temp */
 	value = i2c_smbus_read_byte_data(client, LOCAL_TEMP_RD);
@@ -134,7 +181,8 @@ static int nct1008_get_temp(struct device *dev, long *pTemp)
 		goto error;
 	temp_ext_hi = value_to_temperature(pdata->ext_range, value);
 
-	temp_ext_milli = CELSIUS_TO_MILLICELSIUS(temp_ext_hi) + temp_ext_lo * 250;
+	temp_ext_milli = CELSIUS_TO_MILLICELSIUS(temp_ext_hi) +
+		temp_ext_lo * 250;
 
 	/* Return max between Local and External Temp */
 	*pTemp = max(temp_local_milli, temp_ext_milli);
@@ -159,6 +207,10 @@ static ssize_t nct1008_show_temp(struct device *dev,
 
 	if (!dev || !buf || !attr)
 		return -EINVAL;
+
+	value = nct1008_wait_till_busy(client);
+	if (value < 0)
+		goto error;
 
 	value = i2c_smbus_read_byte_data(client, LOCAL_TEMP_RD);
 	if (value < 0)
@@ -346,6 +398,10 @@ static ssize_t nct1008_show_ext_temp(struct device *dev,
 
 	if (!dev || !buf || !attr)
 		return -EINVAL;
+
+	data = nct1008_wait_till_busy(client);
+	if (data < 0)
+		goto error;
 
 	/* When reading the full external temperature value, read the
 	 * LSB first. This causes the MSB to be locked (that is, the
@@ -617,8 +673,8 @@ static void nct1008_work_func(struct work_struct *work)
 
 	err = nct1008_disable_alert(data);
 	if (err) {
-		dev_err(&data->client->dev, "%s: disable alert fail(error=%d)\n",
-			__func__, err);
+		dev_err(&data->client->dev, "%s: disable alert fail(error=%d)\n"
+			, __func__, err);
 		return;
 	}
 
@@ -644,13 +700,16 @@ static void nct1008_work_func(struct work_struct *work)
 	if (temp_milli < CELSIUS_TO_MILLICELSIUS(data->limits[0])) {
 		lo_limit = 0;
 		hi_limit = data->limits[0];
-	} else if (temp_milli >= CELSIUS_TO_MILLICELSIUS(data->limits[nentries-1])) {
+	} else if (temp_milli >= CELSIUS_TO_MILLICELSIUS(
+		data->limits[nentries-1])) {
 		lo_limit = data->limits[nentries-1] - hysteresis;
 		hi_limit = data->plat_data.shutdown_ext_limit;
 	} else {
 		for (i = 0; (i + 1) < nentries; i++) {
-			if (temp_milli >= CELSIUS_TO_MILLICELSIUS(data->limits[i]) &&
-			    temp_milli < CELSIUS_TO_MILLICELSIUS(data->limits[i + 1])) {
+			if (temp_milli >= CELSIUS_TO_MILLICELSIUS(
+				data->limits[i]) && (temp_milli <
+				CELSIUS_TO_MILLICELSIUS(
+				data->limits[i + 1]))) {
 				lo_limit = data->limits[i] - hysteresis;
 				hi_limit = data->limits[i + 1];
 				break;
@@ -694,7 +753,8 @@ static void nct1008_work_func(struct work_struct *work)
 		 * FIXME: Move this direct tegra_ function call to be called
 		 * via a pointer in 'struct nct1008_data' (like 'alarm_fn')
 		 */
-		tegra_edp_update_thermal_zone(MILLICELSIUS_TO_CELSIUS(temp_milli));
+		tegra_edp_update_thermal_zone(
+			MILLICELSIUS_TO_CELSIUS(temp_milli));
 
 	edp_thermal_zone_val = temp_milli;
 
