@@ -71,6 +71,7 @@ struct tegra_sdhci_host {
 	int cd_gpio_polarity;
 	int wp_gpio;
 	int wp_gpio_polarity;
+	int is_rail_enabled;
 	unsigned int tap_delay;
 	unsigned int max_clk;
 	unsigned int clk_limit;
@@ -88,6 +89,16 @@ static irqreturn_t carddetect_irq(int irq, void *data)
 
 	host->card_present =
 		(gpio_get_value(host->cd_gpio) == host->cd_gpio_polarity);
+
+	if(host->card_present){
+		if(host->is_rail_enabled == 0){
+			if (host->reg_vdd_slot)
+				regulator_enable(host->reg_vdd_slot);
+			if (host->reg_vddio)
+				regulator_enable(host->reg_vddio);
+			host->is_rail_enabled = 1;
+		}
+	}
 
 	tasklet_schedule(&sdhost->card_tasklet);
 	return IRQ_HANDLED;
@@ -361,6 +372,7 @@ static int __devinit tegra_sdhci_probe(struct platform_device *pdev)
 					host->reg_vddio = NULL;
 				} else {
 					regulator_enable(host->reg_vddio);
+					host->is_rail_enabled = 1;
 				}
 			}
 		}
@@ -418,7 +430,7 @@ static int __devinit tegra_sdhci_probe(struct platform_device *pdev)
 		host->card_present = 1;
 
 	if (plat->cd_gpio != -1) {
-		rc = request_irq(gpio_to_irq(plat->cd_gpio), carddetect_irq,
+		rc = request_threaded_irq(gpio_to_irq(plat->cd_gpio), NULL, carddetect_irq,
 			IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING,
 			mmc_hostname(sdhci->mmc), sdhci);
 		if (rc)
@@ -426,6 +438,13 @@ static int __devinit tegra_sdhci_probe(struct platform_device *pdev)
 
 		host->card_present =
 			(gpio_get_value(plat->cd_gpio) == host->cd_gpio_polarity);
+		if(!host->card_present){
+			if (host->reg_vddio)
+				regulator_disable(host->reg_vddio);
+			if (host->reg_vdd_slot)
+				regulator_disable(host->reg_vdd_slot);
+			host->is_rail_enabled = 0;
+		}
 	} else if (plat->register_status_notify) {
 		plat->register_status_notify(
 			tegra_sdhci_status_notify_cb, sdhci);
@@ -586,11 +605,13 @@ static int tegra_sdhci_suspend(struct platform_device *pdev, pm_message_t state)
 		pr_err("%s: failed, error = %d\n", __func__, ret);
 
 	tegra_sdhci_enable_clock(host, 0);
-
-	if (host->reg_vddio)
-		ret = regulator_disable(host->reg_vddio);
-	if (host->reg_vdd_slot)
-		ret = regulator_disable(host->reg_vdd_slot);
+	if(host->is_rail_enabled == 1){
+		if (host->reg_vddio)
+			ret = regulator_disable(host->reg_vddio);
+		if (host->reg_vdd_slot)
+			ret = regulator_disable(host->reg_vdd_slot);
+		host->is_rail_enabled = 0;
+	}
 
 	return ret;
 }
@@ -619,15 +640,33 @@ static int tegra_sdhci_resume(struct platform_device *pdev)
 		return 0;
 	}
 
-	if (host->reg_vdd_slot)
-		ret = regulator_enable(host->reg_vdd_slot);
-	if (host->reg_vddio)
-		ret = regulator_enable(host->reg_vddio);
+	if (host->cd_gpio != -1) {
+		int prev_card_present_stat = 0;
 
-	tegra_sdhci_enable_clock(host, SDHCI_TEGRA_MIN_CONTROLLER_CLOCK);
-	ret = sdhci_resume_host(host->sdhci);
-	if (ret)
-		pr_err("%s: failed, error = %d\n", __func__, ret);
+		prev_card_present_stat = host->card_present;
+
+		host->card_present =
+			(gpio_get_value(host->cd_gpio) == host->cd_gpio_polarity);
+
+		if (prev_card_present_stat != host->card_present)
+			sdhci_card_detect_callback(host->sdhci);
+	}
+	if(host->card_present){
+		if(host->is_rail_enabled == 0){
+			if (host->reg_vdd_slot)
+				ret = regulator_enable(host->reg_vdd_slot);
+			if (host->reg_vddio)
+				ret = regulator_enable(host->reg_vddio);
+			host->is_rail_enabled = 1;
+		}
+	}
+
+        tegra_sdhci_enable_clock(host, SDHCI_TEGRA_MIN_CONTROLLER_CLOCK);
+
+        ret = sdhci_resume_host(host->sdhci);
+        if (ret)
+ 		pr_err("%s: failed, error = %d\n", __func__, ret);
+
 
 	return ret;
 }
