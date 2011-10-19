@@ -308,12 +308,18 @@ static int tegra_nor_probe(struct platform_device *pdev)
 	struct tegra_nor_platform_data *plat = pdev->dev.platform_data;
 	struct tegra_nor_info *info = NULL;
 	struct resource *res;
-	struct resource *iomem;
 	int irq;
 
 	if (!plat) {
 		pr_err("%s: no platform device info\n", __func__);
 		err = -EINVAL;
+		goto fail;
+	}
+
+	info = devm_kzalloc(&pdev->dev, sizeof(struct tegra_nor_info),
+				GFP_KERNEL);
+	if (!info) {
+		err = -ENOMEM;
 		goto fail;
 	}
 
@@ -325,39 +331,54 @@ static int tegra_nor_probe(struct platform_device *pdev)
 		goto fail;
 	}
 
-	iomem = request_mem_region(res->start, resource_size(res), pdev->name);
-	if (!iomem) {
+	if (!devm_request_mem_region(&pdev->dev, res->start, resource_size(res),
+		dev_name(&pdev->dev))) {
 		dev_err(&pdev->dev, "NOR region already claimed\n");
 		err = -EBUSY;
 		goto fail;
 	}
 
-	info = kzalloc(sizeof(struct tegra_nor_info), GFP_KERNEL);
-	if (!info) {
+	info->base = devm_ioremap(&pdev->dev, res->start, resource_size(res));
+	if (!info->base) {
+		dev_err(&pdev->dev, "Can't ioremap NOR region\n");
 		err = -ENOMEM;
-		goto out_release_region;
+		goto fail;
+	}
+
+	/* Get NOR flash aperture & map the same */
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+	if (!res) {
+		dev_err(&pdev->dev, "no mem resource?\n");
+		err = -ENODEV;
+		goto fail;
+	}
+
+	if (!devm_request_mem_region(&pdev->dev, res->start, resource_size(res),
+		dev_name(&pdev->dev))) {
+		dev_err(&pdev->dev, "NOR region already claimed\n");
+		err = -EBUSY;
+		goto fail;
+	}
+
+	info->map.virt =  devm_ioremap(&pdev->dev, res->start,
+					resource_size(res));
+	if (!info->map.virt) {
+		dev_err(&pdev->dev, "Can't ioremap NOR region\n");
+		err = -ENOMEM;
+		goto fail;
 	}
 
 	info->plat = plat;
 	info->dev = &pdev->dev;
 	info->map.bankwidth = plat->flash.width;
 	info->map.name = dev_name(&pdev->dev);
-
-	info->base = ioremap(iomem->start, resource_size(iomem));
-	if (!info->base) {
-		dev_err(&pdev->dev, "Can't ioremap NOR region\n");
-		err = -ENOMEM;
-		goto out_free_info;
-	}
-
-	info->map.phys = iomem->start;
-	info->map.size = resource_size(iomem);
-	info->map.virt = info->base;
+	info->map.phys = res->start;
+	info->map.size = resource_size(res);
 
 	info->clk = clk_get(&pdev->dev, NULL);
 	if (IS_ERR(info->clk)) {
 		err = PTR_ERR(info->clk);
-		goto out_iounmap;
+		goto fail;
 	}
 
 	err = clk_enable(info->clk);
@@ -417,12 +438,6 @@ out_clk_disable:
 	clk_disable(info->clk);
 out_clk_put:
 	clk_put(info->clk);
-out_iounmap:
-	iounmap(iomem);
-out_free_info:
-	kfree(info);
-out_release_region:
-	release_region(iomem->start, resource_size(iomem));
 fail:
 	pr_err("Tegra NOR probe failed\n");
 	return err;
@@ -438,11 +453,8 @@ static int tegra_nor_remove(struct platform_device *pdev)
 	} else
 		del_mtd_device(info->mtd);
 	map_destroy(info->mtd);
-	release_mem_region(info->map.phys, info->map.size);
-	iounmap((void __iomem *)info->map.virt);
 	clk_disable(info->clk);
 	clk_put(info->clk);
-	kfree(info);
 
 	return 0;
 }
