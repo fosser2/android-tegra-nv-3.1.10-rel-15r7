@@ -267,8 +267,6 @@ void tegra_idle_enter_lp2_cpu_0(struct cpuidle_device *dev,
 void tegra_idle_enter_lp2_cpu_n(struct cpuidle_device *dev,
 	struct cpuidle_state *state)
 {
-	u32 twd_ctrl;
-	u32 twd_cnt;
 	s64 request;
 	s64 sleep_time;
 	ktime_t enter;
@@ -277,15 +275,7 @@ void tegra_idle_enter_lp2_cpu_n(struct cpuidle_device *dev,
 	if (need_resched())
 		return;
 
-	request = 0;
-	twd_ctrl = readl(twd_base + TWD_TIMER_CONTROL);
-
-	if ((twd_ctrl & TWD_TIMER_CONTROL_ENABLE) &&
-	    (twd_ctrl & TWD_TIMER_CONTROL_IT_ENABLE)) {
-		twd_cnt = readl(twd_base + TWD_TIMER_COUNTER);
-		request = twd_cnt / TWD_MHZ;
-	}
-
+	request = ktime_to_us(tick_nohz_get_sleep_length());
 	if (request < tegra_lp2_exit_latency) {
 		/*
 		 * Not enough time left to enter LP2

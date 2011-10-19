@@ -15,8 +15,6 @@
 #include <asm/smp_twd.h>
 #include <asm/localtimer.h>
 
-#include "power.h"
-
 /*
  * Setup the local clock events for a CPU.
  */
@@ -26,6 +24,6 @@ void __cpuinit local_timer_setup(struct clock_event_device *evt)
 #ifdef CONFIG_ARCH_TEGRA_2x_SOC
 	twd_timer_setup_scalable(evt, 2500000, 4);
 #else
-	twd_timer_setup_scalable(evt, TWD_MHZ * 1000000, 2);
+	twd_timer_setup_scalable(evt, 4000000, 2);
 #endif
 }
