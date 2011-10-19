@@ -22,21 +22,11 @@
 
 #include <asm/mach/flash.h>
 
-struct tegra_nor_chip_timing {
-	uint32_t pg_rdy;
-	uint32_t pg_seq;
-	uint32_t mux;
-	uint32_t hold;
-	uint32_t adv;
-	uint32_t ce;
-	uint32_t we;
-	uint32_t oe;
-	uint32_t wait;
-};
-
 struct tegra_nor_chip_parms {
-	struct tegra_nor_chip_timing timing_default;
-	struct tegra_nor_chip_timing timing_read;
+	struct {
+		uint32_t timing0;
+		uint32_t timing1;
+	} timing_default, timing_read;
 };
 
 struct tegra_nor_platform_data {

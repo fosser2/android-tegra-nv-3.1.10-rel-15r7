@@ -33,6 +33,7 @@
 #include <linux/gpio.h>
 #include <linux/input.h>
 #include <linux/platform_data/tegra_usb.h>
+#include <linux/platform_data/tegra_nor.h>
 #include <linux/usb/android_composite.h>
 #include <linux/spi/spi.h>
 #include <linux/mtd/partitions.h>
@@ -324,6 +325,31 @@ static void p1852_usb_init(void)
 
 }
 
+static struct tegra_nor_platform_data p1852_nor_data = {
+	.flash = {
+		.map_name = "cfi_probe",
+		.width = 2,
+	},
+	.chip_parms = {
+		/* FIXME: Need to use characterized value */
+		.timing_default = {
+			.timing0 = 0xA0400273,
+			.timing1 = 0x00030402,
+		},
+		.timing_read = {
+			.timing0 = 0xA0400273,
+			.timing1 = 0x00030402,
+		},
+	},
+};
+
+static void p1852_nor_init(void)
+{
+	tegra_nor_device.resource[2].end = TEGRA_NOR_FLASH_BASE + SZ_64M - 1;
+	tegra_nor_device.dev.platform_data = &p1852_nor_data;
+	platform_device_register(&tegra_nor_device);
+}
+
 void __init tegra_tsensor_init(void)
 {
 	tegra3_tsensor_init(NULL);
@@ -342,6 +368,7 @@ static void __init tegra_p1852_init(void)
 	p1852_spi_init();
 	platform_add_devices(p1852_devices, ARRAY_SIZE(p1852_devices));
 	p1852_panel_init();
+	p1852_nor_init();
 }
 
 static void __init tegra_p1852_reserve(void)

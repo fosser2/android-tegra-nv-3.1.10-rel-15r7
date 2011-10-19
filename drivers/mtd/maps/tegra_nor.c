@@ -272,7 +272,6 @@ static int tegra_snor_controller_init(struct tegra_nor_info *info)
 	struct tegra_nor_chip_parms *chip_parm = &info->plat->chip_parms;
 	u32 width = info->plat->flash.width;
 	u32 config = 0;
-	unsigned long clk_rate_khz = clk_get_rate(info->clk) / 1000;
 
 	config |= TEGRA_SNOR_CONFIG_DEVICE_MODE(0);
 	config |= TEGRA_SNOR_CONFIG_SNOR_CS(0);
@@ -293,46 +292,13 @@ static int tegra_snor_controller_init(struct tegra_nor_info *info)
 	snor_tegra_writel(info, config, TEGRA_SNOR_CONFIG_REG);
 	info->init_config = config;
 
-#define TIME_TO_CNT(timing) \
-	(((((timing) * (clk_rate_khz)) + 1000000 - 1) / 1000000) - 1)
-	info->timing0_default =
-	    (TEGRA_SNOR_TIMING0_PG_RDY
-	     (TIME_TO_CNT(chip_parm->timing_default.pg_rdy)) |
-	     TEGRA_SNOR_TIMING0_PG_SEQ(TIME_TO_CNT
-				       (chip_parm->timing_default.pg_seq)) |
-	     TEGRA_SNOR_TIMING0_MUX(TIME_TO_CNT(chip_parm->timing_default.mux))
-	     |
-	     TEGRA_SNOR_TIMING0_HOLD(TIME_TO_CNT
-				     (chip_parm->timing_default.hold)) |
-	     TEGRA_SNOR_TIMING0_ADV(TIME_TO_CNT(chip_parm->timing_default.adv))
-	     |
-	     TEGRA_SNOR_TIMING0_CE(TIME_TO_CNT(chip_parm->timing_default.ce)));
-
-	snor_tegra_writel(info, info->timing0_default, TEGRA_SNOR_TIMING0_REG);
-
-	info->timing1_default =
-	    (TEGRA_SNOR_TIMING1_WE(TIME_TO_CNT(chip_parm->timing_default.we)) |
-	     TEGRA_SNOR_TIMING1_OE(TIME_TO_CNT(chip_parm->timing_default.oe)) |
-	     TEGRA_SNOR_TIMING1_WAIT(TIME_TO_CNT
-				     (chip_parm->timing_default.wait)));
+	info->timing0_default = chip_parm->timing_default.timing0;
+	info->timing0_read = chip_parm->timing_read.timing0;
+	info->timing1_default = chip_parm->timing_default.timing1;
+	info->timing1_read = chip_parm->timing_read.timing0;
 
 	snor_tegra_writel(info, info->timing1_default, TEGRA_SNOR_TIMING1_REG);
-
-	info->timing0_read =
-	    (TEGRA_SNOR_TIMING0_PG_RDY
-	     (TIME_TO_CNT(chip_parm->timing_read.pg_rdy)) |
-	     TEGRA_SNOR_TIMING0_PG_SEQ(TIME_TO_CNT
-				       (chip_parm->timing_read.pg_seq)) |
-	     TEGRA_SNOR_TIMING0_MUX(TIME_TO_CNT(chip_parm->timing_read.mux)) |
-	     TEGRA_SNOR_TIMING0_HOLD(TIME_TO_CNT(chip_parm->timing_read.hold)) |
-	     TEGRA_SNOR_TIMING0_ADV(TIME_TO_CNT(chip_parm->timing_read.adv)) |
-	     TEGRA_SNOR_TIMING0_CE(TIME_TO_CNT(chip_parm->timing_read.ce)));
-
-	info->timing1_read =
-	    (TEGRA_SNOR_TIMING1_WE(TIME_TO_CNT(chip_parm->timing_read.we)) |
-	     TEGRA_SNOR_TIMING1_OE(TIME_TO_CNT(chip_parm->timing_read.oe)) |
-	     TEGRA_SNOR_TIMING1_WAIT(TIME_TO_CNT(chip_parm->timing_read.wait)));
-#undef TIME_TO_CNT
+	snor_tegra_writel(info, info->timing0_default, TEGRA_SNOR_TIMING0_REG);
 	return 0;
 }
 
