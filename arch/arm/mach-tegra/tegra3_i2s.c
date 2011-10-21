@@ -966,12 +966,6 @@ int i2s_clock_enable(int ifc, int fifo_mode)
 				return err;
 			}
 			if (info->i2sprop.i2s_sync_clk) {
-				if (clk_enable(info->i2sprop.i2s_sync_clk))
-				{
-					err = PTR_ERR(info->i2sprop.i2s_sync_clk);
-					I2S_DEBUG_PRINT("i2s enable i2s_sync_clk failed \n");
-					return err;
-				}
 				clk_set_rate(info->i2sprop.i2s_sync_clk,info->i2sprop.clk_rate);
 			}
 			if (info->i2sprop.audio_clk) {
@@ -1023,9 +1017,6 @@ int i2s_clock_disable(int ifc, int fifo_mode)
 			if (info->clk_refs == 0) {
 				clk_disable(info->i2sprop.i2s_clk);
 				info->clk_refs = 0;
-				if (info->i2sprop.i2s_sync_clk) {
-					clk_disable(info->i2sprop.i2s_sync_clk);
-				}
 
 				if (info->i2sprop.audio_clk) {
 					clk_disable(info->i2sprop.audio_clk);

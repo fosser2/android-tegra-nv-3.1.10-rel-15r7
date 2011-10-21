@@ -72,6 +72,8 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
 	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
+	struct tegra_i2s_info *info = cpu_dai->private_data;
+	struct tegra_audio_platform_data* i2s_pdata = info->pdata;
 	int sys_clk;
 	int err;
 	int dai_flag = SND_SOC_DAIFMT_NB_NF;
@@ -106,7 +108,7 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 
 	/*FIXME: not sure this is the right way.
 	This should be samplerate times 256 or 128 based on codec need*/
-	sys_clk = tegra_das_get_mclk_rate();
+	sys_clk = (unsigned int) i2s_pdata->dev_clk_rate;
 	err = snd_soc_dai_set_sysclk(codec_dai, 0, sys_clk, SND_SOC_CLOCK_IN);
 	if (err < 0) {
 		pr_err("codec_dai clock not set\n");
