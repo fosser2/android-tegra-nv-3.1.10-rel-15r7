@@ -152,4 +152,14 @@ static inline void tegra_dvfs_core_cap_level_set(int level)
 {}
 #endif
 
+#ifndef CONFIG_ARCH_TEGRA_2x_SOC
+int tegra_dvfs_rail_disable_prepare(struct dvfs_rail *rail);
+int tegra_dvfs_rail_post_enable(struct dvfs_rail *rail);
+#else
+static inline int tegra_dvfs_rail_disable_prepare(struct dvfs_rail *rail)
+{ return 0; }
+static inline int tegra_dvfs_rail_post_enable(struct dvfs_rail *rail)
+{ return 0; }
+#endif
+
 #endif
