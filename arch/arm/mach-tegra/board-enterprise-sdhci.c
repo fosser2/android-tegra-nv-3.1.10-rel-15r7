@@ -38,7 +38,8 @@
 
 static void (*wifi_status_cb)(int card_present, void *dev_id);
 static void *wifi_status_cb_devid;
-static int enterprise_wifi_status_register(void (*callback)(int , void *), void *);
+static int enterprise_wifi_status_register(void (*callback)(int , void *),
+						void *);
 
 static int enterprise_wifi_reset(int on);
 static int enterprise_wifi_power(int on);
@@ -202,7 +203,8 @@ static int enterprise_sd_cd_gpio_init(void)
 
 	rc = gpio_direction_input(ENTERPRISE_SD_CD);
 	if (rc) {
-		pr_err("Unable to configure direction for card detect gpio:%d\n", rc);
+		pr_err("Unable to configure direction for"
+			"card detect gpio:%d\n", rc);
 		return rc;
 	}
 

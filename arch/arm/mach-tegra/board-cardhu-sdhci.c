@@ -58,7 +58,8 @@ static struct resource wifi_resource[] = {
 		.name	= "bcm4329_wlan_irq",
 		.start	= TEGRA_GPIO_TO_IRQ(TEGRA_GPIO_PO4),
 		.end	= TEGRA_GPIO_TO_IRQ(TEGRA_GPIO_PO4),
-		.flags	= IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL | IORESOURCE_IRQ_SHAREABLE,
+		.flags	= IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL |
+					IORESOURCE_IRQ_SHAREABLE,
 	},
 };
 
@@ -217,7 +218,8 @@ static int cardhu_sd_cd_gpio_init(void)
 
 	rc = gpio_direction_input(CARDHU_SD_CD);
 	if (rc) {
-		pr_err("Unable to configure direction for card detect gpio:%d\n", rc);
+		pr_err("Unable to configure direction for"
+			"card detect gpio:%d\n", rc);
 		return rc;
 	}
 
@@ -238,7 +240,8 @@ static int cardhu_sd_wp_gpio_init(void)
 
 	rc = gpio_direction_input(CARDHU_SD_WP);
 	if (rc) {
-		pr_err("Unable to configure direction for write protect gpio:%d\n", rc);
+		pr_err("Unable to configure direction for"
+			"write protect gpio:%d\n", rc);
 		return rc;
 	}
 
@@ -259,7 +262,8 @@ static int pm269_sd_wp_gpio_init(void)
 
 	rc = gpio_direction_input(PM269_SD_WP);
 	if (rc) {
-		pr_err("Unable to configure direction for write protect gpio:%d\n", rc);
+		pr_err("Unable to configure direction for"
+			"write protect gpio:%d\n", rc);
 		return rc;
 	}
 

@@ -254,8 +254,7 @@ int __init whistler_sdhci_init(void)
 	if (ret < 0) {
 		tegra_sdhci_platform_data2.cd_gpio = -1;
 		pr_err("card_detect gpio not found\n");
-	}
-	else {
+	} else {
 		tegra_gpio_enable(WHISTLER_EXT_SDCARD_DETECT);
 		gpio_direction_input(WHISTLER_EXT_SDCARD_DETECT);
 	}
