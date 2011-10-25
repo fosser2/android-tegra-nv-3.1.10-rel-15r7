@@ -103,6 +103,7 @@ void i2s_dump_registers(int ifc)
 	i2s_readl(ifc, I2S_TIMING_0);
 	i2s_readl(ifc, I2S_OFFSET_0);
 	i2s_readl(ifc, I2S_CH_CTRL_0);
+	i2s_readl(ifc, I2S_SLOT_CTRL_0);
 	i2s_readl(ifc, I2S_AUDIOCIF_I2STX_CTRL_0);
 	i2s_readl(ifc, I2S_AUDIOCIF_I2SRX_CTRL_0);
 	i2s_readl(ifc, I2S_FLOWCTL_0);
@@ -341,14 +342,29 @@ int i2s_set_bit_format(int ifc, unsigned fmt)
 		(fmt == AUDIO_FRAME_FORMAT_LJM)) {
 		val |= I2S_CTRL_FRAME_FORMAT_LRCK;
 		i2s_set_edge_control(ifc, 0);
-	} else { /*Dsp,Pcm,Tdm,Nw*/
+	} else if (fmt == AUDIO_FRAME_FORMAT_TDM) {
 		val |= I2S_CTRL_FRAME_FORMAT_FSYNC;
-		i2s_set_fsync_width(ifc, 0);
 		i2s_set_edge_control(ifc, 1);
-		i2s_set_slot_control(ifc, AUDIO_TX_MODE, 0, 0x1);
-		i2s_set_slot_control(ifc, AUDIO_RX_MODE, 0, 0x1);
+		i2s_set_fsync_width(ifc, info->i2sprop.fsync_width);
+		i2s_set_slot_control(ifc, AUDIO_TX_MODE,
+						info->i2sprop.total_slots,
+						info->i2sprop.tx_slot_enables);
+		i2s_set_slot_control(ifc, AUDIO_RX_MODE,
+						info->i2sprop.total_slots,
+						info->i2sprop.rx_slot_enables);
+		i2s_set_data_offset(ifc, AUDIO_TX_MODE,
+						info->i2sprop.tx_bit_offset);
+		i2s_set_data_offset(ifc, AUDIO_RX_MODE,
+						info->i2sprop.rx_bit_offset);
+	} else { /*Dsp,Pcm,Nw*/
+		val |= I2S_CTRL_FRAME_FORMAT_FSYNC;
+		i2s_set_fsync_width(ifc, 1);
+		i2s_set_edge_control(ifc, 1);
+		i2s_set_slot_control(ifc, AUDIO_TX_MODE, 1, 0x1);
+		i2s_set_slot_control(ifc, AUDIO_RX_MODE, 1, 0x1);
 	}
 	info->i2sprop.audio_mode = fmt;
+
 	i2s_writel(ifc, val, I2S_CTRL_0);
 	return 0;
 }
@@ -414,11 +430,15 @@ int i2s_set_samplerate(int ifc, int samplerate)
 	int rate = 0;
 	struct i2s_controller_info *info = &i2s_cont_info[ifc];
 
-	if (info->i2sprop.master_mode && info->i2sprop.i2s_clk)
-	{
+	if ((info->i2sprop.i2s_clk) &&
+			(info->i2sprop.master_mode ||
+			(info->i2sprop.audio_mode ==
+				AUDIO_FRAME_FORMAT_TDM))) {
+
 		rate = clk_get_rate(info->i2sprop.i2s_clk);
 
-		if (info->i2sprop.audio_mode == AUDIO_FRAME_FORMAT_DSP)
+		if ((info->i2sprop.audio_mode == AUDIO_FRAME_FORMAT_DSP) ||
+			(info->i2sprop.audio_mode == AUDIO_FRAME_FORMAT_TDM))
 			rate *= 2;
 
 		i2s_set_channel_bit_count(ifc, samplerate, rate);
@@ -505,7 +525,7 @@ int i2s_set_fsync_width(int ifc, int fsyncwidth)
 	val = i2s_readl(ifc, I2S_CH_CTRL_0);
 
 	val &= ~I2S_CH_CTRL_FSYNC_WIDTH_MASK;
-	val |= (fsyncwidth << I2S_CH_CTRL_FSYNC_WIDTH_SHIFT);
+	val |= ((fsyncwidth - 1) << I2S_CH_CTRL_FSYNC_WIDTH_SHIFT);
 
 	i2s_writel(ifc, val, I2S_CH_CTRL_0);
 	return 0;
@@ -522,7 +542,7 @@ int i2s_set_slot_control(int ifc, int tx, int totalslot, int numslots)
 	val = i2s_readl(ifc, I2S_SLOT_CTRL_0);
 
 	val &= ~I2S_SLOT_CTRL_TOTAL_SLOT_MASK;
-	val |= (totalslot << I2S_SLOT_CTRL_TOTAL_SLOT_SHIFT);
+	val |= ((totalslot-1) << I2S_SLOT_CTRL_TOTAL_SLOT_SHIFT);
 
 	if (tx != AUDIO_TX_MODE) {
 		val &= ~I2S_SLOT_CTRL_RX_SLOT_MASK;
@@ -635,12 +655,22 @@ int i2s_set_fifo_attention(int ifc, int fifo_mode, int buffersize)
 	int fifoattn = I2S_FIFO_ATN_LVL_FOUR_SLOTS;
 	struct i2s_controller_info *info = &i2s_cont_info[ifc];
 
-	if (buffersize & 0xF)
-		fifoattn = I2S_FIFO_ATN_LVL_ONE_SLOT;
-	else if ((buffersize >> 4) & 0x1)
-		fifoattn = I2S_FIFO_ATN_LVL_FOUR_SLOTS;
-	else
-		fifoattn = I2S_FIFO_ATN_LVL_EIGHT_SLOTS;
+
+	if (info->i2sprop.audio_mode == AUDIO_FRAME_FORMAT_TDM) {
+		if (info->i2sprop.total_slots == 1)
+			fifoattn = I2S_FIFO_ATN_LVL_ONE_SLOT;
+		else if (info->i2sprop.total_slots == 4)
+			fifoattn = I2S_FIFO_ATN_LVL_FOUR_SLOTS;
+		else if (info->i2sprop.total_slots == 8)
+			fifoattn = I2S_FIFO_ATN_LVL_EIGHT_SLOTS;
+	} else {
+		if (buffersize & 0xF)
+			fifoattn = I2S_FIFO_ATN_LVL_ONE_SLOT;
+		else if ((buffersize >> 4) & 0x1)
+			fifoattn = I2S_FIFO_ATN_LVL_FOUR_SLOTS;
+		else
+			fifoattn = I2S_FIFO_ATN_LVL_EIGHT_SLOTS;
+	}
 
 	info->i2s_ch_prop[fifo_mode].fifo_attn = fifoattn;
 	return 0;
@@ -931,6 +961,21 @@ int i2s_init(int ifc,  struct tegra_i2s_property* pi2sprop)
 	i2s_set_data_offset(ifc, AUDIO_RX_MODE, 1);
 
 	i2s_set_samplerate(ifc, pi2sprop->sample_rate);
+
+	if (pi2sprop->audio_mode == AUDIO_FRAME_FORMAT_TDM) {
+		i2s_set_fsync_width(ifc, pi2sprop->fsync_width);
+		i2s_set_slot_control(ifc, AUDIO_TX_MODE,
+						pi2sprop->total_slots,
+						pi2sprop->tx_slot_enables);
+		i2s_set_slot_control(ifc, AUDIO_RX_MODE,
+						pi2sprop->total_slots,
+						pi2sprop->rx_slot_enables);
+		i2s_set_data_offset(ifc, AUDIO_TX_MODE,
+						pi2sprop->tx_bit_offset);
+		i2s_set_data_offset(ifc, AUDIO_RX_MODE,
+						pi2sprop->rx_bit_offset);
+	}
+
 
 	i2s_clock_disable(ifc, 0);
 

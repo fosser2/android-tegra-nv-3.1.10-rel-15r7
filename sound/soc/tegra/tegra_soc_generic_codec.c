@@ -35,6 +35,7 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
 	int dai_flag = 0, sys_clk;
 	int err;
+	struct audio_dev_property dev_prop;
 
 	enum dac_dap_data_format data_fmt;
 
@@ -65,6 +66,14 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 	}
 
 	sys_clk = 48000 * 512;
+#ifndef CONFIG_ARCH_TEGRA_2x_SOC
+	tegra_das_get_device_property(tegra_audio_codec_num, &dev_prop);
+	if (data_fmt & dac_dap_data_format_tdm) {
+		sys_clk = dev_prop.rate *
+					dev_prop.num_channels *
+					dev_prop.bits_per_sample;
+	}
+#endif
 	err = snd_soc_dai_set_sysclk(cpu_dai, 0, sys_clk, SND_SOC_CLOCK_IN);
 	if (err < 0) {
 		pr_err("cpu_dai clock not set\n");

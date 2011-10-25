@@ -95,10 +95,12 @@ static inline void start_i2s_playback(struct snd_soc_dai *cpu_dai)
 static inline void stop_i2s_playback(struct snd_soc_dai *cpu_dai)
 {
 	struct tegra_i2s_info *info = cpu_dai->private_data;
+	int dcnt = 10;
 
 	info->i2sdev_info.fifo_mode = AUDIO_TX_MODE;
 	am_set_stream_state(&info->i2sdev_info, false);
-	while (am_get_status(&info->i2sdev_info));
+	while (am_get_status(&info->i2sdev_info) && dcnt--)
+		udelay(100);
 }
 
 /* recording */
@@ -113,12 +115,25 @@ static inline void start_i2s_capture(struct snd_soc_dai *cpu_dai)
 static inline void stop_i2s_capture(struct snd_soc_dai *cpu_dai)
 {
 	struct tegra_i2s_info *info = cpu_dai->private_data;
+	int dcnt = 10;
 
 	info->i2sdev_info.fifo_mode = AUDIO_RX_MODE;
 	am_set_stream_state(&info->i2sdev_info, false);
-	while (am_get_status(&info->i2sdev_info));
+	while (am_get_status(&info->i2sdev_info) && dcnt--)
+		udelay(100);
 }
 
+static inline int get_bit_size(int nbits)
+{
+	switch (nbits) {
+	case 24:
+		return AUDIO_BIT_SIZE_24;
+	case 32:
+		return AUDIO_BIT_SIZE_32;
+	default:
+		return AUDIO_BIT_SIZE_16;
+	}
+}
 
 static int tegra_i2s_hw_params(struct snd_pcm_substream *substream,
 				struct snd_pcm_hw_params *params,
@@ -127,6 +142,7 @@ static int tegra_i2s_hw_params(struct snd_pcm_substream *substream,
 	int val;
 	am_stream_format_info fmt;
 	struct tegra_i2s_info *info = dai->private_data;
+	int num_channels;
 
 	info->i2sdev_info.fifo_mode = AUDIO_RX_MODE;
 
@@ -148,6 +164,9 @@ static int tegra_i2s_hw_params(struct snd_pcm_substream *substream,
 	}
 
 	fmt.bitsize = val;
+	if (info->pdata->tdm_enable) {
+		fmt.bitsize = get_bit_size(info->pdata->tdm_bitsize);
+	}
 
 	switch (params_rate(params)) {
 	case 8000:
@@ -168,7 +187,12 @@ static int tegra_i2s_hw_params(struct snd_pcm_substream *substream,
 
 	fmt.samplerate = val;
 
-	switch (params_channels(params)) {
+	num_channels = params_channels(params);
+	if (info->pdata->tdm_enable) {
+		num_channels = info->pdata->total_slots;
+	}
+
+	switch (num_channels) {
 	case 1: val = AUDIO_CHANNEL_1; break;
 	case 2: val = AUDIO_CHANNEL_2; break;
 	case 3: val = AUDIO_CHANNEL_3; break;

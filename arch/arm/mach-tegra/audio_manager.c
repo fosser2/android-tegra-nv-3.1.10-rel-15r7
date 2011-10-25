@@ -412,6 +412,23 @@ int default_record_connection(aud_dev_info *devinfo)
 
 }
 
+int i2s_ahub_connection(struct am_ch_info *ch, aud_dev_info *devinfo)
+{
+	struct am_dev_fns *am_fn = &init_am_dev_fns[devinfo->dev_type];
+	int fifo_mode = devinfo->fifo_mode;
+
+	am_fn->aud_dev_clock_enable(devinfo->dev_id, fifo_mode);
+	ch->dmach[fifo_mode] =
+			am_fn->aud_dev_get_dma_requestor(
+							devinfo->dev_id,
+							fifo_mode);
+	if (ch->dmach[fifo_mode] < 0)
+		return -ENOENT;
+	return 0;
+
+}
+
+
 int default_playback_connection(struct am_ch_info *ch, aud_dev_info *devinfo)
 {
 	/* get unused dam channel first */
@@ -550,7 +567,13 @@ int am_get_dma_requestor(aud_dev_info* devinfo)
 		if (fifo_mode == AUDIO_RX_MODE)
 			ch->ahubtx_index = ahubindex;
 
-		if (fifo_mode == AUDIO_TX_MODE) {
+		if (ch->data_format == AUDIO_FRAME_FORMAT_TDM) {
+
+				err = i2s_ahub_connection(ch , devinfo);
+				if (err)
+					goto fail_conn;
+
+		} else if (fifo_mode == AUDIO_TX_MODE) {
 
 			err = default_playback_connection(ch, devinfo);
 			if (err)
@@ -590,6 +613,7 @@ int am_free_dma_requestor(aud_dev_info* devinfo)
 	struct am_ch_info *ch = NULL;
 	int dev_id = devinfo->dev_id;
 	int fifo_mode = devinfo->fifo_mode;
+	struct am_dev_fns *am_fn = &init_am_dev_fns[devinfo->dev_type];
 
 	if (devinfo->dev_type == AUDIO_I2S_DEVICE)
 		ch = &aud_manager->i2s_ch[dev_id];
@@ -603,7 +627,13 @@ int am_free_dma_requestor(aud_dev_info* devinfo)
 	if (ch->dmach_refcnt[fifo_mode] > 0)
 		ch->dmach_refcnt[fifo_mode]--;
 
-	if (ch->dmach_refcnt[fifo_mode] == 0) {
+	if ((ch->dmach_refcnt[fifo_mode] == 0) &&
+		(ch->data_format == AUDIO_FRAME_FORMAT_TDM)
+	   ) {
+		am_fn->aud_dev_free_dma_requestor(devinfo->dev_id, fifo_mode);
+		am_fn->aud_dev_clock_disable(devinfo->dev_id, fifo_mode);
+		ch->inuse[fifo_mode] = false;
+	} else if (ch->dmach_refcnt[fifo_mode] == 0) {
 		free_dam_connection(devinfo);
 		ch->inuse[fifo_mode] = false;
 	}
@@ -770,6 +800,13 @@ int am_device_init(aud_dev_info* devinfo, void *dev_fmt, void  *strm_fmt)
 			i2sprop.audio_mode = dfmt->audiomode;
 			i2sprop.clk_rate = dfmt->clkrate;
 			i2sprop.fifo_fmt = dfmt->fifofmt;
+			i2sprop.total_slots  = dfmt->total_slots;
+			i2sprop.fsync_width  = dfmt->fsync_width;
+			i2sprop.rx_slot_enables = dfmt->rx_slot_enables;
+			i2sprop.tx_slot_enables = dfmt->tx_slot_enables;
+			i2sprop.rx_bit_offset = dfmt->rx_bit_offset;
+			i2sprop.tx_bit_offset = dfmt->tx_bit_offset;
+			i2sprop.tdm_bitsize = dfmt->tdm_bitsize;
 		}
 		return i2s_init(devinfo->dev_id, &i2sprop);
 
@@ -812,6 +849,7 @@ static inline int get_bit_size(int nbits)
 	}
 }
 
+
 int set_i2s_dev_prop(int dev_id,
 		struct am_ch_info *ch,
 		struct audio_dev_property *dev_prop)
@@ -829,6 +867,9 @@ int set_i2s_dev_prop(int dev_id,
 	switch (dev_prop->dac_dap_data_comm_format) {
 	case dac_dap_data_format_dsp:
 		ch->data_format = AUDIO_FRAME_FORMAT_DSP;
+		break;
+	case dac_dap_data_format_tdm:
+		ch->data_format = AUDIO_FRAME_FORMAT_TDM;
 		break;
 	default:
 		ch->data_format = AUDIO_FRAME_FORMAT_I2S;
@@ -1180,6 +1221,22 @@ static void init_custom_codec_ports(void)
 					get_bit_size(dev_prop.bits_per_sample);
 				ch->sfmt.channels = dev_prop.num_channels - 1;
 				ch->sfmt.samplerate = dev_prop.rate;
+				ch->damch[dam_ch_in0] = -1;
+				ch->damch[dam_ch_in1] = -1;
+				switch (dev_prop.dac_dap_data_comm_format) {
+				case dac_dap_data_format_dsp:
+					ch->data_format =
+							AUDIO_FRAME_FORMAT_DSP;
+					break;
+				case dac_dap_data_format_tdm:
+					ch->data_format =
+							AUDIO_FRAME_FORMAT_TDM;
+					break;
+				default:
+					ch->data_format =
+							AUDIO_FRAME_FORMAT_I2S;
+					break;
+				}
 			}
 		}
 	}
