@@ -1072,7 +1072,9 @@ static int __cpuinit console_cpu_notify(struct notifier_block *self,
 	switch (action) {
 	case CPU_ONLINE:
 	case CPU_DEAD:
+#ifndef CONFIG_ARCH_TEGRA
 	case CPU_DYING:
+#endif
 	case CPU_DOWN_FAILED:
 	case CPU_UP_CANCELED:
 		acquire_console_sem();
