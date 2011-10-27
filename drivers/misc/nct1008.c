@@ -394,34 +394,46 @@ static const struct attribute_group nct1008_attr_group = {
 #ifdef CONFIG_DEBUG_FS
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
-static void print_regs(const char *header, struct seq_file *s,
-		int start_offset, int end_offset)
+static void print_reg(const char *reg_name, struct seq_file *s,
+		int offset)
 {
 	struct nct1008_data *nct_data = s->private;
-	int i;
-	u8 ret;
+	int ret;
 
-	seq_printf(s, "%s\n", header);
-	for (i = start_offset; i <= end_offset; ++i) {
-		ret = i2c_smbus_read_byte_data(nct_data->client, i);
-		if (ret >= 0)
-			seq_printf(s, "Addr = 0x%02x Reg 0x%02x Value "
-				"0x%02x\n", nct_data->client->addr, i, ret);
-		else
-			seq_printf(s, "%s: line=%d, i2c read error=%d\n",
-			__func__, __LINE__, ret);
-	}
-	seq_printf(s, "------------------\n");
+	ret = i2c_smbus_read_byte_data(nct_data->client,
+		offset);
+	if (ret >= 0)
+		seq_printf(s, "Reg %s Addr = 0x%02x Reg 0x%02x "
+		"Value 0x%02x\n", reg_name,
+		nct_data->client->addr,
+			offset, ret);
+	else
+		seq_printf(s, "%s: line=%d, i2c read error=%d\n",
+		__func__, __LINE__, ret);
 }
 
 static int dbg_nct1008_show(struct seq_file *s, void *unused)
 {
 	seq_printf(s, "nct1008 Registers\n");
 	seq_printf(s, "------------------\n");
-	print_regs("Regs 00-08",     s, 0x00, 0x08);
-	print_regs("Regs 10-14",     s, 0x10, 0x14);
-	print_regs("Reg 19",         s, 0x19, 0x19);
-	print_regs("Regs 20-22",     s, 0x20, 0x22);
+	print_reg("Local Temp Value    ",     s, 0x00);
+	print_reg("Ext Temp Value Hi   ",     s, 0x01);
+	print_reg("Status              ",     s, 0x02);
+	print_reg("Configuration       ",     s, 0x03);
+	print_reg("Conversion Rate     ",     s, 0x04);
+	print_reg("Local Temp Hi Limit ",     s, 0x05);
+	print_reg("Local Temp Lo Limit ",     s, 0x06);
+	print_reg("Ext Temp Hi Limit Hi",     s, 0x07);
+	print_reg("Ext Temp Hi Limit Lo",     s, 0x13);
+	print_reg("Ext Temp Lo Limit Hi",     s, 0x08);
+	print_reg("Ext Temp Lo Limit Lo",     s, 0x14);
+	print_reg("Ext Temp Value Lo   ",     s, 0x10);
+	print_reg("Ext Temp Offset Hi  ",     s, 0x11);
+	print_reg("Ext Temp Offset Lo  ",     s, 0x12);
+	print_reg("Ext THERM Limit     ",     s, 0x19);
+	print_reg("Local THERM Limit   ",     s, 0x20);
+	print_reg("THERM Hysteresis    ",     s, 0x21);
+	print_reg("Consecutive ALERT   ",     s, 0x22);
 	return 0;
 }
 
@@ -439,12 +451,24 @@ static const struct file_operations debug_fops = {
 
 static int __init nct1008_debuginit(struct nct1008_data *nct)
 {
-	int err;
-	err = debugfs_create_file("nct1008", S_IRUGO, NULL,
-			nct, &debug_fops);
-	if (err < 0)
-		pr_err("Error: %s debugfs not supported, error=%d\n",
-			__func__, err);
+	int err = 0;
+	struct dentry *d;
+	d = debugfs_create_file("nct1008", S_IRUGO, NULL,
+			(void *)nct, &debug_fops);
+	if ((!d) || IS_ERR(d)) {
+		dev_err(&nct->client->dev, "Error: %s debugfs_create_file"
+			" returned an error\n", __func__);
+		err = -ENOENT;
+		goto end;
+	}
+	if (d == ERR_PTR(-ENODEV)) {
+		dev_err(&nct->client->dev, "Error: %s debugfs not supported "
+			"error=-ENODEV\n", __func__);
+		err = -ENODEV;
+	} else {
+		nct->dent = d;
+	}
+end:
 	return err;
 }
 #else
@@ -1097,6 +1121,8 @@ static int __devexit nct1008_remove(struct i2c_client *client)
 		data->thz = NULL;
 	}
 #endif
+	if (data->dent)
+		debugfs_remove(data->dent);
 	free_irq(data->client->irq, data);
 	cancel_work_sync(&data->work);
 	sysfs_remove_group(&client->dev.kobj, &nct1008_attr_group);
