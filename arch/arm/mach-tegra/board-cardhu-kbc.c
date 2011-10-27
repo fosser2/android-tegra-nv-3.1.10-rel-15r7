@@ -26,6 +26,7 @@
 #include <linux/gpio.h>
 #include <linux/gpio_keys.h>
 #include <linux/mfd/tps6591x.h>
+#include <linux/mfd/max77663-core.h>
 #include <linux/interrupt_keys.h>
 #include <linux/gpio_scrollwheel.h>
 
@@ -217,6 +218,11 @@ static struct interrupt_keys_button cardhu_int_keys[] = {
 	[1] = INT_KEY(KEY_POWER, TPS6591X_IRQ_BASE + TPS6591X_INT_PWRON_LP, 0, 8000),
 };
 
+static struct interrupt_keys_button cardhu_pm298_int_keys[] = {
+	[0] = INT_KEY(KEY_POWER, MAX77663_IRQ_BASE + MAX77663_IRQ_ONOFF_EN0_FALLING, 0, 100),
+	[1] = INT_KEY(KEY_POWER, MAX77663_IRQ_BASE + MAX77663_IRQ_ONOFF_EN0_1SEC, 0, 3000),
+};
+
 static struct interrupt_keys_platform_data cardhu_int_keys_pdata = {
 	.int_buttons	= cardhu_int_keys,
 	.nbuttons       = ARRAY_SIZE(cardhu_int_keys),
@@ -234,6 +240,7 @@ int __init cardhu_keys_init(void)
 {
 	int i;
 	struct board_info board_info;
+	struct board_info pmu_board_info;
 
 	tegra_get_board_info(&board_info);
 	if (!((board_info.board_id == BOARD_E1198) ||
@@ -261,6 +268,14 @@ int __init cardhu_keys_init(void)
 	}
 
 	/* Register on-key through pmu interrupt */
+	tegra_get_pmu_board_info(&pmu_board_info);
+
+	if (pmu_board_info.board_id == BOARD_PMU_PM298) {
+		cardhu_int_keys_pdata.int_buttons = cardhu_pm298_int_keys;
+		cardhu_int_keys_pdata.nbuttons =
+					ARRAY_SIZE(cardhu_pm298_int_keys);
+	}
+
 	if ((board_info.board_id == BOARD_E1291) ||
 		(board_info.board_id == BOARD_E1257) ||
 		(board_info.board_id == BOARD_PM305) ||
