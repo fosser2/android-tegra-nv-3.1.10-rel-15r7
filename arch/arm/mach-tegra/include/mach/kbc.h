@@ -53,7 +53,11 @@ struct tegra_kbc_pin_cfg {
  * @repeat_cnt: The time to start next scan after completing the current scan
  *              in terms of clock ticks of 32KHz clock
  * @scan_timeout_cnt: Number of clock count (32KHz) to keep scanning of keys
- *              after any key is pressed.
+ *              after last pressed key is released.
+ * @scan_count: Number of scanning done by kbc after last key released. Based
+ *              parameter, the scan timeout can be calculated. User can
+ *              provide the value either for scan_count or scan_timeout_cnt.
+ *              Both parameters are not require to be set.
  * @plain_keycode: The key code array for keys in normal mode.
  * @fn_keycode:  The key code array for keys with function key pressed.
  * @is_filter_keys: Tells whether filter algorithms applied or not.
@@ -66,6 +70,7 @@ struct tegra_kbc_platform_data {
 	unsigned int debounce_cnt;
 	unsigned int repeat_cnt;
 	unsigned int scan_timeout_cnt;
+	unsigned int scan_count;
 	int *plain_keycode;
 	int *fn_keycode;
 	bool is_filter_keys;

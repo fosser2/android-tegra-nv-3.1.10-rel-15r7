@@ -40,11 +40,14 @@
 #define KBC_ROW_CFG0_0	8
 #define KBC_COL_CFG0_0	0x18
 #define KBC_TO_CNT_0	0x24
+#define KBC_INIT_DLY_0	0x28
 #define KBC_RPT_DLY_0	0x2c
 #define KBC_KP_ENT0_0	0x30
 #define KBC_KP_ENT1_0	0x34
 #define KBC_ROW0_MASK_0	0x38
 
+#define DEFAULT_SCAN_COUNT 2
+#define DEFAULT_INIT_DLY   5
 #define res_size(res)	((res)->end - (res)->start + 1)
 
 struct tegra_kbc {
@@ -65,6 +68,8 @@ struct tegra_kbc {
 	int row_seq[KBC_MAX_ROW];
 	int col_seq[KBC_MAX_COL];
 	int ncols;
+	unsigned long scan_timeout_count;
+	unsigned long one_scan_time;
 };
 
 static int tegra_kbc_filter_keys(struct tegra_kbc *kbc, int *prows, int *pcols,
@@ -394,9 +399,8 @@ static int tegra_kbc_open(struct input_dev *dev)
 	val |= 1;     /* enable */
 	writel(val, kbc->mmio + KBC_CONTROL_0);
 
-	/* Bit 19:0 is for scan timeout count */
-	kbc->pdata->scan_timeout_cnt &= 0xFFFFF;
-	writel(kbc->pdata->scan_timeout_cnt, kbc->mmio + KBC_TO_CNT_0);
+	writel(DEFAULT_INIT_DLY, kbc->mmio + KBC_INIT_DLY_0);
+	writel(kbc->scan_timeout_count, kbc->mmio + KBC_TO_CNT_0);
 
 	/* atomically clear out any remaining entries in the key FIFO
 	 * and enable keyboard interrupts */
@@ -460,6 +464,7 @@ static int __devinit tegra_kbc_probe(struct platform_device *pdev)
 	int nr = 0;
 	int nc = 0;
 	char name[64];
+	unsigned long scan_tc;
 
 	dev_dbg(&pdev->dev, "KBC: tegra_kbc_probe\n");
 
@@ -563,11 +568,25 @@ static int __devinit tegra_kbc_probe(struct platform_device *pdev)
 					~(1 << kbc->pdata->wake_cfg[i].col);
 
 	pdata->debounce_cnt = min_t(unsigned int, pdata->debounce_cnt, 0x3fful);
-	kbc->repoll_time = 5 + (16+pdata->debounce_cnt)*nr + pdata->repeat_cnt;
+	kbc->repoll_time = DEFAULT_INIT_DLY + (16 + pdata->debounce_cnt) * nr +
+					pdata->repeat_cnt;
 	kbc->repoll_time = (kbc->repoll_time + 31) / 32;
 
 	kbc->plain_keycode = pdata->plain_keycode;
 	kbc->fn_keycode = pdata->fn_keycode;
+	if (pdata->scan_timeout_cnt)
+		scan_tc = pdata->scan_timeout_cnt;
+	else if (pdata->scan_count)
+		scan_tc = DEFAULT_INIT_DLY + ((16 + pdata->debounce_cnt) * nr +
+					pdata->repeat_cnt) * pdata->scan_count;
+	else
+		scan_tc = DEFAULT_INIT_DLY + ((16 + pdata->debounce_cnt) * nr +
+					pdata->repeat_cnt) * DEFAULT_SCAN_COUNT;
+
+	kbc->one_scan_time = (16 + pdata->debounce_cnt) * nr +
+						pdata->repeat_cnt;
+	/* Bit 19:0 is for scan timeout count */
+	kbc->scan_timeout_count = scan_tc & 0xFFFFF;
 
 	kbc->idev->evbit[0] = BIT_MASK(EV_KEY);
 	for (i = 0; i < KBC_MAX_ROW; i++) {
@@ -660,16 +679,18 @@ static int __devexit tegra_kbc_remove(struct platform_device *pdev)
 static int tegra_kbc_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	struct tegra_kbc *kbc = platform_get_drvdata(pdev);
-	int timeout = kbc->pdata->scan_timeout_cnt/32 + 200;
+	int timeout;
 	unsigned long int_st;
 
 	if (!kbc->is_open)
 		return 0;
 
 	dev_dbg(&pdev->dev, "KBC: tegra_kbc_suspend\n");
+	timeout = DIV_ROUND_UP((kbc->scan_timeout_count + kbc->one_scan_time),
+			32);
 	if (device_may_wakeup(&pdev->dev) &&
 		(kbc->pdata->is_wake_on_any_key || kbc->pdata->wake_key_cnt)) {
-		timeout = timeout/10;
+		timeout = DIV_ROUND_UP(timeout, 10);
 		while (timeout--) {
 			int_st = readl(kbc->mmio + KBC_INT_0);
 			if (int_st & 0x8) {
@@ -678,6 +699,11 @@ static int tegra_kbc_suspend(struct platform_device *pdev, pm_message_t state)
 			}
 			break;
 		}
+		int_st = readl(kbc->mmio + KBC_INT_0);
+		if (int_st & 0x8)
+			dev_err(&pdev->dev, "KBC: Controller is not in "
+				"wakeupmode\n");
+
 		tegra_kbc_setup_wakekeys(kbc, true);
 		enable_irq_wake(kbc->irq);
 		/* Forcefully clear the interrupt status */
