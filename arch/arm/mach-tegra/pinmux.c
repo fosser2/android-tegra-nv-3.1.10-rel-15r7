@@ -295,7 +295,7 @@ static inline void pg_writel(unsigned long value, unsigned long offset)
 
 int tegra_pinmux_get_pingroup(int gpio_nr)
 {
-	return gpio_to_pingroup[gpio_nr];
+	return gpio_to_pingroups_map[gpio_nr];
 }
 
 static int tegra_pinmux_set_func(const struct tegra_pingroup_config *config)
