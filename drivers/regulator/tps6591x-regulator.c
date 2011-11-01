@@ -861,7 +861,7 @@ static void tps6591x_regulator_shutdown(struct platform_device *pdev)
 	}
 }
 
-static int tps6591x_suspend(struct platform_device *pdev)
+static int tps6591x_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	struct regulator_dev *rdev = platform_get_drvdata(pdev);
 	struct tps6591x_regulator *ri = rdev_get_drvdata(rdev);
