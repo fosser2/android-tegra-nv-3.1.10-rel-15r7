@@ -23,15 +23,10 @@
 #include <mach/tegra_fuse.h>
 #include <devices.h>
 #include <mach/iomap.h>
+#include <mach/thermal.h>
 #include <linux/io.h>
 #include <linux/ioport.h>
-
-static struct tegra_tsensor_platform_data tsensor_data = {
-	.hysteresis = 5,
-	.sw_intr_temperature = 75,
-	.hw_clk_div_temperature = 80,
-	.hw_reset_temperature = 90,
-};
+#include <linux/slab.h>
 
 /* fuse revision constants used for tsensor */
 #define TSENSOR_FUSE_REVISION_DECIMAL 8
@@ -59,6 +54,64 @@ static struct tegra_tsensor_platform_data tsensor_data = {
 #define CHECKSUM_MASK				0xff
 #define PMU_16BIT_SUPPORT_MASK			0x1
 
+#define TSENSOR_OFFSET	(4000 + 5000)
+
+#ifdef CONFIG_TEGRA_INTERNAL_TSENSOR_EDP_SUPPORT
+static int tsensor_get_temp(void *_data, long *milli_temp) {
+	struct tegra_tsensor_data *data = _data;
+	return tsensor_thermal_get_temp(data, milli_temp);
+}
+
+static int tsensor_set_limits(void *_data,
+			long lo_limit_milli,
+			long hi_limit_milli) {
+	struct tegra_tsensor_data *data = _data;
+	return tsensor_thermal_set_limits(data,
+					lo_limit_milli,
+					hi_limit_milli);
+}
+
+static int tsensor_set_alert(void *_data,
+			void (*alert_func)(void *),
+			void *alert_data) {
+	struct tegra_tsensor_data *data = _data;
+	return tsensor_thermal_set_alert(data, alert_func, alert_data);
+}
+
+static int tsensor_set_shutdown_temp(void *_data, long shutdown_temp_milli) {
+	struct tegra_tsensor_data *data = _data;
+	return tsensor_thermal_set_shutdown_temp(data, shutdown_temp_milli);
+}
+
+static void tegra3_tsensor_probe_callback(struct tegra_tsensor_data *data)
+{
+	struct tegra_thermal_device *thermal_device;
+
+	thermal_device = kzalloc(sizeof(struct tegra_thermal_device),
+					GFP_KERNEL);
+
+	if (!thermal_device) {
+		pr_err("unable to allocate thermal device\n");
+		return;
+	}
+
+	thermal_device->data = data;
+	thermal_device->offset = TSENSOR_OFFSET;
+	thermal_device->get_temp = tsensor_get_temp;
+	thermal_device->set_limits = tsensor_set_limits;
+	thermal_device->set_alert = tsensor_set_alert;
+	thermal_device->set_shutdown_temp = tsensor_set_shutdown_temp;
+
+	if (tegra_thermal_set_device(thermal_device)) /* This should not fail */
+		BUG();
+}
+#endif
+
+static struct tegra_tsensor_platform_data tsensor_data = {
+#ifdef CONFIG_TEGRA_INTERNAL_TSENSOR_EDP_SUPPORT
+	.probe_callback = tegra3_tsensor_probe_callback,
+#endif
+};
 
 void __init tegra3_tsensor_init(struct tegra_tsensor_pmu_data *data)
 {
