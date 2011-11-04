@@ -65,7 +65,10 @@
 #define TEGRA_WAKE_GPIO_PK2	(1ull << 34)
 #define TEGRA_WAKE_GPIO_PI6	(1ull << 35)
 #define TEGRA_WAKE_GPIO_PBB1	(1ull << 36)
-#define TEGRA_WAKE_USB3_ID	(1ull << 37)
-#define TEGRA_WAKE_USB3_VBUS	(1ull << 38)
+#define TEGRA_WAKE_USB3_VBUS	(1ull << 37)
+#define TEGRA_WAKE_USB3_ID	(1ull << 38)
+#define TEGRA_WAKE_USB1_UTMIP	(1ull << 39)
+#define TEGRA_WAKE_USB2_UTMIP	(1ull << 40)
+#define TEGRA_WAKE_USB3_UTMIP	(1ull << 41)
 
 #endif
