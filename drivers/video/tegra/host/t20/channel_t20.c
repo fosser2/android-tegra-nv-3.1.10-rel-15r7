@@ -69,7 +69,6 @@ const struct nvhost_channeldesc nvhost_t20_channelmap[] = {
 	.syncpts       = BIT(NVSYNCPT_3D),
 	.waitbases     = BIT(NVWAITBASE_3D),
 	.modulemutexes = BIT(NVMODMUTEX_3D),
-	.waitbasesync  = true,
 	.class	       = NV_GRAPHICS_3D_CLASS_ID,
 	.module        = {
 			.prepare_poweroff = power_off_3d,
