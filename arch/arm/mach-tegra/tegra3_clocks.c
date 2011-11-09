@@ -2675,23 +2675,22 @@ static struct clk_ops tegra_clk_cbus_ops = {
  * shared bus.
  */
 
-static void shared_bus_set_rate(struct clk *bus,
-				unsigned long rate, unsigned long old_rate)
+static noinline int shared_bus_set_rate(struct clk *bus, unsigned long rate,
+					unsigned long old_rate)
 {
 	int ret, mv, old_mv;
 	unsigned long bridge_rate = emc_bridge->u.shared_bus_user.rate;
 
 	/* If bridge is not needed (LPDDR2) just set bus rate */
-	if (bridge_rate < TEGRA_EMC_BRIDGE_RATE_MIN) {
-		clk_set_rate_locked(bus, rate);
-		return;
-	}
+	if (tegra_emc_get_dram_type() == DRAM_TYPE_LPDDR2)
+		return clk_set_rate_locked(bus, rate);
 
 	mv = tegra_dvfs_predict_millivolts(bus, rate);
 	old_mv = tegra_dvfs_predict_millivolts(bus, old_rate);
 	if (IS_ERR_VALUE(mv) || IS_ERR_VALUE(old_mv)) {
 		pr_err("%s: Failed to predict %s voltage for %lu => %lu\n",
 		       __func__, bus->name, old_rate, rate);
+		return -EINVAL;
 	}
 
 	/* emc bus: set bridge rate as intermediate step when crossing
@@ -2706,11 +2705,10 @@ static void shared_bus_set_rate(struct clk *bus,
 			if (ret) {
 				pr_err("%s: Failed to set emc bridge rate %lu\n",
 					__func__, bridge_rate);
-				return;
+				return ret;
 			}
 		}
-		clk_set_rate_locked(bus, rate);
-		return;
+		return clk_set_rate_locked(bus, rate);
 	}
 
 	/* sbus and cbus: enable/disable emc bridge user when crossing voltage
@@ -2722,15 +2720,19 @@ static void shared_bus_set_rate(struct clk *bus,
 		ret = clk_enable(emc_bridge);
 		if (ret) {
 			pr_err("%s: Failed to enable emc bridge\n", __func__);
-			return;
+			return ret;
 		}
 	}
 
-	clk_set_rate_locked(bus, rate);
+	ret = clk_set_rate_locked(bus, rate);
+	if (ret)
+		return ret;
 
 	if ((mv <= TEGRA_EMC_BRIDGE_MVOLTS_MIN) &&
 	    (old_mv > TEGRA_EMC_BRIDGE_MVOLTS_MIN))
 		clk_disable(emc_bridge);
+
+	return 0;
 }
 
 static void tegra3_clk_shared_bus_update(struct clk *bus)
