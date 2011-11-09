@@ -121,8 +121,8 @@ int __init whistler_kbc_init(void)
 		data->pin_cfg[i].pin_type = kbc_pin_row;
 	}
 	for (i = 0; i < WHISTLER_COL_COUNT; i++) {
-		data->pin_cfg[i + WHISTLER_ROW_COUNT].num = i;
-		data->pin_cfg[i + WHISTLER_ROW_COUNT].pin_type = kbc_pin_col;
+		data->pin_cfg[i + KBC_PIN_GPIO_16].num = i;
+		data->pin_cfg[i + KBC_PIN_GPIO_16].pin_type = kbc_pin_col;
 	}
 
 	platform_device_register(&whistler_kbc_device);

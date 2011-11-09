@@ -86,8 +86,8 @@ int __init enterprise_kbc_init(void)
 	}
 
 	for (i = 0; i < ENTERPRISE_COL_COUNT; i++) {
-		data->pin_cfg[i + ENTERPRISE_ROW_COUNT].num = i;
-		data->pin_cfg[i + ENTERPRISE_ROW_COUNT].pin_type = kbc_pin_col;
+		data->pin_cfg[i + KBC_PIN_GPIO_16].num = i;
+		data->pin_cfg[i + KBC_PIN_GPIO_16].pin_type = kbc_pin_col;
 	}
 	platform_device_register(&tegra_kbc_device);
 	pr_info("Registering successful tegra-kbc\n");
