@@ -339,8 +339,8 @@ static void tegra_kbc_config_pins(struct tegra_kbc *kbc)
 		col_config[i] = 0;
 
 	for (i = 0; i < KBC_MAX_GPIO; i++) {
-		u32 r_shift = 5 * (pdata->pin_cfg[i].num % 6);
-		u32 c_shift = 4 * (pdata->pin_cfg[i].num % 8);
+		u32 r_shift = 5 * (i % 6);
+		u32 c_shift = 4 * (i % 8);
 		u32 r_mask = 0x1f << r_shift;
 		u32 c_mask = 0xf << c_shift;
 		u32 index;
@@ -349,12 +349,12 @@ static void tegra_kbc_config_pins(struct tegra_kbc *kbc)
 			continue;
 
 		if (pdata->pin_cfg[i].pin_type == kbc_pin_row) {
-			index = pdata->pin_cfg[i].num / 6;
+			index = i / 6;
 			row_config[index] &= ~r_mask;
 			row_config[index] |=
 				((pdata->pin_cfg[i].num << 1) | 1) << r_shift;
 		} else {
-			index = (pdata->pin_cfg[i].num + KBC_MAX_ROW) / 8;
+			index = i / 8;
 			col_config[index] &= ~c_mask;
 			col_config[index] |=
 				((pdata->pin_cfg[i].num << 1) | 1) << c_shift;
