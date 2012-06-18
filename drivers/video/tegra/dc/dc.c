@@ -3024,14 +3024,6 @@ static int tegra_dc_probe(struct nvhost_device *ndev,
 		goto err_put_emc_clk;
 	}
 
-	/* hack to balance enable_irq calls in _tegra_dc_enable() */
-	disable_dc_irq(dc->irq);
-
-	mutex_lock(&dc->lock);
-	if (dc->enabled)
-		_tegra_dc_enable(dc);
-	mutex_unlock(&dc->lock);
-
 	tegra_dc_create_debugfs(dc);
 
 	dev_info(&ndev->dev, "probed\n");
