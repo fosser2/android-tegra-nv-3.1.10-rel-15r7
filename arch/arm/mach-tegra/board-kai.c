@@ -474,7 +474,7 @@ static struct spi_clk_parent spi_parent_clk[] = {
 
 static struct tegra_spi_platform_data kai_spi_pdata = {
 	.is_dma_based		= true,
-	.max_dma_buffer		= (16 * 1024),
+	.max_dma_buffer		= (128),
 	.is_clkon_always	= false,
 	.max_rate		= 100000000,
 };
