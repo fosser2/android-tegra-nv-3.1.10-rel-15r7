@@ -45,6 +45,15 @@ struct alc5623_priv {
 	u8 id;
 	unsigned int sysclk;
 	u16 reg_cache[ALC5623_VENDOR_ID2+2];
+
+	unsigned int	avdd_mv;		/* Analog vdd in millivolts */
+
+	unsigned int	mic1bias_mv;	/* MIC1 bias voltage */
+	unsigned int	mic1boost_db;	/* MIC1 gain boost */
+	unsigned int	mic2boost_db;	/* MIC1 gain boost */
+
+	bool		default_is_mic2;/* Default MIC used as input will be MIC2. Otherwise MIC1 is used */
+
 	unsigned int add_ctrl;
 	unsigned int jack_det_ctrl;
 };
@@ -362,6 +371,8 @@ static const struct snd_soc_dapm_route intercon[] = {
 	{"AuxI Mix", NULL,				"Right AuxI"},
 	{"AUXOUTL", NULL,				"Left AuxOut"},
 	{"AUXOUTR", NULL,				"Right AuxOut"},
+	{"HPOut Mix", NULL,				"HPL Mix"},
+	{"HPOut Mix", NULL,				"HPR Mix"},
 
 	/* HP mixer */
 	{"HPL Mix", "ADC2HP_L Playback Switch",		"Left Capture Mix"},
@@ -689,17 +700,22 @@ static int alc5623_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	case SND_SOC_DAIFMT_NB_NF:
 		break;
 	case SND_SOC_DAIFMT_IB_IF:
-		iface |= ALC5623_DAI_MAIN_I2S_BCLK_POL_CTRL;
+		iface |= ALC5623_DAI_MAIN_I2S_BCLK_POL_CTRL | ALC5623_DAI_DAC_DATA_L_R_SWAP;
 		break;
 	case SND_SOC_DAIFMT_IB_NF:
 		iface |= ALC5623_DAI_MAIN_I2S_BCLK_POL_CTRL;
 		break;
 	case SND_SOC_DAIFMT_NB_IF:
+		iface |= ALC5623_DAI_DAC_DATA_L_R_SWAP;
 		break;
 	default:
 		return -EINVAL;
 	}
 
+#ifdef CONFIG_ALC_SWAP_CHANNELS
+	iface |= ALC5623_DAI_DAC_DATA_L_R_SWAP;
+#endif	
+	
 	return snd_soc_write(codec, ALC5623_DAI_CONTROL, iface);
 }
 
@@ -789,6 +805,10 @@ static void enable_power_depop(struct snd_soc_codec *codec)
 				ALC5623_MISC_HP_DEPOP_MODE2_EN,
 				ALC5623_MISC_HP_DEPOP_MODE2_EN);
 
+	snd_soc_update_bits(codec, ALC5623_MISC_CTRL, 
+			   ALC5623_MISC_AUXOUT_DEPOP_MODE1_EN,
+                           ALC5623_MISC_AUXOUT_DEPOP_MODE1_EN);
+
 	msleep(500);
 
 	snd_soc_write(codec, ALC5623_PWR_MANAG_ADD2, ALC5623_ADD2_POWER_EN);
@@ -806,6 +826,9 @@ static void enable_power_depop(struct snd_soc_codec *codec)
 				ALC5623_MISC_HP_DEPOP_MODE2_EN,
 				0);
 
+	snd_soc_update_bits(codec, ALC5623_MISC_CTRL, 
+                           ALC5623_MISC_AUXOUT_DEPOP_MODE1_EN,
+                           0);
 }
 
 static int alc5623_set_bias_level(struct snd_soc_codec *codec,
@@ -901,6 +924,8 @@ static int alc5623_probe(struct snd_soc_codec *codec)
 	struct alc5623_priv *alc5623 = snd_soc_codec_get_drvdata(codec);
 	struct snd_soc_dapm_context *dapm = &codec->dapm;
 	int ret;
+	int mic1ratio;
+	unsigned long reg;
 
 	ret = snd_soc_codec_set_cache_io(codec, 8, 16, alc5623->control_type);
 	if (ret < 0) {
@@ -923,6 +948,22 @@ static int alc5623_probe(struct snd_soc_codec *codec)
 		snd_soc_write(codec, ALC5623_JACK_DET_CTRL,
 				alc5623->jack_det_ctrl);
 	}
+
+	/* Configure MIC bias levels and gains */
+	mic1ratio = (alc5623->mic1bias_mv * 100) / alc5623->avdd_mv;
+	reg = 0;
+	if (mic1ratio <= 75) reg |= (1 << 5);
+	if (alc5623->mic1boost_db >= 30) 	reg |= (2 << 10);
+	else if (alc5623->mic1boost_db >= 20) 	reg |= (1 << 10);
+	if (alc5623->mic2boost_db >= 30) 	reg |= (2 << 8);
+	else if (alc5623->mic2boost_db >= 20) 	reg |= (1 << 8);
+	
+	/* Write the MIC configuration */
+	snd_soc_update_bits(codec, ALC5623_MIC_CTRL, 0x0F20, reg);
+	
+	/* Select the default MIC source */
+	snd_soc_update_bits(codec, ALC5623_ADC_REC_MIXER, 0x6060, 
+		(alc5623->default_is_mic2) ? 0x4040 : 0x2020 );
 
 	switch (alc5623->id) {
 	case 0x21:
@@ -1048,6 +1089,15 @@ static int alc5623_i2c_probe(struct i2c_client *client,
 		kfree(alc5623);
 		return -EINVAL;
 	}
+
+	/* Store the supply voltages used for amplifiers */
+	alc5623->avdd_mv = pdata->avdd_mv ? pdata->avdd_mv : 3300;						/* Analog vdd in millivolts */
+
+	/* And the settings used for mics */
+	alc5623->mic1bias_mv = pdata->mic1bias_mv;			/* MIC1 bias voltage */
+	alc5623->mic1boost_db = pdata->mic1boost_db;		/* MIC1 gain boost */
+	alc5623->mic2boost_db = pdata->mic2boost_db;		/* MIC2 gain boost */
+	alc5623->default_is_mic2 = pdata->default_is_mic2;	/* If MIC2 is the default MIC or not */
 
 	i2c_set_clientdata(client, alc5623);
 	alc5623->control_data = client;
