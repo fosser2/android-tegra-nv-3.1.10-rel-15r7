@@ -703,3 +703,4 @@ void tegra_usb_phy_memory_prefetch_off(struct tegra_usb_phy *phy)
 		writel(val, ahb_gizmo + AHB_MEM_PREFETCH_CFG2);
 	}
 }
+
