@@ -256,7 +256,7 @@ out:
 EXPORT_SYMBOL_GPL(tps6586x_update);
 
 static struct i2c_client *tps6586x_i2c_client = NULL;
-/*static void tps6586x_power_off(void)
+int tps6586x_power_off(void)
 {
 	struct device *dev = NULL;
 
@@ -270,7 +270,7 @@ static struct i2c_client *tps6586x_i2c_client = NULL;
 
 	tps6586x_set_bits(dev, TPS6586X_SUPPLYENE, SLEEP_MODE_BIT);
 }
-*/
+
 static int tps6586x_gpio_get(struct gpio_chip *gc, unsigned offset)
 {
 	struct tps6586x *tps6586x = container_of(gc, struct tps6586x, gpio);
