@@ -77,73 +77,82 @@ hub-less systems.
 #include "gpio-names.h"
 #include "devices.h"
 
-//#ifdef CONFIG_USB_SUPPORT
-
-static struct tegra_utmip_config utmi_phy_config[] = {
-	[0] = {
-		.hssync_start_delay 	= 0,
-		.idle_wait_delay 	= 17,
-		.elastic_limit 		= 16,
-		.term_range_adj 	= 6, 	/*  xcvr_setup = 9 with term_range_adj = 6 gives the maximum guard around */
-		.xcvr_setup 		= 9, 	/*  the USB electrical spec. This is true across fast and slow chips, high */
-									/*  and low voltage and hot and cold temperatures */
-		.xcvr_lsfslew 		= 2,	/*  -> To slow rise and fall times in low speed eye diagrams in host mode */
-		.xcvr_lsrslew 		= 2,	/*                                                                        */
+/*
+te be tested
+static struct tegra_usb_platform_data tegra_udc_pdata = {
+	.port_otg = true,
+	.has_hostpc = false,
+	.phy_intf = TEGRA_USB_PHY_INTF_UTMI,
+	.op_mode = TEGRA_USB_OPMODE_DEVICE,
+	.u_data.dev = {
+		.vbus_pmu_irq = MAX8907C_INT_BASE + MAX8907C_IRQ_VCHG_DC_R,
+		.vbus_gpio = -1,
+		.charging_supported = false,
+		.remote_wakeup_supported = false,
 	},
-	[1] = {
-		.hssync_start_delay 	= 0,
-		.idle_wait_delay 	= 17,
-		.elastic_limit 		= 16,
-		.term_range_adj 	= 6,	/*  -> xcvr_setup = 9 with term_range_adj = 6 gives the maximum guard around */
-		.xcvr_setup 		= 9,	/*     the USB electrical spec. This is true across fast and slow chips, high */
-									/*     and low voltage and hot and cold temperatures */
-		.xcvr_lsfslew 		= 2,	/*  -> To slow rise and fall times in low speed eye diagrams in host mode */
-		.xcvr_lsrslew 		= 2,	/*                                                                        */
+	.u_cfg.utmi = {
+		.hssync_start_delay = 0,
+		.elastic_limit = 16,
+		.idle_wait_delay = 17,
+		.term_range_adj = 6,
+		.xcvr_setup = 9,
+		.xcvr_lsfslew = 2,
+		.xcvr_lsrslew = 2,
+		.xcvr_setup_offset = 0,
+		.xcvr_use_fuses = 1,
+	},
+};
+*/
+static struct tegra_usb_platform_data tegra_ehci1_utmi_pdata = {
+	.port_otg = true,
+	.has_hostpc = false,
+	.phy_intf = TEGRA_USB_PHY_INTF_UTMI,
+	.op_mode	= TEGRA_USB_OPMODE_HOST,
+	.u_data.host = {
+		.vbus_gpio = TEGRA_GPIO_PN6,
+		.vbus_reg = NULL,
+		.hot_plug = true,
+		.remote_wakeup_supported = false,
+		.power_off_on_suspend = true,
+	},
+	.u_cfg.utmi = {
+		.hssync_start_delay = 0,
+		.elastic_limit = 16,
+		.idle_wait_delay = 17,
+		.term_range_adj = 6,
+		.xcvr_setup = 9,
+		.xcvr_lsfslew = 2,
+		.xcvr_lsrslew = 2,
 	},
 };
 
-static struct tegra_ulpi_config ulpi_phy_config = {
-        .reset_gpio = SMBA1002_USB1_RESET,
-        .clk = "cdev2",
+static struct tegra_usb_platform_data tegra_ehci3_utmi_pdata = {
+	.port_otg = false,
+	.has_hostpc = false,
+	.phy_intf = TEGRA_USB_PHY_INTF_UTMI,
+	.op_mode	= TEGRA_USB_OPMODE_HOST,
+	.u_data.host = {
+		.vbus_gpio = TEGRA_GPIO_PD3,
+		.vbus_reg = NULL,
+		.hot_plug = true,
+		.remote_wakeup_supported = false,
+		.power_off_on_suspend = true,
+	},
+	.u_cfg.utmi = {
+		.hssync_start_delay = 0,
+		.elastic_limit = 16,
+		.idle_wait_delay = 17,
+		.term_range_adj = 6,
+		.xcvr_setup = 9,
+		.xcvr_lsfslew = 2,
+		.xcvr_lsrslew = 2,
+	},
 };
 
-static struct usb_phy_plat_data tegra_usb_phy_pdata[] = {
-        [0] = {
-                        .instance = 0,
-//                      .vbus_irq = TPS6586X_INT_BASE + TPS6586X_INT_USB_DET,
-//                        .vbus_gpio = SMBA1002_USB0_VBUS,
-//                        .vbus_irq = -1
-        },
-        [1] = {
-                        .instance = 1,
-                        .vbus_gpio = -1,
-        },
-        [2] = {
-                        .instance = 2,
-//                        .vbus_gpio = SMBA1002_USB2_VBUS,
-                        .vbus_gpio = -1,
-        },
-};
-
-static struct tegra_ehci_platform_data tegra_ehci_pdata[] = {
-        [0] = {
-                        .phy_config = &utmi_phy_config[0],
-                        .operating_mode = TEGRA_USB_OTG,
-                        .power_down_on_bus_suspend = 1,
-                        .default_enable = true,
-        },
-        [1] = {
-                        .phy_config = &utmi_phy_config[1],
-                        .operating_mode = TEGRA_USB_HOST,
-                        .power_down_on_bus_suspend = 0,
-                        .default_enable = true,
-        },
-};
-
-static struct tegra_otg_platform_data tegra_otg_pdata = {
+static struct tegra_usb_otg_data tegra_otg_pdata = {
 	.ehci_device = &tegra_ehci1_device,
-	.ehci_pdata = &tegra_ehci_pdata[0],
-}; 
+	.ehci_pdata = &tegra_ehci1_utmi_pdata,
+};
 
 static void  __iomem *rst_device_reg = IO_ADDRESS(TEGRA_CLK_RESET_BASE);
 
@@ -154,18 +163,13 @@ static void smba_usb_init(void)
   udelay(5);
   writel(1 << CLR_USBD_RST, (u32)rst_device_reg + CLK_RST_CONTROLLER_RST_DEV_L_CLR_0);
 
-  tegra_usb_phy_init(tegra_usb_phy_pdata, ARRAY_SIZE(tegra_usb_phy_pdata));
-  /* OTG should be the first to be registered */
-  tegra_otg_device.dev.platform_data = &tegra_otg_pdata;
+	tegra_otg_device.dev.platform_data = &tegra_otg_pdata;
 	platform_device_register(&tegra_otg_device);
 
-	platform_device_register(&tegra_udc_device);
-
-//	tegra_ehci2_device.dev.platform_data = &tegra_ehci_pdata[1];
-//	platform_device_register(&tegra_ehci2_device);
-	
-	tegra_ehci3_device.dev.platform_data = &tegra_ehci_pdata[1];
-	platform_device_register(&tegra_ehci3_device);
+/*
+to be tested
+	tegra_udc_device.dev.platform_data = &tegra_udc_pdata;
+*/
 };
 
 int __init smba_usb_register_devices(void)
