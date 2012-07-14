@@ -50,7 +50,7 @@
 #include <mach/usb_phy.h>
 #include <mach/i2s.h>
 #include <mach/system.h>
-#include <mach/nvmap.h>
+#include <linux/nvmap.h>
 
 #include "board.h"
 #include "board-smba1002.h"
