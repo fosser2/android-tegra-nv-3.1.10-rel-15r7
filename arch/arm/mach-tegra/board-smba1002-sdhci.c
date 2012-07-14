@@ -105,7 +105,7 @@ struct tegra_sdhci_platform_data smba_wlan_data = {
 	.cd_gpio = -1,
 	.wp_gpio = -1,
 	.power_gpio = -1,
-	.has_no_vreg = 1,
+//	.has_no_vreg = 1,
 };
 
 /* Used to set the virtual CD of wifi adapter */
@@ -150,21 +150,21 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data2 = {
 	.cd_gpio = -1,
 	.wp_gpio = -1,
 	.power_gpio = -1,
-	.has_no_vreg = 1,
+//	.has_no_vreg = 1,
 };
 
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
 	.cd_gpio = SMBA1002_SDHC_CD,
 	.wp_gpio = -1,
 	.power_gpio = SMBA1002_SDHC_POWER,
-	.has_no_vreg = 1,
+//	.has_no_vreg = 1,
 };
 
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data4 = {
 	.cd_gpio = -1,
 	.wp_gpio = -1,
 	.power_gpio = -1,
-	.has_no_vreg = 1,
+//	.has_no_vreg = 1,
 	.is_8bit = 1,
 	.max_clk_limit = 52000000,
 	.mmc_data = {
