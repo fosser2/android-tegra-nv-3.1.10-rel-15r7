@@ -125,7 +125,7 @@ static __initdata struct tegra_clk_init_table smba_clk_init_table[] = {
 
 	/* pll_s generates the master clock */
 	{ "pll_p",		"clk_m",		0,	true},		/* must be always on */
-	{ "host1x",		"pll_p",		0,	false},		/* tegra_grhost */
+	{ "host1x",		"pll_p",	108000000 ,	false},		/* tegra_grhost */
 	{ "uarte",		"pll_p",		0,	false},		/* tegra_uart.4 uart.4 */
 	{ "uartd",		"pll_p",	216000000,	false},		/* tegra_uart.3 uart.3 */
 	{ "uartc",		"pll_p",	216000000,	false},		/* tegra_uart.2 uart.2 */
@@ -154,8 +154,8 @@ static __initdata struct tegra_clk_init_table smba_clk_init_table[] = {
 	{ "apbdma",		"pclk",			0,	true},		/* tegra-dma */
 
 	{ "pll_m",		NULL,			0,	false},		/* always on - memory clocks */	
-	{ "mpe",		"pll_m",		0,	false},		/* tegra_grhost */
-	{ "epp",		"pll_m",		0,	false}, 	/* tegra_grhost */	
+	{ "mpe",		"pll_m",		111000000 ,	false},		/* tegra_grhost */
+	{ "epp",		"pll_m",		300000000,	false}, 	/* tegra_grhost */	
 	{ "vi_sensor",		"pll_m",		0,	false},		/* tegra_camera */
 	{ "vi",			"pll_m",		0,	false},		/* tegra_camera */
 	{ "emc",		"pll_m",		0,	true},		/* always on */
