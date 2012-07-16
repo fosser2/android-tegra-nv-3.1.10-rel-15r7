@@ -12,4 +12,9 @@ config SWITCH_GPIO
 	help
 	  Say Y here to enable GPIO based switch support.
 
+config SWITCH_ANTARES_DOCK
+	tristate "Dock driver for HARMONY boards"
+	help
+	  Say Y here if you want to enable a dock switch device node
+
 endif # SWITCH
