@@ -50,7 +50,7 @@
 #include <mach/usb_phy.h>
 #include <mach/i2s.h>
 #include <mach/system.h>
-#include <mach/nvmap.h>
+#include <linux/nvmap.h>
 
 #include "board.h"
 #include "board-smba9701.h"
@@ -687,6 +687,9 @@ static void __init tegra_smba_init(void)
 	/* Register SPI devices */
 	smba_spi_register_devices();
 
+	/* Register GPU devices */
+//	smba_gpu_register_devices();
+
 	/* Register Audio devices */
 	smba_audio_register_devices();
 
@@ -707,10 +710,7 @@ static void __init tegra_smba_init(void)
 	
 	/* Register accelerometer device */
 	smba_sensors_register_devices();
-
-	/* Register gps powermanagement devices */
-	smba_gsm_pm_register_devices();
-
+	
 	/* Register Bluetooth powermanagement devices */
 	smba_bt_rfkill();
 	smba_setup_bluesleep();
@@ -719,17 +719,18 @@ static void __init tegra_smba_init(void)
 	smba_camera_register_devices();
 
 	/* Register NAND flash devices */
-	//smba_nand_register_devices();
+//	smba_nand_register_devices();
 	
 	/* Register SDHCI devices */
 	smba_sdhci_register_devices();	
+	
 #ifdef SMBA9701_GPS
 	/* Register gps powermanagement devices */
 	smba_gps_pm_register_devices();
 	smba_gps_mag_init();
 	smba_gps_mag_poweron();
 #endif	
-	//tegra_release_bootloader_fb();
+	tegra_release_bootloader_fb();
 #ifdef CONFIG_TEGRA_WDT_RECOVERY
 	tegra_wdt_recovery_init();
 #endif
@@ -755,7 +756,7 @@ static void __init tegra_smba_init(void)
 #endif
 
 	/* Release the tegra bootloader framebuffer */
-	//tegra_release_bootloader_fb();
+	tegra_release_bootloader_fb();
 }
 
 static void __init tegra_smba_reserve(void)
@@ -788,10 +789,6 @@ static void __init tegra_smba_fixup(struct machine_desc *desc,
 #else
 	mi->bank[0].size  = SMBA9701_MEM_SIZE - SMBA9701_GPU_MEM_SIZE;
 #endif
-
-	mi->bank[1].start  = SMBA9701_MEM_SIZE;
-	mi->bank[1].size  = SMBA9701_MEM_SIZE;
-
 } 
 
 /* the Shuttle bootloader identifies itself as MACH_TYPE_HARMONY [=2731]
@@ -804,8 +801,8 @@ MACHINE_START(HARMONY, "harmony")
 	.init_irq       = tegra_init_irq,
 	.timer          = &tegra_timer,
 	.init_machine	= tegra_smba_init,
-	.reserve	= tegra_smba_reserve,
-	.fixup		= tegra_smba_fixup,
+	.reserve		= tegra_smba_reserve,
+	.fixup			= tegra_smba_fixup,
 MACHINE_END
 
 #ifdef MACH_TYPE_TEGRA_LEGACY
@@ -819,12 +816,6 @@ MACHINE_START(LEGACY, "legacy")
 	.init_irq       = tegra_init_irq,
 	.timer          = &tegra_timer, 	
 	.init_machine	= tegra_smba_init,
-	.reserve	= tegra_smba_reserve,
-	.fixup		= tegra_smba_fixup,
+	.reserve		= tegra_smba_reserve,
+	.fixup			= tegra_smba_fixup,
 MACHINE_END
-
-
-
-
-
-
