@@ -153,7 +153,7 @@ extern void smba_clks_init(void);
 extern int smba_usb_register_devices(void);
 extern int smba_audio_register_devices(void);
 extern int smba_jack_register_devices(void);
-extern int smba_gpu_register_devices(void);
+extern int smba_panel_init(void);
 extern int smba_uart_register_devices(void);
 extern int smba_spi_register_devices(void);
 extern int smba_aes_register_devices(void);
