@@ -81,7 +81,7 @@ static int smba_disp1_check_fb(struct device *dev, struct fb_info *info);
 static struct platform_pwm_backlight_data smba_backlight_data = {
 	.pwm_id		= SMBA1002_BL_PWM_ID,
 	.max_brightness	= 255,
-	.dft_brightness	= 224,
+	.dft_brightness	= 200,
 	.pwm_period_ns	= 5000000,
 	.init		= smba_backlight_init,
 	.exit		= smba_backlight_exit,
@@ -194,24 +194,24 @@ static struct resource smba_disp2_resources[] = {
 
 static struct tegra_dc_mode smba_panel_modes[] = {
 	{
-		.pclk = 100030000,
+		.pclk = 68419300, //42430000,
 		.h_ref_to_sync = 4,
 		.v_ref_to_sync = 2,
-		.h_sync_width = 320,
-		.v_sync_width = 10,
-		.h_back_porch = 480,
-		.v_back_porch = 6,
+		.h_sync_width = 136,
+		.v_sync_width = 4,
+		.h_back_porch = 138,
+		.v_back_porch = 21,
 		.h_active = 1024,
-		.v_active = 768,
-		.h_front_porch = 260,
-		.v_front_porch = 16,
+		.v_active = 600,
+		.h_front_porch = 34,
+		.v_front_porch = 4,
 	},
 };
 
 static struct tegra_fb_data smba_fb_data = {
 	.win		= 0,
 	.xres		= 1024,
-	.yres		= 768,
+	.yres		= 600,
 	.bits_per_pixel	= 32,
 	.flags		= TEGRA_FB_FLIP_ON_PROBE,
 };
@@ -232,8 +232,8 @@ static struct tegra_dc_out smba_disp1_out = {
 	.depth		= 18,
 	.dither		= TEGRA_DC_ORDERED_DITHER,
 
-	.height         = 147, /* mm */
-	.width          = 196, /* mm */
+	.height         = 136, /* mm */
+	.width          = 217, /* mm */
 
 	.modes	 	= smba_panel_modes,
 	.n_modes 	= ARRAY_SIZE(smba_panel_modes),
