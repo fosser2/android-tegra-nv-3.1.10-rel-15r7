@@ -326,6 +326,8 @@ static struct platform_device *smba_gfx_devices[] __initdata = {
 	&smba_nvmap_device,
 	&tegra_pwfm0_device,
 	&smba_backlight_device,
+        &tegra_gart_device,
+        &tegra_avp_device,
 };
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
