@@ -677,13 +677,13 @@ static void __init tegra_smba_init(void)
 
 	/* Register the power subsystem - Including the poweroff handler - Required by all the others */
 	smba_power_register_devices();
-	
+
 	/* Register the USB device */
 	smba_usb_register_devices();
 
 	/* Register UART devices */
 	smba_uart_register_devices();
-	
+
 	/* Register SPI devices */
 	smba_spi_register_devices();
 
@@ -704,10 +704,10 @@ static void __init tegra_smba_init(void)
 
 	/* Register all the keyboard devices */
 	smba_keyboard_register_devices();
-	
+
 	/* Register touchscreen devices */
 	smba_touch_register_devices();
-	
+
 	/* Register accelerometer device */
 	smba_sensors_register_devices();
 	
@@ -724,12 +724,12 @@ static void __init tegra_smba_init(void)
 	/* Register SDHCI devices */
 	smba_sdhci_register_devices();	
 	
-#ifdef SMBA9701_GPS
-	/* Register gps powermanagement devices */
-	smba_gps_pm_register_devices();
-	smba_gps_mag_init();
-	smba_gps_mag_poweron();
-#endif	
+//#ifdef SMBA9701_GPS
+//	/* Register gps powermanagement devices */
+//	smba_gps_pm_register_devices();
+//	smba_gps_mag_init();
+//	smba_gps_mag_poweron();
+//#endif	
 	tegra_release_bootloader_fb();
 #ifdef CONFIG_TEGRA_WDT_RECOVERY
 	tegra_wdt_recovery_init();
