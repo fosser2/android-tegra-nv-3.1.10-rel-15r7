@@ -351,6 +351,24 @@ out_unlock:
 }
 EXPORT_SYMBOL_GPL(handle_level_irq);
 
+/*
+ * Called unconditionally from handle_level_irq() and only for oneshot
+ * interrupts from handle_fasteoi_irq()
+ */
+static void cond_unmask_irq(struct irq_desc *desc)
+{
+	/*
+	 * We need to unmask in the following cases:
+	 * - Standard level irq (IRQF_ONESHOT is not set)
+	 * - Oneshot irq which did not wake the thread (caused by a
+	 *   spurious interrupt or a primary handler handling it
+	 *   completely).
+	 */
+	if (!irqd_irq_disabled(&desc->irq_data) &&
+	    irqd_irq_masked(&desc->irq_data) && !desc->threads_oneshot)
+		unmask_irq(desc);
+}
+
 #ifdef CONFIG_IRQ_PREFLOW_FASTEOI
 static inline void preflow_handler(struct irq_desc *desc)
 {
@@ -380,8 +398,7 @@ handle_fasteoi_irq(unsigned int irq, struct irq_desc *desc)
 		if (!irq_check_poll(desc))
 			goto out;
 
-	desc->istate &= ~(IRQS_REPLAY | IRQS_WAITING);
-	kstat_incr_irqs_this_cpu(irq, desc);
+cond_unmask_irq(desc);
 
 	/*
 	 * If its disabled or no action available
