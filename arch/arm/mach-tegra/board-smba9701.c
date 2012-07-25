@@ -671,7 +671,7 @@ static void __init tegra_smba_init(void)
 
 	/* Initialize the clocks - clocks require the pinmux to be initialized first */
 	smba_clks_init();
-
+	
 	/* Register i2c devices - required for Power management and MUST be done before the power register */
 	smba_i2c_register_devices();
 
@@ -720,7 +720,8 @@ static void __init tegra_smba_init(void)
 
 	/* Register NAND flash devices */
 //	smba_nand_register_devices();
-	
+	platform_device_register(&tegra_udc_device);
+
 	/* Register SDHCI devices */
 	smba_sdhci_register_devices();	
 	
