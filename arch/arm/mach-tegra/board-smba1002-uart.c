@@ -38,7 +38,6 @@
 #include <mach/iomap.h>
 #include <mach/irqs.h>
 #include <mach/nand.h>
-#include <mach/iomap.h>
 
 #include "board.h"
 #include "board-smba1002.h"
@@ -46,6 +45,9 @@
 #include "gpio-names.h"
 #include "devices.h"
 
+#include <linux/tegra_uart.h>
+
+static struct tegra_uart_platform_data smba_uart_pdata;
 
 static struct platform_device *smba_uart_devices[] __initdata = {
 	&tegra_uarta_device,
@@ -57,5 +59,12 @@ static struct platform_device *smba_uart_devices[] __initdata = {
 
 int __init smba_uart_register_devices(void)
 {
+//  !!!!!!!!!!!! Need fix clocks
+	tegra_uarta_device.dev.platform_data = &smba_uart_pdata;
+	tegra_uartb_device.dev.platform_data = &smba_uart_pdata;
+	tegra_uartc_device.dev.platform_data = &smba_uart_pdata;
+	tegra_uartd_device.dev.platform_data = &smba_uart_pdata;
+	tegra_uarte_device.dev.platform_data = &smba_uart_pdata;
+
 	return platform_add_devices(smba_uart_devices, ARRAY_SIZE(smba_uart_devices));
 }
