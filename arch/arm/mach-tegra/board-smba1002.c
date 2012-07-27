@@ -720,8 +720,6 @@ static void __init tegra_smba_init(void)
 
 	/* Register NAND flash devices */
 	smba_nand_register_devices();
-
-platform_device_register(&tegra_udc_device);
 	
 	/* Register SDHCI devices */
 	smba_sdhci_register_devices();	
@@ -729,8 +727,6 @@ platform_device_register(&tegra_udc_device);
 #ifdef SMBA1002_GPS
 	/* Register gps powermanagement devices */
 	smba_gps_pm_register_devices();
-	smba_gps_mag_init();
-	smba_gps_mag_poweron();
 #endif	
 	tegra_release_bootloader_fb();
 #ifdef CONFIG_TEGRA_WDT_RECOVERY
