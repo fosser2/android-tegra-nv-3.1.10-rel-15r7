@@ -720,7 +720,6 @@ static void __init tegra_smba_init(void)
 
 	/* Register NAND flash devices */
 //	smba_nand_register_devices();
-	platform_device_register(&tegra_udc_device);
 
 	/* Register SDHCI devices */
 	smba_sdhci_register_devices();	

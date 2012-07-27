@@ -107,12 +107,7 @@
 #define SMBA9701_LOW_BATT		TEGRA_GPIO_PW3	/*(0=low battery)*/
 #define SMBA9701_AC_PRESENT_IRQ		TEGRA_GPIO_PH2
 
-#define SET_USBD_RST 22
-#define CLR_USBD_RST 22
-#define CLK_RST_CONTROLLER_RST_DEV_L_SET_0 0x300
-#define CLK_RST_CONTROLLER_RST_DEV_L_CLR_0 0x304
 #define SMBA9701_USB0_VBUS		TEGRA_GPIO_PB1	/* 1= VBUS usb0 */
-//#define SMBA9701_USB1_RESET		TEGRA_GPIO_PV1	/* 0= reset */
 
 #define SMBA9701_HP_DETECT		TEGRA_GPIO_PW2 	/* HeadPhone detect for audio codec: 1=Hedphone plugged */
 
