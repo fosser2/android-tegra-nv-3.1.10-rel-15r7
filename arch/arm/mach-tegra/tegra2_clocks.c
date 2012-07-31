@@ -151,6 +151,8 @@
 #define AP25_EMC_INTERMEDIATE_RATE	760000000
 #define AP25_EMC_SCALING_STEP		600000000
 
+#define MAX_FREQ   1200000000        //This is to easily control O.C control for later 
+
 static void __iomem *reg_clk_base = IO_ADDRESS(TEGRA_CLK_RESET_BASE);
 static void __iomem *reg_pmc_base = IO_ADDRESS(TEGRA_PMC_BASE);
 static void __iomem *misc_gp_hidrev_base = IO_ADDRESS(TEGRA_APB_MISC_BASE);
@@ -2623,9 +2625,9 @@ static struct tegra_sku_rate_limit sku_limits[] =
 	RATE_LIMIT("cclk",	750000000, 0x07, 0x10),
 	RATE_LIMIT("pll_x",	750000000, 0x07, 0x10),
 
-	RATE_LIMIT("cpu",	1000000000, 0x04, 0x08, 0x0F),
-	RATE_LIMIT("cclk",	1000000000, 0x04, 0x08, 0x0F),
-	RATE_LIMIT("pll_x",	1000000000, 0x04, 0x08, 0x0F),
+	RATE_LIMIT("cpu",	MAX_FREQ , 0x04, 0x08, 0x0F),
+	RATE_LIMIT("cclk",	MAX_FREQ , 0x04, 0x08, 0x0F),
+	RATE_LIMIT("pll_x",	MAX_FREQ , 0x04, 0x08, 0x0F),
 
 	RATE_LIMIT("cpu",	1200000000, 0x14, 0x17, 0x18, 0x1B, 0x1C),
 	RATE_LIMIT("cclk",	1200000000, 0x14, 0x17, 0x18, 0x1B, 0x1C),
