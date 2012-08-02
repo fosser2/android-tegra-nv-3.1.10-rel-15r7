@@ -47,9 +47,6 @@
 #include "board-smba1002.h"
 #include "gpio-names.h"
 #include "devices.h"
-#include "pm.h"
-#include "wakeups-t2.h"
-#include "fuse.h"
 
 
 #define PMC_CTRL		0x0
@@ -247,19 +244,6 @@ static struct regulator_consumer_supply fixed_vdd_aon_supply[] = {
 	REGULATOR_SUPPLY("vdd_aon", NULL)
 };
 
-/*
- * Current TPS6586x is known for having a voltage glitch if current load changes
- * from low to high in auto PWM/PFM mode for CPU's Vdd line.
- */
-static struct tps6586x_settings sm1_config = {
-	.sm_pwm_mode = PWM_ONLY,
-	.slew_rate   = SLEW_RATE_3520UV_PER_SEC,
-};
-
-static struct tps6586x_settings sm0_config = {
-	.sm_pwm_mode = PWM_DEFAULT_VALUE,
-	.slew_rate   = SLEW_RATE_3520UV_PER_SEC,
-};
 
 #define ADJ_REGULATOR_INIT(_id, _minmv, _maxmv, _aon, _bon, config)	\
 	{													\
@@ -295,6 +279,20 @@ static struct tps6586x_settings sm0_config = {
 		.consumer_supplies = fixed_##_id##_supply,		\
 	}
 
+static struct tps6586x_settings sm0_config = {
+	.sm_pwm_mode = PWM_DEFAULT_VALUE,
+	.slew_rate = SLEW_RATE_3520UV_PER_SEC,
+};
+
+static struct tps6586x_settings sm1_config = {
+	/*
+	 * Current TPS6586x is known for having a voltage glitch if current load
+	 * changes from low to high in auto PWM/PFM mode for CPU's Vdd line.
+	 */
+	.sm_pwm_mode = PWM_ONLY,
+	.slew_rate = SLEW_RATE_3520UV_PER_SEC,
+};
+ 
 #define ON	1
 #define OFF	0
 	
@@ -332,18 +330,19 @@ static struct regulator_init_data rtc_data
 static struct regulator_init_data soc_data  		 
 	= ADJ_REGULATOR_INIT(soc, 1250, 3300, ON, ON, NULL);
 static struct regulator_init_data ldo_tps74201_data  
-	= FIXED_REGULATOR_INIT(ldo_tps74201 , 1500,OFF,OFF ); // 1500 (VDD1.5, enabled by PMU_GPIO[0] (0=enabled) - Turn it off as soon as we boot
+	= FIXED_REGULATOR_INIT(ldo_tps74201 , 1500,OFF, 0 ); // 1500 (VDD1.5, enabled by PMU_GPIO[0] (0=enabled) - Turn it off as soon as we boot
 static struct regulator_init_data buck_tps62290_data 
-	= FIXED_REGULATOR_INIT(buck_tps62290, 1050, ON, ON ); // 1050 (VDD1.05, AVDD_PEX ... enabled by PMU_GPIO[2] (1=enabled)
+	= FIXED_REGULATOR_INIT(buck_tps62290, 1050, ON, 1 ); // 1050 (VDD1.05, AVDD_PEX ... enabled by PMU_GPIO[2] (1=enabled)
 static struct regulator_init_data ldo_tps72012_data  
-	= FIXED_REGULATOR_INIT(ldo_tps72012 , 1200,OFF,OFF ); // 1200 (VDD1.2, VCORE_WIFI ...) enabled by PMU_GPIO[1] (1=enabled) 
+	= FIXED_REGULATOR_INIT(ldo_tps72012 , 1200,OFF, 0 ); // 1200 (VDD1.2, VCORE_WIFI ...) enabled by PMU_GPIO[1] (1=enabled) 
 
 static struct regulator_init_data ldo_tps2051B_data  
-	= FIXED_REGULATOR_INIT(ldo_tps2051B , 5000, ON, ON ); // 5000 (VDDIO_VID), enabled by AP_GPIO Port T, pin2, 
+	= FIXED_REGULATOR_INIT(ldo_tps2051B , 5000, 1, 1 ); // 5000 (VDDIO_VID), enabled by AP_GPIO Port T, pin2, 
 														// (set as input to enable,outpul low to disable). Powers HDMI.
 														// Wait 500uS to let it stabilize before returning . Probably also 
 														// used for USB host. It should always be kept enabled. Force enabling
 														// it at boot.
+
 
 // vdd_aon is a virtual regulator used to allow frequency and voltage scaling of the CPU/EMC														
 static struct regulator_init_data vdd_aon_data =
@@ -362,25 +361,26 @@ static struct regulator_init_data vdd_aon_data =
 };
 
 
-#define FIXED_REGULATOR_CONFIG(_id, _mv, _gpio, _activehigh, _odrain, _delay, _atboot, _data)	\
+#define FIXED_REGULATOR_CONFIG(_id, _mv, _gpio, _activehigh, _itoen, _delay, _atboot, _data)	\
 	{												\
 		.supply_name 	= #_id,						\
 		.microvolts  	= (_mv)*1000,				\
 		.gpio        	= _gpio,					\
 		.enable_high	= _activehigh,				\
-		.gpio_is_open_drain = _odrain,		 \
 		.startup_delay	= _delay,					\
 		.enabled_at_boot= _atboot,					\
 		.init_data		= &_data,					\
 	}
-
+		/*.set_as_input_to_enable = _itoen,*/		\
+		
+		
 /* The next 3 are fixed regulators controlled by PMU GPIOs */
 static struct fixed_voltage_config ldo_tps74201_cfg  
 	= FIXED_REGULATOR_CONFIG(ldo_tps74201  , 1500, PMU_GPIO0 , 0,0, 200000, 0, ldo_tps74201_data);
-static struct fixed_voltage_config ldo_tps72012_cfg
-	= FIXED_REGULATOR_CONFIG(ldo_tps72012  , 1200, PMU_GPIO1 , 1,0, 200000, 1, ldo_tps72012_data);
 static struct fixed_voltage_config buck_tps62290_cfg
 	= FIXED_REGULATOR_CONFIG(buck_tps62290 , 1050, PMU_GPIO2 , 1,0, 200000, 1, buck_tps62290_data);
+static struct fixed_voltage_config ldo_tps72012_cfg
+	= FIXED_REGULATOR_CONFIG(ldo_tps72012  , 1200, PMU_GPIO1 , 1,0, 200000, 1, ldo_tps72012_data);
 
 /* the next one is controlled by a general purpose GPIO */
 static struct fixed_voltage_config ldo_tps2051B_cfg
@@ -411,18 +411,15 @@ static struct fixed_voltage_config ldo_tps2051B_cfg
 		.platform_data = _data,			\
 	} 	
 
-
+/* FIXME: do we have rtc alarm irq? */
 static struct tps6586x_rtc_platform_data smba_rtc_data = {
-	.irq	= -1,  /* smba has no IRQ for this RTC :( */
-	.start = {
-		.year  = 2011,
-		.month = 1,
-		.day   = 1,
-		.hour  = 1,
-		.min   = 1,
-		.sec   = 1,
-	},
-	.cl_sel = TPS6586X_RTC_CL_SEL_1_5PF /* use lowest (external 20pF cap) */
+	.irq  = -1, //we have no IRQ for RTC //TEGRA_NR_IRQS + TPS6586X_INT_RTC_ALM1,
+        .start = {
+		.year = 2011,
+		.month = 12,
+		.day = 31,
+        },
+//	.cl_sel = TPS6586X_RTC_CL_SEL_1_5PF /* use lowest (external 20pF cap) */
 };
 
 static struct tps6586x_subdev_info tps_devs[] = {
@@ -454,16 +451,18 @@ static struct tps6586x_subdev_info tps_devs[] = {
 static struct tps6586x_platform_data tps_platform = {
 	.gpio_base = PMU_GPIO_BASE,
 	.irq_base  = PMU_IRQ_BASE,
-	.subdevs   = tps_devs,low
+	.subdevs   = tps_devs,
 	.num_subdevs = ARRAY_SIZE(tps_devs),	
 };
 
 static struct i2c_board_info __initdata smba_regulators[] = {
 	{
 		I2C_BOARD_INFO("tps6586x", 0x34),
+		//.irq = INT_EXTERNAL_PMU,
 		.platform_data = &tps_platform,
 	},
 };
+
 
 #define GPIO_FIXED_REG(_id,_data)		\
 	{									\
@@ -476,50 +475,50 @@ static struct i2c_board_info __initdata smba_regulators[] = {
 
 static struct platform_device smba_ldo_tps2051B_reg_device = 
 	GPIO_FIXED_REG(3,ldo_tps2051B_cfg); /* id is 3, because 0-2 are already used in the PMU gpio controlled fixed regulators */
-
-
-/* Power controller of Nvidia embedded controller platform data */
-static struct nvec_power_platform_data nvec_power_pdata = {
-	.low_batt_irq = TEGRA_GPIO_TO_IRQ(SMBA1002_LOW_BATT),	/* If there is a low battery IRQ */
-	.in_s3_state_gpio = SMBA1002_IN_S3,						/* Gpio pin used to flag that system is suspended */
-	.low_batt_alarm_percent = 5,							/* Percent of batt below which system is forcibly turned off */
-};
-
-/* Power controller of Nvidia embedded controller */
-static struct nvec_subdev_info nvec_subdevs[] = {
-	{
-		.name = "nvec-power",
-		.id   = 1,
-		.platform_data = &nvec_power_pdata,
-	},
-	{
-		.name = "nvec-kbd",
-		.id   = 1,
-	},
-	{
-		.name = "nvec-mouse",
-		.id   = 1,
-	},
-};
-
-/* The NVidia Embedded controller */
-static struct nvec_platform_data nvec_mfd_platform_data = {
-	.i2c_addr	= SHUTTLE_NVEC_I2C_ADDR,
-	.gpio		= SHUTTLE_NVEC_REQ,
-	.irq		= INT_I2C3,
-	.base		= TEGRA_I2C3_BASE,
-	.size		= TEGRA_I2C3_SIZE,
-	.clock		= "tegra-i2c.2",
-	.subdevs	= nvec_subdevs,
-	.num_subdevs = ARRAY_SIZE(nvec_subdevs),
-};
-
-static struct platform_device smba_nvec_mfd = {
-	.name = "nvec",
+/*
+static struct platform_device smba_vdd_aon_reg_device = 
+{
+	.name = "reg-virtual-adj-voltage",
+	.id = 4,
 	.dev = {
-		.platform_data = &nvec_mfd_platform_data,
+		.platform_data = &vdd_aon_cfg,
 	},
-}; 
+};*/
+
+/*
+static struct regulator_consumer_supply bq24610_consumers[] = {
+        {
+                .dev = &gpio_vbus.dev,
+                .supply = "vbus_draw",
+        },
+        {
+                .dev = &power_supply.dev,
+                .supply = "ac_draw",
+        },
+};
+
+
+static struct regulator_init_data bq24610_init_data = {
+        .constraints = {
+                .max_uA         = 500000,
+                .valid_ops_mask = REGULATOR_CHANGE_CURRENT,
+        },
+        .num_consumer_supplies  = ARRAY_SIZE(bq24610_consumers),
+        .consumer_supplies      = bq24610_consumers,
+};
+
+
+static struct bq24610_mach_info bq24610_platform_data = {
+	.gpio_nce = TEGRA_GPIO_PK7,
+	.init_data = &bq24610_init_data,
+}
+
+static struct platform_device smba_bq24610_device= {
+	.name = "bq24610",
+	.dev = {
+		.platform_data = &bq24610_platform_data,
+	},
+}; */
 
 static void reg_off(const char *reg)
 {
@@ -711,36 +710,9 @@ static struct platform_device *smba_power_devices[] __initdata = {
 	//&adam_ldo_tps2051B_reg_device,
 	//&adam_vdd_aon_reg_device,
 	&tegra_pmu_device,
-	//smba_nvec_mfd,
-	&tegra_rtc_device,	
-};
-
-static void smba_board_suspend(int lp_state, enum suspend_stage stg)
-{
-	if ((lp_state == TEGRA_SUSPEND_LP1) && (stg == TEGRA_SUSPEND_BEFORE_CPU))
-		tegra_console_uart_suspend();
-}
-
-static void smba_board_resume(int lp_state, enum resume_stage stg)
-{
-	if ((lp_state == TEGRA_SUSPEND_LP1) && (stg == TEGRA_RESUME_AFTER_CPU))
-		tegra_console_uart_resume();
-} 
-
-static struct tegra_suspend_platform_data smba_suspend_data = { /*ok*/
-	/*
-	 * Check power on time and crystal oscillator start time
-	 * for appropriate settings.
-	 */
-	.cpu_timer	= 5000,
-	.cpu_off_timer	= 5000,
-	.suspend_mode	= TEGRA_SUSPEND_LP0,
-	.core_timer	= 0x7e7e,
-	.core_off_timer = 0x7f,
-	.corereq_high	= false,
-	.sysclkreq_high	= true, 
-	.board_suspend = smba_board_suspend,
-	.board_resume = smba_board_resume, 
+	//&smba_nvec_mfd,
+	&tegra_rtc_device,
+	//&smba_bq24610_device,
 };
 
 /* Init power management unit of Tegra2 */
@@ -748,14 +720,7 @@ int __init smba_power_register_devices(void)
 {
 	int err;
 	void __iomem *pmc = IO_ADDRESS(TEGRA_PMC_BASE);
-	void __iomem *chip_id = IO_ADDRESS(TEGRA_APB_MISC_BASE) + 0x804;
 	u32 pmc_ctrl;
-	u32 minor;
-
-	minor = (readl(chip_id) >> 16) & 0xf;
-	/* A03 (but not A03p) chips do not support LP0 */
-	if (minor == 3 && !(tegra_spare_fuse(18) || tegra_spare_fuse(19)))
-		smba_suspend_data.suspend_mode = TEGRA_SUSPEND_LP1;
 
 	/* configure the power management controller to trigger PMU
 	 * interrupts when low
@@ -774,11 +739,11 @@ int __init smba_power_register_devices(void)
 	tegra_setup_reboot();
 	
 	/* signal that power regulators have fully specified constraints */
-	regulator_has_full_constraints();
-	tegra_init_suspend(&smba_suspend_data);
+//	regulator_has_full_constraints();
 	
 	/* register all pm devices - This must come AFTER the registration of the TPS i2c interfase,
 	   as we need the GPIO definitions exported by that driver */
-	return platform_add_devices(shuttle_power_devices, ARRAY_SIZE(shuttle_power_devices));
+	//return 0;
+	return platform_add_devices(smba_power_devices, ARRAY_SIZE(smba_power_devices));
 }
 
