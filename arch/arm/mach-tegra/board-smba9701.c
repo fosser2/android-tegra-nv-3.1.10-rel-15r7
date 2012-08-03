@@ -543,31 +543,6 @@ EXPORT_SYMBOL_GPL(smba_bt_wifi_gpio_set);
 
 
 
-static void smba_board_suspend(int lp_state, enum suspend_stage stg)
-{
-	if ((lp_state == TEGRA_SUSPEND_LP1) && (stg == TEGRA_SUSPEND_BEFORE_CPU))
-		tegra_console_uart_suspend();
-}
-
-static void smba_board_resume(int lp_state, enum resume_stage stg)
-{
-	if ((lp_state == TEGRA_SUSPEND_LP1) && (stg == TEGRA_RESUME_AFTER_CPU))
-		tegra_console_uart_resume();
-}
-
-static struct tegra_suspend_platform_data smba_suspend = {
-	.cpu_timer 	  	= 2000,  	// 5000
-	.cpu_off_timer 	= 100, 		// 5000
-	.core_timer    	= 0x7e7e,	//
-	.core_off_timer = 0xf,		// 0x7f
-    .corereq_high 	= false,
-	.sysclkreq_high = true,
-	.suspend_mode 	= TEGRA_SUSPEND_LP1,
-	.cpu_lp2_min_residency = 2000,	
-	.board_suspend = smba_board_suspend,
-	.board_resume = smba_board_resume, 	
-};
-
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
 static struct resource ram_console_resources[] = {
 	{
@@ -646,6 +621,10 @@ EXPORT_SYMBOL_GPL(smba_gps_mag_deinit);
 
 #endif
 
+static struct platform_device *smba_devices[] __initdata = {
+        &tegra_pmu_device,
+};
+
 static void __init tegra_smba_init(void)
 {
 	struct clk *clk;
@@ -654,7 +633,7 @@ static void __init tegra_smba_init(void)
 	// console_suspend_enabled = 0;
 
 	/* Init the suspend information */
-	tegra_init_suspend(&smba_suspend);
+	//	tegra_init_suspend(&smba_suspend);
 
 	/* Set the SDMMC1 (wifi) tap delay to 6.  This value is determined
 	 * based on propagation delay on the PCB traces. */
@@ -671,12 +650,15 @@ static void __init tegra_smba_init(void)
 
 	/* Initialize the clocks - clocks require the pinmux to be initialized first */
 	smba_clks_init();
-	
+
+	platform_add_devices(smba_devices,ARRAY_SIZE(smba_devices));
 	/* Register i2c devices - required for Power management and MUST be done before the power register */
 	smba_i2c_register_devices();
 
 	/* Register the power subsystem - Including the poweroff handler - Required by all the others */
-	smba_power_register_devices();
+	smba_charge_init();
+	smba_regulator_init();
+        smba_charger_init();
 
 	/* Register the USB device */
 	smba_usb_register_devices();

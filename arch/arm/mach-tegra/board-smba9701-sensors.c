@@ -33,8 +33,8 @@
 
 static struct i2c_board_info __initdata smba_i2c_bus0_sensor_info[] = {
 	{
-		I2C_BOARD_INFO("bq20z75-battery", 0x0B),
-		.irq = TEGRA_GPIO_TO_IRQ(SMBA9701_AC_PRESENT_IRQ),
+		I2C_BOARD_INFO("bq20z75", 0x0B),
+//		.irq = TEGRA_GPIO_TO_IRQ(SMBA9701_AC_PRESENT_IRQ),
 	},
 };
 
@@ -85,9 +85,9 @@ int __init smba_sensors_register_devices(void)
 	gpio_request(SMBA9701_ISL29023, "isl29023_irq");
 	gpio_direction_input(SMBA9701_ISL29023);
 
-	tegra_gpio_enable(SMBA9701_AC_PRESENT_IRQ);
-	gpio_request(SMBA9701_AC_PRESENT_IRQ, "ac_present_irq");
-	gpio_direction_input(SMBA9701_AC_PRESENT_IRQ);
+//	tegra_gpio_enable(SMBA9701_AC_PRESENT_IRQ);
+//	gpio_request(SMBA9701_AC_PRESENT_IRQ, "ac_present_irq");
+//	gpio_direction_input(SMBA9701_AC_PRESENT_IRQ);
 
 	tegra_gpio_enable(SMBA9701_LIS3LV02D);
 	gpio_request(SMBA9701_LIS3LV02D, "lis33de_irq");

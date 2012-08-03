@@ -42,6 +42,8 @@
 #define smba_pnl_to_lvds_ms	0
 #define smba_lvds_to_bl_ms	200
 
+static struct regulator *pnl_pwr;
+
 #ifdef CONFIG_TEGRA_DC
 static struct regulator *smba_hdmi_reg = NULL;
 static struct regulator *smba_hdmi_pll = NULL;
@@ -100,17 +102,35 @@ static struct platform_device smba_backlight_device = {
 #ifdef CONFIG_TEGRA_DC
 static int smba_panel_enable(void)
 {
-	gpio_set_value(SMBA9701_EN_VDD_PANEL, 1);
-	mdelay(smba_pnl_to_lvds_ms);
-	gpio_set_value(SMBA9701_LVDS_SHUTDOWN, 1);
-	mdelay(smba_lvds_to_bl_ms);
-	return 0;
+        struct regulator *reg = regulator_get(NULL, "vdd_ldo4");
+
+        if (!reg) {
+                regulator_enable(reg);
+                regulator_put(reg);
+        }
+
+        if (pnl_pwr == NULL) {
+                pnl_pwr = regulator_get(NULL, "pnl_pwr");
+                if (WARN_ON(IS_ERR(pnl_pwr)))
+                        pr_err("%s: couldn't get regulator pnl_pwr: %ld\n",
+                                __func__, PTR_ERR(pnl_pwr));
+                else
+                        regulator_enable(pnl_pwr);
+        } else {
+                regulator_enable(pnl_pwr);
+        }
+
+        mdelay(smba_pnl_to_lvds_ms);
+        gpio_set_value(SMBA9701_LVDS_SHUTDOWN, 1);
+        mdelay(smba_lvds_to_bl_ms);
+        return 0;
 }
+
 
 static int smba_panel_disable(void)
 {
 	gpio_set_value(SMBA9701_LVDS_SHUTDOWN, 0);
-	gpio_set_value(SMBA9701_EN_VDD_PANEL, 0);
+	regulator_disable(pnl_pwr);
 	return 0;
 }
 
@@ -367,10 +387,6 @@ int __init smba_panel_init(void)
 {
 	int err;
 	struct resource __maybe_unused *res;
-
-	gpio_request(SMBA9701_EN_VDD_PANEL, "pnl_pwr_enb");
-	gpio_direction_output(SMBA9701_EN_VDD_PANEL, 1);
-	tegra_gpio_enable(SMBA9701_EN_VDD_PANEL);
 
 	gpio_request(SMBA9701_BL_VDD, "bl_vdd");
 	gpio_direction_output(SMBA9701_BL_VDD, 1);
