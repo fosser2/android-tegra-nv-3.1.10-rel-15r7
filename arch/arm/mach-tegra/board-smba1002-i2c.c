@@ -34,7 +34,7 @@
 static struct tegra_i2c_platform_data smba_i2c1_platform_data = {
 	.adapter_nr	= 0,
 	.bus_count	= 1,
-	.bus_clk_rate	= { 100000, 0 },
+	.bus_clk_rate	= { 400000, 0 },
 };
 
 static const struct tegra_pingroup_config i2c2_ddc = {
@@ -56,10 +56,15 @@ static struct tegra_i2c_platform_data smba_i2c2_platform_data = {
 	.bus_mux_len	= { 1, 1 },
 };
 
+static struct tegra_i2c_platform_data harmony_i2c3_platform_data = {
+	.adapter_nr     = 3,
+	.bus_count      = 1,
+	.bus_clk_rate   = { 400000, 0 },
+
 static struct tegra_i2c_platform_data smba_dvc_platform_data = {
 	.adapter_nr	= 4,
 	.bus_count	= 1,
-	.bus_clk_rate	= { 100000, 0 },
+	.bus_clk_rate	= { 400000, 0 },
 	.is_dvc		= true,
 };
 
@@ -69,10 +74,12 @@ int __init smba_i2c_register_devices(void)
 	
 	tegra_i2c_device1.dev.platform_data = &smba_i2c1_platform_data;
 	tegra_i2c_device2.dev.platform_data = &smba_i2c2_platform_data;
+	tegra_i2c_device3.dev.platform_data = &smba_i2c3_platform_data;
 	tegra_i2c_device4.dev.platform_data = &smba_dvc_platform_data;
 
 	platform_device_register(&tegra_i2c_device1);
 	platform_device_register(&tegra_i2c_device2);
+	platform_device_register(&tegra_i2c_device3);
 	platform_device_register(&tegra_i2c_device4);
 	
 	return 0;
