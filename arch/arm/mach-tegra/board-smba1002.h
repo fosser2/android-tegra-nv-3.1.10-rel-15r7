@@ -116,7 +116,8 @@
 
 
 #define SMBA1002_LOW_BATT	TEGRA_GPIO_PW3 /*(0=low battery)*/
-#define SMBA1002_AC_PRESENT_IRQ  TEGRA_GPIO_PH2
+#define SMBA1002_AC_PRESENT    TEGRA_GPIO_PH2
+#define SMBA1002_CHARGING_DISABLE       TEGRA_GPIO_PK7
 
 #define SMBA1002_USB0_VBUS		TEGRA_GPIO_PB1	/* 1= VBUS usb0 */
 
@@ -130,6 +131,7 @@
 
 #define SMBA1002_TEMP_ALERT	TEGRA_GPIO_PN6
 
+#define TPS6586X_GPIO_BASE      TEGRA_NR_GPIOS
 /* The switch used to indicate rotation lock */
 //#define SW_ROTATION_LOCK 	(SW_MAX-1)
 
@@ -167,6 +169,9 @@ extern void smba_setup_bluesleep(void);
 extern void smba_bt_rfkill(void);
 extern int smba_nand_register_devices(void);
 extern int smba_camera_register_devices(void);
+extern int smba_charge_init(void);
+extern int smba_regulator_init(void);
+extern int smba_charger_init(void);
 
 /* Autocalculate framebuffer sizes */
 

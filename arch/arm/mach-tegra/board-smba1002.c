@@ -310,7 +310,10 @@ static int __init get_cfg_from_tags(void)
 		tegra_bootloader_fb_start = NvBootArgs.MemHandleArgs[NvBootArgs.FramebufferArgs.MemHandleKey - ATAG_NVIDIA_PRESERVED_MEM_0].Address;
 		tegra_bootloader_fb_size  = NvBootArgs.MemHandleArgs[NvBootArgs.FramebufferArgs.MemHandleKey - ATAG_NVIDIA_PRESERVED_MEM_0].Size;
 		
-		pr_info("Nvidia TAG: framebuffer: %lu @ 0x%08lx\n",tegra_bootloader_fb_size,tegra_bootloader_fb_start);
+		pr_debug("Nvidia TAG: framebuffer: %lu @ 0x%08lx\n",tegra_bootloader_fb_size,tegra_bootloader_fb_start);
+		
+		/* disable bootloader screen copying ... */
+		/*tegra_bootloader_fb_size = tegra_bootloader_fb_start = 0;*/
 	}
 	
 	/* If the LP0 vector is found, use it */
@@ -323,11 +326,11 @@ static int __init get_cfg_from_tags(void)
 		tegra_lp0_vec_start = NvBootArgs.MemHandleArgs[NvBootArgs.WarmbootArgs.MemHandleKey - ATAG_NVIDIA_PRESERVED_MEM_0].Address;
 		tegra_lp0_vec_size  = NvBootArgs.MemHandleArgs[NvBootArgs.WarmbootArgs.MemHandleKey - ATAG_NVIDIA_PRESERVED_MEM_0].Size;
 
-		pr_info("Nvidia TAG: LP0: %lu @ 0x%08lx\n",tegra_lp0_vec_size,tegra_lp0_vec_start);		
+		pr_debug("Nvidia TAG: LP0: %lu @ 0x%08lx\n",tegra_lp0_vec_size,tegra_lp0_vec_start);		
 		
 		/* Until we find out if the bootloader supports the workaround required to implement
 		   LP0, disable it */
-		//tegra_lp0_vec_start = tegra_lp0_vec_size = 0;
+		/*tegra_lp0_vec_start = tegra_lp0_vec_size = 0;*/
 
 	}
 	
@@ -485,8 +488,6 @@ void dump_bootflags(void)
 		readl(pmc + PMC_SCRATCH1),
 		readl(pmc + PMC_SCRATCH41)
 	);
-
-
 }
 #endif
 
@@ -543,31 +544,6 @@ EXPORT_SYMBOL_GPL(smba_bt_wifi_gpio_set);
 
 
 
-static void smba_board_suspend(int lp_state, enum suspend_stage stg)
-{
-	if ((lp_state == TEGRA_SUSPEND_LP1) && (stg == TEGRA_SUSPEND_BEFORE_CPU))
-		tegra_console_uart_suspend();
-}
-
-static void smba_board_resume(int lp_state, enum resume_stage stg)
-{
-	if ((lp_state == TEGRA_SUSPEND_LP1) && (stg == TEGRA_RESUME_AFTER_CPU))
-		tegra_console_uart_resume();
-}
-
-static struct tegra_suspend_platform_data smba_suspend = {
-	.cpu_timer 	  	= 2000,  	// 5000
-	.cpu_off_timer 	= 100, 		// 5000
-	.core_timer    	= 0x7e7e,	//
-	.core_off_timer = 0xf,		// 0x7f
-    .corereq_high 	= false,
-	.sysclkreq_high = true,
-	.suspend_mode 	= TEGRA_SUSPEND_LP1,
-	.cpu_lp2_min_residency = 2000,	
-	.board_suspend = smba_board_suspend,
-	.board_resume = smba_board_resume, 	
-};
-
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
 static struct resource ram_console_resources[] = {
 	{
@@ -622,7 +598,7 @@ void smba_gps_mag_poweroff(void)
 	if (atomic_dec_return(&smba_gps_mag_powered) == 0) {
 		pr_info("Disabling GPS/Magnetic module\n");
 		/* 3G/GPS power on sequence */
-		gpio_set_value(SMBA1002_GPSMAG_DISABLE, 0); /* Disable power */
+		gpio_set_value(SMBA9701_GPSMAG_DISABLE, 0); /* Disable power */
 		msleep(2);
 	}
 }
@@ -632,8 +608,8 @@ static atomic_t smba_gps_mag_inited = ATOMIC_INIT(0);
 void smba_gps_mag_init(void)
 {
 	if (atomic_inc_return(&smba_gps_mag_inited) == 1) {
-		gpio_request(SMBA1002_GPSMAG_DISABLE, "gps_disable");
-		gpio_direction_output(SMBA1002_GPSMAG_DISABLE, 0);
+		gpio_request(SMBA9701_GPSMAG_DISABLE, "gps_disable");
+		gpio_direction_output(SMBA9701_GPSMAG_DISABLE, 0);
 	}
 }
 EXPORT_SYMBOL_GPL(smba_gps_mag_init);
@@ -646,6 +622,10 @@ EXPORT_SYMBOL_GPL(smba_gps_mag_deinit);
 
 #endif
 
+static struct platform_device *smba_devices[] __initdata = {
+        &tegra_pmu_device,
+};
+
 static void __init tegra_smba_init(void)
 {
 	struct clk *clk;
@@ -654,7 +634,7 @@ static void __init tegra_smba_init(void)
 	// console_suspend_enabled = 0;
 
 	/* Init the suspend information */
-	tegra_init_suspend(&smba_suspend);
+	//tegra_init_suspend(&smba_suspend);
 
 	/* Set the SDMMC1 (wifi) tap delay to 6.  This value is determined
 	 * based on propagation delay on the PCB traces. */
@@ -672,18 +652,21 @@ static void __init tegra_smba_init(void)
 	/* Initialize the clocks - clocks require the pinmux to be initialized first */
 	smba_clks_init();
 
+	platform_add_devices(smba_devices,ARRAY_SIZE(smba_devices));
 	/* Register i2c devices - required for Power management and MUST be done before the power register */
 	smba_i2c_register_devices();
 
 	/* Register the power subsystem - Including the poweroff handler - Required by all the others */
-	smba_power_register_devices();
-	
+	smba_charge_init();
+	smba_regulator_init();
+        smba_charger_init();
+
 	/* Register the USB device */
 	smba_usb_register_devices();
 
 	/* Register UART devices */
 	smba_uart_register_devices();
-	
+
 	/* Register SPI devices */
 	smba_spi_register_devices();
 
@@ -704,10 +687,10 @@ static void __init tegra_smba_init(void)
 
 	/* Register all the keyboard devices */
 	smba_keyboard_register_devices();
-	
+
 	/* Register touchscreen devices */
 	smba_touch_register_devices();
-	
+
 	/* Register accelerometer device */
 	smba_sensors_register_devices();
 	

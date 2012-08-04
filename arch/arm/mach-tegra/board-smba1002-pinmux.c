@@ -213,7 +213,8 @@ static struct tegra_gpio_table gpio_table[] = {
 	//{ .gpio = SMBA1002_USB1_RESET,		.enable = true },
 	{ .gpio = SMBA1002_HP_DETECT,		.enable = true },
 	{ .gpio = SMBA1002_ISL29023,		.enable = true },
-	{ .gpio = SMBA1002_AC_PRESENT_IRQ,	.enable = true },
+	{ .gpio = SMBA1002_AC_PRESENT,    .enable = true },
+	{ .gpio = SMBA1002_CHARGING_DISABLE,  .enable = true },
 	{ .gpio = SMBA1002_INT_MIC_EN,		.enable = true },
 };
 
