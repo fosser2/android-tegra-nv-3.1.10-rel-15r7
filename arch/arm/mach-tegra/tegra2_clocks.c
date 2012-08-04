@@ -151,7 +151,7 @@
 #define AP25_EMC_INTERMEDIATE_RATE	760000000
 #define AP25_EMC_SCALING_STEP		600000000
 
-#define MAX_FREQ   1200000000        //This is to easily control O.C control for later 
+#define MAX_FREQ   1000000000        //This is to easily control O.C control for later 
 
 static void __iomem *reg_clk_base = IO_ADDRESS(TEGRA_CLK_RESET_BASE);
 static void __iomem *reg_pmc_base = IO_ADDRESS(TEGRA_PMC_BASE);
