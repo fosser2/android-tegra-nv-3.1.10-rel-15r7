@@ -71,7 +71,6 @@ static struct tegra_i2c_platform_data smba_dvc_platform_data = {
 
 int __init smba_i2c_register_devices(void)
 {
-	/* Note: i2c3 is used as an slave in smba, so it must NOT be registered here as Master! */
 	
 	tegra_i2c_device1.dev.platform_data = &smba_i2c1_platform_data;
 	tegra_i2c_device2.dev.platform_data = &smba_i2c2_platform_data;
