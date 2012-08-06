@@ -177,12 +177,12 @@ static __initdata struct tegra_pingroup_config smba_pinmux[] = {
 
 static struct tegra_gpio_table gpio_table[] = {
 	{ .gpio = SMBA9701_BT_RESET,		.enable = true },
-	{ .gpio = SMBA9701_KEY_VOLUMEUP,	.enable = true },
+//	{ .gpio = SMBA9701_KEY_VOLUMEUP,	.enable = true },
 	#ifdef SMBA9701_GPS
 	{ .gpio = SMBA9701_GPSMAG_DISABLE, .enable = true },
 	#endif 
-	{ .gpio = SMBA9701_KEY_VOLUMEDOWN,	.enable = true },
-	{ .gpio = SMBA9701_KEY_POWER,		.enable = true },
+//	{ .gpio = SMBA9701_KEY_VOLUMEDOWN,	.enable = true },
+//	{ .gpio = SMBA9701_KEY_POWER,		.enable = true },
 	//{ .gpio = SMBA9701_KEY_BACK,		.enable = true },
 	//{ .gpio = SMBA9701_KEY_HOME,		.enable = true },
 	//{ .gpio = SMBA9701_KEY_MENU,		.enable = true },
@@ -193,7 +193,7 @@ static struct tegra_gpio_table gpio_table[] = {
 	{ .gpio = SMBA9701_EN_VDD_PANEL,	.enable = true },
 	{ .gpio = SMBA9701_BL_VDD,			.enable = true },
 	{ .gpio = SMBA9701_BL_PWM,			.enable = false }, /* We want the PWM function here! */
-	
+
 	//{ .gpio = SMBA9701_HDMI_ENB,		.enable = true },
 	{ .gpio = SMBA9701_HDMI_HPD,		.enable = true },
 	{ .gpio = SMBA9701_ENABLE_VDD_VID,	.enable = true },
@@ -201,9 +201,9 @@ static struct tegra_gpio_table gpio_table[] = {
 	//{ .gpio = SMBA9701_SDIO2_POWER,	.enable = true },
 	{ .gpio = SMBA9701_SDHC_CD,			.enable = true },
 	{ .gpio = SMBA9701_SDHC_POWER,		.enable = true },
-	{ .gpio = SMBA9701_TS_IRQ,			.enable = true },
-	{ .gpio = SMBA9701_TS_POWER,		.enable = true },
-	{ .gpio = SMBA9701_TS_RESET,		.enable = true },
+//	{ .gpio = SMBA9701_TS_IRQ,			.enable = true },
+//	{ .gpio = SMBA9701_TS_POWER,		.enable = true },
+//	{ .gpio = SMBA9701_TS_RESET,		.enable = true },
 	{ .gpio = SMBA9701_WLAN_POWER,		.enable = true },
 	{ .gpio = SMBA9701_WLAN_RESET,		.enable = true },
 	{ .gpio = SMBA9701_LOW_BATT,		.enable = true },

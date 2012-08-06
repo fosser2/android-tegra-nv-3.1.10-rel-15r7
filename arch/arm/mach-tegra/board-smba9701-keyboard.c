@@ -37,95 +37,67 @@
 #include "wakeups-t2.h"
 #include "fuse.h"
 
+#define GPIO_KEY(_id, _gpio, _iswake)           \
+        {                                       \
+                .code = _id,                    \
+                .gpio = TEGRA_GPIO_##_gpio,     \
+                .active_low = 1,                \
+                .desc = #_id,                   \
+                .type = EV_KEY,                 \
+                .wakeup = _iswake,              \
+                .debounce_interval = 10,        \
+        }
+
 static struct gpio_keys_button smba_keys[] = {
-	[0] = {
-		.gpio = SMBA9701_KEY_VOLUMEUP,
-		.active_low = true,
-		.debounce_interval = 10,
-		.wakeup = false,		
-		.code = KEY_VOLUMEUP,
-		.type = EV_KEY,		
-		.desc = "volume up",
-	},
-	[1] = {
-		.gpio = SMBA9701_KEY_VOLUMEDOWN,
-		.active_low = true,
-		.debounce_interval = 10,
-		.wakeup = false,		
-		.code = KEY_VOLUMEDOWN,
-		.type = EV_KEY,		
-		.desc = "volume down",
-	},
-	[2] = {
-		.gpio = SMBA9701_KEY_POWER,
-		.active_low = true,
-		.debounce_interval = 50,
-		.wakeup = true,		
-		.code = KEY_POWER,
-		.type = EV_KEY,		
-		.desc = "power",
-	},
-	[3] = {
-		.gpio = SMBA9701_KEY_BACK,
-		.active_low = true,
-		.debounce_interval = 10,
-		.wakeup = false,		
-		.code = KEY_BACK,
-		.type = EV_KEY,		
-		.desc = "back",
-	},
-	[4] = {
-		.gpio = SMBA9701_KEY_HOME,
-		.active_low = true,
-		.debounce_interval = 10,
-		.wakeup = false,		
-		.code = KEY_HOME,
-		.type = EV_KEY,		
-		.desc = "home",
-	},
-	[5] = {
-		.gpio = SMBA9701_KEY_MENU,
-		.active_low = true,
-		.debounce_interval = 10,
-		.wakeup = false,		
-		.code = KEY_MENU,
-		.type = EV_KEY,		
-		.desc = "menu",
-	},
+        [0] = GPIO_KEY(KEY_HOME, PQ0, 0),
+        [1] = GPIO_KEY(KEY_BACK, PQ1, 0),
+        [2] = GPIO_KEY(KEY_VOLUMEUP, PQ5, 0),
+        [3] = GPIO_KEY(KEY_VOLUMEDOWN, PQ4, 0),
+        [4] = GPIO_KEY(KEY_POWER, PV2, 1),
+        [5] = GPIO_KEY(KEY_MENU, PQ2, 0),
 };
+
 #define PMC_WAKE_STATUS 0x14
 
 static int smba_wakeup_key(void)
 {
-	unsigned long status = 
-		readl(IO_ADDRESS(TEGRA_PMC_BASE) + PMC_WAKE_STATUS);
-	return status & SMBA9701_KEY_POWER ? KEY_POWER : KEY_RESERVED;
+        unsigned long status =
+                readl(IO_ADDRESS(TEGRA_PMC_BASE) + PMC_WAKE_STATUS);
+
+        return status & TEGRA_WAKE_GPIO_PV2 ? KEY_POWER : KEY_RESERVED;
 }
 
 static struct gpio_keys_platform_data smba_keys_platform_data = {
-	.buttons 	= smba_keys,
-	.nbuttons 	= ARRAY_SIZE(smba_keys),
-	.wakeup_key     = smba_wakeup_key,
-	.rep		= false, /* auto repeat enabled */
+        .buttons        = smba_keys,
+        .nbuttons       = ARRAY_SIZE(smba_keys),
+        .wakeup_key     = smba_wakeup_key,
 };
 
 static struct platform_device smba_keys_device = {
-	.name 		= "gpio-keys",
-	.id 		= 0,
-	.dev		= {
-		.platform_data = &smba_keys_platform_data,
-	},
+        .name   = "gpio-keys",
+        .id     = 0,
+        .dev    = {
+                .platform_data  = &smba_keys_platform_data,
+        },
 };
 
+static void smba_keys_init(void)
+{
+        int i;
 
-static struct platform_device *smba_pmu_devices[] __initdata = {
+        for (i = 0; i < ARRAY_SIZE(smba_keys); i++)
+                tegra_gpio_enable(smba_keys[i].gpio);
+}
+
+
+static struct platform_device *smba_devices[] __initdata = {
 	&smba_keys_device,
 };
 
 /* Register all keyboard devices */
 int __init smba_keyboard_register_devices(void)
 {
-  	//enable_irq_wake(gpio_to_irq(SMBA9701_KEY_POWER));
-	return platform_add_devices(smba_pmu_devices, ARRAY_SIZE(smba_pmu_devices));
-}
 
+	platform_add_devices(smba_devices, ARRAY_SIZE(smba_devices));
+	smba_keys_init();
+}
