@@ -85,10 +85,6 @@ int __init smba_sensors_register_devices(void)
 	gpio_request(SMBA9701_ISL29023, "isl29023_irq");
 	gpio_direction_input(SMBA9701_ISL29023);
 
-//	tegra_gpio_enable(SMBA9701_AC_PRESENT_IRQ);
-//	gpio_request(SMBA9701_AC_PRESENT_IRQ, "ac_present_irq");
-//	gpio_direction_input(SMBA9701_AC_PRESENT_IRQ);
-
 	tegra_gpio_enable(SMBA9701_LIS3LV02D);
 	gpio_request(SMBA9701_LIS3LV02D, "lis33de_irq");
 	gpio_direction_input(SMBA9701_LIS3LV02D);
@@ -101,6 +97,7 @@ int __init smba_sensors_register_devices(void)
 	                        ARRAY_SIZE(smba_i2c_bus0_sensor_info));
 	i2c_register_board_info(4, smba_i2c_bus4_sensor_info,
 	                        ARRAY_SIZE(smba_i2c_bus4_sensor_info));
-	return i2c_register_board_info(2, smba_i2c_bus1_sensor_info,
-	                               ARRAY_SIZE(smba_i2c_bus1_sensor_info));
+	i2c_register_board_info(2, smba_i2c_bus1_sensor_info,
+	                        ARRAY_SIZE(smba_i2c_bus1_sensor_info));
+	return 0;
 }
