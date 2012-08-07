@@ -123,7 +123,7 @@ static struct regulator_consumer_supply tps658621_ldo3_supply[] = {
 };
 static struct regulator_consumer_supply tps658621_ldo4_supply[] = {
 	REGULATOR_SUPPLY("vdd_ldo4", NULL),
-	REGULATOR_SUPPLY("vddio_sys", "panjit_touch"),
+	REGULATOR_SUPPLY("vddio_sys", NULL),
         REGULATOR_SUPPLY("avdd_osc", NULL),       /* AVDD_OSC */
         REGULATOR_SUPPLY("vddio_sys", NULL),
         REGULATOR_SUPPLY("vddio_lcd", NULL),      /* AON? */
