@@ -34,7 +34,7 @@
 #include <linux/slab.h>
 
 
-#define DRIVER_NAME	"at168_touch"
+#define DRIVER_NAME			"at168_touch"
 #define TS_POLL_DELAY			4 /* ms delay between samples */
 #define TS_POLL_PERIOD			4 /* ms delay between samples */
 
@@ -49,20 +49,20 @@ struct at168_data {
 	struct i2c_client	*client;
 	struct i2c_client 	*read_client;
 	int			gpio_reset;
-	int 		gpio_irq;
+	int 			gpio_irq;
 	struct early_suspend	early_suspend;
 	struct delayed_work	work;
 };
 
 struct at168_event {
-	__u8	fingers;
-	__u8	old_fingers;
-	__be16	coord[2][2];
+	__u8			fingers;
+	__u8			old_fingers;
+	__be16			coord[2][2];
 };
 
 union at168_buff {
 	struct at168_event	data;
-	unsigned char	buff[sizeof(struct at168_event)];
+	unsigned char		buff[sizeof(struct at168_event)];
 };
 
 static int at168_read_registers(struct at168_data *touch, unsigned char reg, unsigned char* buffer, unsigned int len);
@@ -73,7 +73,7 @@ static void at168_reset(struct at168_data *touch)
 		return;
 
 	gpio_set_value(touch->gpio_reset, 0);
-	msleep(5);
+	msleep(60);
 	gpio_set_value(touch->gpio_reset, 1);
 	msleep(60);
 }
@@ -122,8 +122,7 @@ static irqreturn_t at168_irq(int irq, void *dev_id)
 {
 	struct at168_data *ts = dev_id;
 	disable_irq_nosync(ts->gpio_irq);
-	schedule_delayed_work(&ts->work,
-		      msecs_to_jiffies(TS_POLL_DELAY));
+	schedule_delayed_work(&ts->work, msecs_to_jiffies(TS_POLL_DELAY));
 
 	return IRQ_HANDLED;
 }
@@ -145,7 +144,8 @@ static int at168_read_registers(struct at168_data *touch, unsigned char reg, uns
 	do
 	{
 		ret = i2c_transfer(touch->client->adapter, msgs, 2);
-	} while(ret == EAGAIN || ret == ETIMEDOUT);
+	} 
+	while(ret == EAGAIN || ret == ETIMEDOUT);
 	return ret;
 }
 
@@ -208,7 +208,7 @@ static int at168_probe(struct i2c_client *client,
 		if (!ret)
 			touch->gpio_reset = pdata->gpio_reset;
 		else
-			dev_warn(&client->dev, "unable to configure GPIO\n");
+			dev_warn(&client->dev, "unable to configure GPIO for reset at168 \n");
 	}
 
 	input_dev = input_allocate_device();
@@ -232,7 +232,8 @@ static int at168_probe(struct i2c_client *client,
 	{
 		printk("at168_touch: InitData[%d] = 0x%x---\n", j, initdata[j]);
 		j++;
-	}while(j < 8);
+	}
+	while(j < 8);
 	
 	version = ((initdata[4] << 24) | (initdata[5] << 16) | (initdata[6] << 8) | (initdata[7]) );
 	/*XMinPosition = 0; //AT168_MIN_X;
@@ -430,7 +431,8 @@ static int __devinit at168_init(void)
 
 	e = i2c_add_driver(&at168_driver);
 	if (e != 0) {
-		pr_err("%s: failed to register with I2C bus with "
+	   printk("%s: failed to register with I2C bus with error: 0x%x\n", e);
+	   pr_err("%s: failed to register with I2C bus with "
 		       "error: 0x%x\n", __func__, e);
 	}
 	return e;

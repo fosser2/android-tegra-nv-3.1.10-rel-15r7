@@ -33,7 +33,7 @@
 static struct i2c_board_info __initdata smba_i2c_bus0_sensor_info[] = {
 	{
 		I2C_BOARD_INFO("bq20z75", 0x0B),
-		//.irq = TEGRA_GPIO_TO_IRQ(SMBA1002_AC_PRESENT_IRQ),
+		.irq = TEGRA_GPIO_TO_IRQ(SMBA1002_AC_PRESENT),
 	},
 	{
 		I2C_BOARD_INFO("so340010_kbd", 0x2c),
@@ -44,7 +44,7 @@ static struct i2c_board_info __initdata smba_i2c_bus0_sensor_info[] = {
 		.irq = TEGRA_GPIO_TO_IRQ(SMBA1002_LIS3LV02D),
 	},
 	{
-			I2C_BOARD_INFO("isl29023", 0x44),
+		I2C_BOARD_INFO("isl29023", 0x44),
 		.irq = TEGRA_GPIO_TO_IRQ(SMBA1002_ISL29023),
 
 	},   
@@ -82,9 +82,9 @@ int __init smba_sensors_register_devices(void)
 	gpio_request(SMBA1002_ISL29023, "isl29023_irq");
 	gpio_direction_input(SMBA1002_ISL29023);
 
-	//tegra_gpio_enable(SMBA1002_AC_PRESENT_IRQ);
-	//gpio_request(SMBA1002_AC_PRESENT_IRQ, "ac_present_irq");
-	//gpio_direction_input(SMBA1002_AC_PRESENT_IRQ);
+	tegra_gpio_enable(SMBA1002_AC_PRESENT);
+	gpio_request(SMBA1002_AC_PRESENT, "ac_present_irq");
+	gpio_direction_input(SMBA1002_AC_PRESENT);
 
 	tegra_gpio_enable(SMBA1002_LIS3LV02D);
 	gpio_request(SMBA1002_LIS3LV02D, "lis33de_irq");
@@ -94,7 +94,7 @@ int __init smba_sensors_register_devices(void)
 	gpio_request(SMBA1002_KEYBOARD, "so340010_kbd_irq");
 	gpio_direction_input(SMBA1002_KEYBOARD);
 	
-		tegra_gpio_enable(SMBA1002_TEMP_ALERT);
+	tegra_gpio_enable(SMBA1002_TEMP_ALERT);
 	gpio_request(SMBA1002_TEMP_ALERT, "adt7461_temp_alert_irq");
 	gpio_direction_input(SMBA1002_TEMP_ALERT);
 

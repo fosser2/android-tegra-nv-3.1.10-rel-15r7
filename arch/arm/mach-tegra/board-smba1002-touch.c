@@ -20,6 +20,8 @@
 #include <linux/delay.h>
 #include <linux/gpio.h>
 #include <linux/i2c.h>
+#include <linux/init.h>
+#include <linux/input.h>
 #include <linux/i2c/at168_ts.h>
 #include <asm/mach-types.h>
 #include <mach/irqs.h>
@@ -30,6 +32,7 @@
 
 #include "board-smba1002.h"
 #include "gpio-names.h"
+#include "cpu-tegra.h"
 
 struct at168_i2c_ts_platform_data at168_pdata = {
 	.gpio_reset = SMBA1002_TS_RESET,
