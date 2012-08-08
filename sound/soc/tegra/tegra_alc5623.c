@@ -1082,7 +1082,7 @@ static __devinit int tegra_alc5623_driver_probe(struct platform_device *pdev)
 
 	machine->pdata = pdata;
 
-	ret = tegra_asoc_utils_init(&machine->util_data, &pdev->dev);
+	ret = tegra_asoc_utils_init(&machine->util_data, &pdev->dev, card);
 	if (ret) {
 		dev_err(&pdev->dev, "Can't initialize Tegra ASOC utils\n");
 		goto err_free_machine;
