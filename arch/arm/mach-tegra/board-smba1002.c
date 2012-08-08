@@ -598,7 +598,7 @@ void smba_gps_mag_poweroff(void)
 	if (atomic_dec_return(&smba_gps_mag_powered) == 0) {
 		pr_info("Disabling GPS/Magnetic module\n");
 		/* 3G/GPS power on sequence */
-		gpio_set_value(SMBA9701_GPSMAG_DISABLE, 0); /* Disable power */
+		gpio_set_value(SMBA1002_GPSMAG_DISABLE, 0); /* Disable power */
 		msleep(2);
 	}
 }
@@ -608,8 +608,8 @@ static atomic_t smba_gps_mag_inited = ATOMIC_INIT(0);
 void smba_gps_mag_init(void)
 {
 	if (atomic_inc_return(&smba_gps_mag_inited) == 1) {
-		gpio_request(SMBA9701_GPSMAG_DISABLE, "gps_disable");
-		gpio_direction_output(SMBA9701_GPSMAG_DISABLE, 0);
+		gpio_request(SMBA1002_GPSMAG_DISABLE, "gps_disable");
+		gpio_direction_output(SMBA1002_GPSMAG_DISABLE, 0);
 	}
 }
 EXPORT_SYMBOL_GPL(smba_gps_mag_init);

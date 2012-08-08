@@ -46,7 +46,7 @@
 
 #ifdef SMBA1002_GPS
 static struct platform_device smba_gps_pm_device = {
-	.name		= "smba-pm-gps",
+	.name		= "smba1002-pm-gps",
 	.id			= -1,
 };
 

@@ -215,7 +215,7 @@ static struct platform_driver smba_pm_gps_driver_ops = {
 	.suspend	= smba_pm_gps_suspend,
 	.resume		= smba_pm_gps_resume,
 	.driver		= {
-		.name		= "smba-pm-gps",
+		.name		= "smba1002-pm-gps",
 	},
 };
 
