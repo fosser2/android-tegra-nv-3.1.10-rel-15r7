@@ -705,7 +705,7 @@ static void __init tegra_smba_init(void)
 	smba_nand_register_devices();
 	
 	/* Register SDHCI devices */
-	smba_sdhci_register_devices();	
+	smba1002_sdhci_init();	
 	
 #ifdef SMBA1002_GPS
 	/* Register gps powermanagement devices */
