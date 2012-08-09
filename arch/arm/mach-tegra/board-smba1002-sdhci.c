@@ -141,28 +141,19 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data0 = {
 };
 
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data2 = {
+	.cd_gpio = TEGRA_GPIO_PI5,
+	.wp_gpio = TEGRA_GPIO_PH1,
+	.power_gpio = TEGRA_GPIO_PI6,
+};
+
+static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
+	.is_8bit = 1,
 	.cd_gpio = -1,
 	.wp_gpio = -1,
 	.power_gpio = -1,
-};
-
-
-static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
-	.cd_gpio = SMBA1002_SDHC_CD,
-	.wp_gpio = -1,
-	.power_gpio = SMBA1002_SDHC_POWER,
-};
-
-static struct tegra_sdhci_platform_data tegra_sdhci_platform_data4 = {
-.cd_gpio = -1,
-.wp_gpio = -1,
-.power_gpio = -1,
-.is_8bit = 1,
-.max_clk_limit = 52000000,
-.mmc_data = {
-.built_in = 1,
-},
-
+	.mmc_data = {
+		.built_in = 1,
+	}
 };
 
 static struct platform_device tegra_sdhci_device0 = {
