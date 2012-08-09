@@ -30,9 +30,8 @@
 
 #include "gpio-names.h"
 #include "board.h"
+#include "board-smba1002.h"
 
-#define SMBA1002_WLAN_PWR	TEGRA_GPIO_PK5
-#define SMBA1002_WLAN_RST	TEGRA_GPIO_PK6
 
 static void (*wifi_status_cb)(int card_present, void *dev_id);
 static void *wifi_status_cb_devid;
@@ -212,9 +211,9 @@ static int smba1002_wifi_power(int on)
 {
 	pr_debug("%s: %d\n", __func__, on);
 
-	gpio_set_value(SMBA1002_WLAN_PWR, on);
+	gpio_set_value(SMBA1002_WLAN_POWER, on);
 	mdelay(100);
-	gpio_set_value(SMBA1002_WLAN_RST, on);
+	gpio_set_value(SMBA1002_WLAN_RESET, on);
 	mdelay(200);
 
 	if (on)
@@ -253,14 +252,14 @@ static int __init smba1002_wifi_init(void)
 		return PTR_ERR(wifi_32k_clk);
 	}
 
-	gpio_request(SMBA1002_WLAN_PWR, "wlan_power");
-	gpio_request(SMBA1002_WLAN_RST, "wlan_rst");
+	gpio_request(SMBA1002_WLAN_POWER, "wlan_power");
+	gpio_request(SMBA1002_WLAN_RESET, "wlan_rst");
 
-	tegra_gpio_enable(SMBA1002_WLAN_PWR);
-	tegra_gpio_enable(SMBA1002_WLAN_RST);
+	tegra_gpio_enable(SMBA1002_WLAN_POWER);
+	tegra_gpio_enable(SMBA1002_WLAN_RESET);
 
-	gpio_direction_output(SMBA1002_WLAN_PWR, 0);
-	gpio_direction_output(SMBA1002_WLAN_RST, 0);
+	gpio_direction_output(SMBA1002_WLAN_POWER, 0);
+	gpio_direction_output(SMBA1002_WLAN_RESET, 0);
 
 	platform_device_register(&smba1002_wifi_device);
 
