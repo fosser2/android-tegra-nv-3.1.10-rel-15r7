@@ -32,12 +32,6 @@
 #include "board.h"
 #include "board-smba1002.h"
 
-#define SMBA1002_WLAN_PWR	TEGRA_GPIO_PK5
-#define SMBA1002_WLAN_RST	TEGRA_GPIO_PK6
-#define SMBA1002_SDHC_CD	TEGRA_GPIO_PI5
-#define SMBA1002_SDHC_WP    -1
-#define SMBA1002_SDHC_POWER	TEGRA_GPIO_PD0
-
 static void (*wifi_status_cb)(int card_present, void *dev_id);
 static void *wifi_status_cb_devid;
 static int smba1002_wifi_status_register(void (*callback)(int , void *), void *);
