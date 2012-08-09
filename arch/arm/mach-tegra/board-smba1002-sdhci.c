@@ -32,6 +32,11 @@
 #include "board.h"
 #include "board-smba1002.h"
 
+#define SMBA1002_WLAN_PWR	TEGRA_GPIO_PK5
+#define SMBA1002_WLAN_RST	TEGRA_GPIO_PK6
+#define SMBA1002_SDHC_CD	TEGRA_GPIO_PI5
+#define SMBA1002_SDHC_WP    -1
+#define SMBA1002_SDHC_POWER	TEGRA_GPIO_PD0
 
 static void (*wifi_status_cb)(int card_present, void *dev_id);
 static void *wifi_status_cb_devid;
@@ -48,20 +53,9 @@ static struct wifi_platform_data smba1002_wifi_control = {
 	.set_carddetect = smba1002_wifi_set_carddetect,
 };
 
-static struct resource wifi_resource[] = {
-	[0] = {
-		.name  = "bcmdhd_wlan_irq",
-		.start = TEGRA_GPIO_TO_IRQ(TEGRA_GPIO_PS0),
-		.end   = TEGRA_GPIO_TO_IRQ(TEGRA_GPIO_PS0),
-		.flags = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL | IORESOURCE_IRQ_SHAREABLE,
-	},
-};
-
 static struct platform_device smba1002_wifi_device = {
 	.name		= "bcmdhd_wlan",
 	.id		= 1,
-	.num_resources  = 1,
-	.resource	= wifi_resource,
 	.dev		= {
 		.platform_data = &smba1002_wifi_control,
 	},
@@ -76,6 +70,19 @@ static struct resource sdhci_resource0[] = {
 	[1] = {
 		.start	= TEGRA_SDMMC1_BASE,
 		.end	= TEGRA_SDMMC1_BASE + TEGRA_SDMMC1_SIZE-1,
+		.flags	= IORESOURCE_MEM,
+	},
+};
+
+static struct resource sdhci_resource1[] = {
+	[0] = {
+		.start	= INT_SDMMC2,
+		.end	= INT_SDMMC2,
+		.flags	= IORESOURCE_IRQ,
+	},
+	[1] = {
+		.start	= TEGRA_SDMMC2_BASE,
+		.end	= TEGRA_SDMMC2_BASE + TEGRA_SDMMC2_SIZE-1,
 		.flags	= IORESOURCE_MEM,
 	},
 };
@@ -129,7 +136,7 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data0 = {
 #ifdef CONFIG_MMC_EMBEDDED_SDIO
 		.embedded_sdio = &embedded_sdio_data0,
 #endif
-		.built_in = 0,
+		.built_in = 1,
 		.ocr_mask = MMC_OCR_1V8_MASK,
 	},
 #ifndef CONFIG_MMC_EMBEDDED_SDIO
@@ -140,10 +147,20 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data0 = {
 	.power_gpio = -1,
 };
 
+static struct tegra_sdhci_platform_data tegra_sdhci_platform_data1 = {
+	.is_8bit = 1,
+	.cd_gpio = -1,
+	.wp_gpio = -1,
+	.power_gpio = -1,
+};
+
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data2 = {
-	.cd_gpio = TEGRA_GPIO_PI5,
-	.wp_gpio = TEGRA_GPIO_PH1,
-	.power_gpio = TEGRA_GPIO_PI6,
+	.cd_gpio = SMBA1002_SDHC_CD,
+	.wp_gpio = SMBA1002_SDHC_WP,
+	.power_gpio = SMBA1002_SDHC_POWER,
+	.mmc_data = {
+		.built_in = 1,
+	}
 };
 
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
@@ -151,6 +168,7 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
 	.cd_gpio = -1,
 	.wp_gpio = -1,
 	.power_gpio = -1,
+	.max_clk_limit = 52000000,
 	.mmc_data = {
 		.built_in = 1,
 	}
@@ -163,6 +181,16 @@ static struct platform_device tegra_sdhci_device0 = {
 	.num_resources	= ARRAY_SIZE(sdhci_resource0),
 	.dev = {
 		.platform_data = &tegra_sdhci_platform_data0,
+	},
+};
+
+static struct platform_device tegra_sdhci_device1 = {
+	.name		= "sdhci-tegra",
+	.id		= 1,
+	.resource	= sdhci_resource1,
+	.num_resources	= ARRAY_SIZE(sdhci_resource1),
+	.dev = {
+		.platform_data = &tegra_sdhci_platform_data1,
 	},
 };
 
@@ -272,12 +300,12 @@ int __init smba1002_sdhci_init(void)
 {
 	tegra_gpio_enable(tegra_sdhci_platform_data2.power_gpio);
 	tegra_gpio_enable(tegra_sdhci_platform_data2.cd_gpio);
-	tegra_gpio_enable(tegra_sdhci_platform_data2.wp_gpio);
+
 	tegra_gpio_enable(tegra_sdhci_platform_data3.power_gpio);
 
+	platform_device_register(&tegra_sdhci_device0);
 	platform_device_register(&tegra_sdhci_device3);
 	platform_device_register(&tegra_sdhci_device2);
-	platform_device_register(&tegra_sdhci_device0);
 
 	smba1002_wifi_init();
 	return 0;
