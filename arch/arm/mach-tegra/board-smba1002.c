@@ -17,6 +17,10 @@
 #include <linux/console.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/ctype.h>
+#include <linux/i2c.h>
+#include <linux/i2c-tegra.h>
+#include <linux/delay.h>
 #include <linux/version.h>
 #include <linux/platform_device.h>
 #include <linux/serial_8250.h>
@@ -27,11 +31,13 @@
 #include <linux/fsl_devices.h>
 #include <linux/platform_data/tegra_usb.h>
 #include <linux/pda_power.h>
+#include <linux/mfd/tps6586x.h>
 #include <linux/gpio.h>
-#include <linux/delay.h>
+#include <linux/gpio_keys.h>
+#include <linux/input.h>
 #include <linux/reboot.h>
-#include <linux/i2c-tegra.h>
 #include <linux/memblock.h>
+#include <linux/tegra_uart.h>
 
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
@@ -42,6 +48,7 @@
 #include <mach/w1.h>
 #include <mach/iomap.h>
 #include <mach/irqs.h>
+#include <mach/pinmux.h>
 #include <mach/nand.h>
 #include <mach/iomap.h>
 #include <mach/sdhci.h>
@@ -53,12 +60,13 @@
 #include <linux/nvmap.h>
 
 #include "board.h"
-#include "board-smba1002.h"
 #include "clock.h"
-#include "gpio-names.h"
+#include "board-smba1002.h"
 #include "devices.h"
-#include "pm.h"
+#include "gpio-names.h"
+#include "fuse.h"
 #include "wakeups-t2.h"
+#include "pm.h"
 #include "wdt-recovery.h"
 
 
@@ -542,6 +550,55 @@ int smba_bt_wifi_gpio_set(bool on)
 EXPORT_SYMBOL_GPL(smba_bt_wifi_gpio_set);
 
 
+#define GPIO_KEY(_id, _gpio, _iswake)		\
+	{					\
+		.code = _id,			\
+		.gpio = TEGRA_GPIO_##_gpio,	\
+		.active_low = 1,		\
+		.desc = #_id,			\
+		.type = EV_KEY,			\
+		.wakeup = _iswake,		\
+		.debounce_interval = 10,	\
+	}
+
+static struct gpio_keys_button smba1002_keys[] = {
+	[0] = GPIO_KEY(KEY_VOLUMEUP, PV4, 0),
+	[1] = GPIO_KEY(KEY_VOLUMEDOWN, PD4, 0),
+	[2] = GPIO_KEY(KEY_POWER, PV2, 1),
+};
+
+#define PMC_WAKE_STATUS 0x14
+
+static int smba1002_wakeup_key(void)
+{
+	unsigned long status =
+		readl(IO_ADDRESS(TEGRA_PMC_BASE) + PMC_WAKE_STATUS);
+
+	return status & TEGRA_WAKE_GPIO_PV2 ? KEY_POWER : KEY_RESERVED;
+}
+
+static struct gpio_keys_platform_data smba1002_keys_platform_data = {
+	.buttons	= smba1002_keys,
+	.nbuttons	= ARRAY_SIZE(smba1002_keys),
+	.wakeup_key	= smba1002_wakeup_key,
+};
+
+static struct platform_device smba1002_keys_device = {
+	.name	= "gpio-keys",
+	.id	= 0,
+	.dev	= {
+		.platform_data	= &smba1002_keys_platform_data,
+	},
+};
+
+static void smba1002_keys_init(void)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(smba1002_keys); i++)
+		tegra_gpio_enable(smba1002_keys[i].gpio);
+}
+
 
 
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
@@ -661,7 +718,7 @@ static void __init tegra_smba_init(void)
 	smba_regulator_init();
         smba_charger_init();
 
-	/* Register the USB device */
+	/* Register the USB devices */
 	smba_usb_register_devices();
 
 	/* Register UART devices */
@@ -670,25 +727,22 @@ static void __init tegra_smba_init(void)
 	/* Register SPI devices */
 	smba_spi_register_devices();
 
-	/* Register GPU devices */
+	/* Register GPU device */
 	smba_panel_init();
 
-	/* Register Audio devices */
+	/* Register Audio device */
 	smba_audio_register_devices();
 
-	/* Register Jack devices */
-	//smba_jack_register_devices();
-
-	/* Register AES encryption devices */
+	/* Register AES encryption device */
 	smba_aes_register_devices();
 
-	/* Register Watchdog devices */
+	/* Register Watchdog device */
 	smba_wdt_register_devices();
 
-	/* Register all the keyboard devices */
-	smba_keyboard_register_devices();
+	/* Register GPIO Hw Keys */
+	smba1002_keys_init();
 
-	/* Register touchscreen devices */
+	/* Register touchscreen device */
 	smba_touch_register_devices();
 
 	/* Register accelerometer device */
@@ -698,7 +752,7 @@ static void __init tegra_smba_init(void)
 	smba_bt_rfkill();
 	smba_setup_bluesleep();
 
-	/* Register Camera powermanagement devices */
+	/* Register Camera device */
 	smba_camera_register_devices();
 
 	/* Register NAND flash devices */
