@@ -193,7 +193,6 @@ obj-${CONFIG_TEGRA_BB_XMM_POWER2}       += baseband-xmm-power2.o
 
 # smba1002 arch drivers
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-aes.o
-#obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-jack.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-audio.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-bootinfo.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-bt.o
@@ -215,7 +214,6 @@ obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-uart.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-usb.o
 #obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-wake.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-wdt.o
-#obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-wlan.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-sdhci.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-pm-gps.o
