@@ -42,7 +42,7 @@
 #include "gpio-names.h"
 #include "devices.h"
 
-static struct resource ventana_bcm4329_rfkill_resources[] = {
+static struct resource smba_bcm4329_rfkill_resources[] = {
 	{
 		.name   = "bcm4329_nshutdown_gpio",
 		.start  = SMBA1002_BT_RESET,
@@ -51,10 +51,10 @@ static struct resource ventana_bcm4329_rfkill_resources[] = {
 	},
 };
 
-static struct platform_device ventana_bcm4329_rfkill_device = {
+static struct platform_device smba_bcm4329_rfkill_device = {
 	.name = "bcm4329_rfkill",
 	.id             = -1,
-	.num_resources  = ARRAY_SIZE(ventana_bcm4329_rfkill_resources),
+	.num_resources  = ARRAY_SIZE(smba_bcm4329_rfkill_resources),
 	.resource       = smba_bcm4329_rfkill_resources,
 };
 
@@ -66,7 +66,7 @@ static void __init smba_bt_rfkill(void)
 	return;
 }
 
-static struct resource ventana_bluesleep_resources[] = {
+static struct resource smba_bluesleep_resources[] = {
 	[0] = {
 		.name = "gpio_host_wake",
 			.start  = SMBA1002_BT_IRQ,
@@ -88,7 +88,7 @@ static struct resource ventana_bluesleep_resources[] = {
 	},
 };
 
-static struct platform_device ventana_bluesleep_device = {
+static struct platform_device smba_bluesleep_device = {
 	.name           = "bluesleep",
 	.id             = -1,
 	.num_resources  = ARRAY_SIZE(smba_bluesleep_resources),
