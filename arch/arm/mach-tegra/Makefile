@@ -193,7 +193,6 @@ obj-${CONFIG_TEGRA_BB_XMM_POWER2}       += baseband-xmm-power2.o
 
 # smba1002 arch drivers
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-aes.o
-#obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-jack.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-audio.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-bootinfo.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-bt.o
@@ -213,9 +212,8 @@ obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-spi.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-touch.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-uart.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-usb.o
-#obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-wake.o
+obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-wake.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-wdt.o
-#obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-wlan.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-sdhci.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-pm-gps.o
@@ -223,7 +221,6 @@ obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-pm-camera.o
 
 # smba9701 arch drivers
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-aes.o
-#obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-jack.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-audio.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-bootinfo.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-bt.o
@@ -243,9 +240,7 @@ obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-spi.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-touch.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-uart.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-usb.o
-#obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-wake.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-wdt.o
-#obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-wlan.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-sdhci.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-pm-camera.o
