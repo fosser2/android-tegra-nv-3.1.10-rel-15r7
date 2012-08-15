@@ -273,14 +273,16 @@ static __initdata struct tegra_clk_init_table smba_clk_init_table[] = {
 	{ "sdmmc2",		"clk_m",	  48000000,	true },
 	{ "sdmmc4",		"clk_m",	  48000000,	true },
 	{ "ndflash",	"pll_p",	 108000000,	true },
-	{ "pwm",    	"clk_m",      12000000, false},	
+	{ "pwm",		"clk_32k",		 32768,	false},	
 	{ "usbd",		"clk_m",	  12000000,	true },		/* fsl-tegra-udc , utmip-pad , tegra_ehci.0 , tegra_otg - we need this to be always on to always get hotplug events */
 	{ "usb2",		"clk_m",	  12000000,	false},		/* tegra_ehci.1 - Really unused*/
 	{ "usb3",		"clk_m",	  12000000,	true },		/* tegra_ehci.2 - we need this to be always on to always get hotplug events */
-	{ "i2c1",		"clk_m",		   800000,	false},		/* tegra-i2c.0 */
-	{ "i2c2",		"clk_m",		   315789,	false},		/* tegra-i2c.1 */
-	{ "i2c3",		"clk_m",		   800000,	false},		/* tegra-i2c.2 */
-	{ "dvc",		"clk_m",		  2400000,	false},		/* tegra-i2c.3 */
+	{ "i2c1",		"clk_m",	    800000,	false},		/* tegra-i2c.0 */
+	{ "i2c2",		"clk_m",	    315789,	false},		/* tegra-i2c.1 */
+	{ "i2c3",		"clk_m",	    800000,	false},		/* tegra-i2c.2 */
+	{ "dvc",		"clk_m",	   2400000,	false},		/* tegra-i2c.3 */
+	//{ "pll_p_out4",	"pll_p",	24000000,	true },
+	{ "blink",	"clk_32k",	32768,		false},
 	
 	{ NULL,			NULL,		         0,		0},
 }; 
