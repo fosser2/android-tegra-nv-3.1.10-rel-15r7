@@ -150,7 +150,6 @@ extern int smba_sensors_register_devices(void);
 extern int smba_wlan_pm_register_devices(void);
 extern int smba_gps_pm_register_devices(void);
 extern int smba_gsm_pm_register_devices(void);
-//extern int smba_bt_pm_register_devices(void);
 extern void smba_setup_bluesleep(void);
 extern void smba_bt_rfkill(void);
 extern int smba_nand_register_devices(void);

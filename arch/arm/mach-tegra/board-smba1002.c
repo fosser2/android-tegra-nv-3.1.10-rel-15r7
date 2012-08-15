@@ -696,7 +696,7 @@ static void __init tegra_smba_init(void)
 	
 	/* Register Bluetooth powermanagement devices */
 	smba_bt_rfkill();
-	smba_setup_bluesleep();
+	smba_setup_bluesleep;
 
 	/* Register Camera powermanagement devices */
 	smba_camera_register_devices();
