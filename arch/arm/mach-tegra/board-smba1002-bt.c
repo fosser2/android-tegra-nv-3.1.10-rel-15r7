@@ -36,7 +36,7 @@
 #include <mach/nand.h>
 #include <mach/iomap.h>
 
-//#include "board.h"
+#include "board.h"
 #include "board-smba1002.h"
 #include "clock.h"
 #include "gpio-names.h"
@@ -58,7 +58,7 @@ static struct platform_device smba_bcm4329_rfkill_device = {
 	.resource       = smba_bcm4329_rfkill_resources,
 };
 
-void __init smba_bt_rfkill(void)
+static void __init smba_bt_rfkill(void)
 {
 	/*Add Clock Resource*/
 	clk_add_alias("bcm4329_32k_clk", smba_bcm4329_rfkill_device.name, \
@@ -95,7 +95,7 @@ static struct platform_device smba_bluesleep_device = {
 	.resource       = smba_bluesleep_resources,
 };
 
-void __init smba_setup_bluesleep(void)
+static void __init smba_setup_bluesleep(void)
 {
 	platform_device_register(&smba_bluesleep_device);
 	tegra_gpio_enable(SMBA1002_BT_IRQ);
