@@ -266,6 +266,7 @@ static __initdata struct tegra_clk_init_table smba_clk_init_table[] = {
 
 static __initdata struct tegra_clk_init_table smba_clk_init_table[] = {
 	/* name			parent		 rate		enabled */
+	{ "cdev1",		NULL,		     0, true },
 	{ "i2s1",		"pll_a_out0", 	     0,	false},
 	{ "i2s2",		"pll_a_out0", 	     0,	false},
 	{ "spdif_out",	"pll_a_out0",  	     0,	false},
