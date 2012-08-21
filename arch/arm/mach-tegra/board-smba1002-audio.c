@@ -120,6 +120,8 @@ static struct tegra_audio_platform_data tegra_audio_pdata[] = {
 }; 
 
 static struct alc5623_platform_data smba_alc5623_pdata = {
+	.mclk       = "cdev1",
+
 	.add_ctrl	= 0xD300,
 	.jack_det_ctrl	= 0,
 	.avdd_mv		= 3300,	/* Analog vdd in millivolts */
@@ -129,7 +131,6 @@ static struct alc5623_platform_data smba_alc5623_pdata = {
 	.mic2boost_db   	= 20,  /* MIC2 gain boost */
 
 	.default_is_mic2 	= false,	/* SMBA1002 uses MIC1 as the default capture source */
-
 };
 
 static struct i2c_board_info __initdata smba_i2c_bus0_board_info[] = {

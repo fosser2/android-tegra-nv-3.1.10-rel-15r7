@@ -1,6 +1,7 @@
 #ifndef _INCLUDE_SOUND_ALC5623_H
 #define _INCLUDE_SOUND_ALC5623_H
 struct alc5623_platform_data {
+	char 		    *mclk;			/* The MCLK, that is required to make the codec work */
 	unsigned int	avdd_mv;		/* Analog vdd in millivolts */
 
 	unsigned int	mic1bias_mv;	/* MIC1 bias voltage */

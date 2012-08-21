@@ -21,6 +21,7 @@
 #include <linux/delay.h>
 #include <linux/pm.h>
 #include <linux/i2c.h>
+#include <linux/clk.h>
 #include <linux/slab.h>
 #include <linux/platform_device.h>
 #include <sound/core.h>
@@ -39,6 +40,8 @@ MODULE_PARM_DESC(caps_charge, "ALC5623 cap charge time (msecs)");
 
 /* codec private data */
 struct alc5623_priv {
+	struct clk* 	mclk;			/* the master clock */
+
 	enum snd_soc_control_type control_type;
 	void *control_data;
 	struct mutex mutex;
@@ -933,6 +936,9 @@ static int alc5623_probe(struct snd_soc_codec *codec)
 		return ret;
 	}
 
+	/* Enable the codec MCLK ... Otherwise, we can't read or write registers */
+	clk_enable(alc5623->mclk);
+
 	alc5623_reset(codec);
 	alc5623_fill_cache(codec);
 
@@ -964,6 +970,9 @@ static int alc5623_probe(struct snd_soc_codec *codec)
 	/* Select the default MIC source */
 	snd_soc_update_bits(codec, ALC5623_ADC_REC_MIXER, 0x6060, 
 		(alc5623->default_is_mic2) ? 0x4040 : 0x2020 );
+
+	/* Disable the codec MCLK */
+	clk_disable(alc5623->mclk);
 
 	switch (alc5623->id) {
 	case 0x21:
@@ -1040,10 +1049,31 @@ static int alc5623_i2c_probe(struct i2c_client *client,
 	struct alc5623_platform_data *pdata;
 	struct alc5623_priv *alc5623;
 	int ret, vid1, vid2;
+//	struct snd_soc_codec *codec;
+
+	struct clk *mclk;
+
+	pdata = client->dev.platform_data;
+	if (!pdata) {
+		dev_err(&client->dev, "Missing platform data\n");
+		return -ENODEV;
+	}
+
+	/* Get the MCLK */
+	mclk = clk_get(NULL, pdata->mclk);
+	if (IS_ERR(mclk)) {
+		dev_err(&client->dev, "Unable to get MCLK\n");
+		return -ENODEV;
+	}
+
+	/* Enable it to be able to access codec registers */
+	clk_enable(mclk);
 
 	vid1 = i2c_smbus_read_word_data(client, ALC5623_VENDOR_ID1);
 	if (vid1 < 0) {
 		dev_err(&client->dev, "failed to read I2C\n");
+		clk_disable(mclk);
+		clk_put(mclk);
 		return -EIO;
 	}
 	vid1 = ((vid1 & 0xff) << 8) | (vid1 >> 8);
@@ -1051,14 +1081,20 @@ static int alc5623_i2c_probe(struct i2c_client *client,
 	vid2 = i2c_smbus_read_byte_data(client, ALC5623_VENDOR_ID2);
 	if (vid2 < 0) {
 		dev_err(&client->dev, "failed to read I2C\n");
+		clk_disable(mclk);
+		clk_put(mclk);
 		return -EIO;
 	}
+
+	/* Disable the clock */
+	clk_disable(mclk);
 
 	if ((vid1 != 0x10ec) || (vid2 != id->driver_data)) {
 		dev_err(&client->dev, "unknown or wrong codec\n");
 		dev_err(&client->dev, "Expected %x:%lx, got %x:%x\n",
 				0x10ec, id->driver_data,
 				vid1, vid2);
+		clk_put(mclk);
 		return -ENODEV;
 	}
 
@@ -1067,6 +1103,9 @@ static int alc5623_i2c_probe(struct i2c_client *client,
 	alc5623 = kzalloc(sizeof(struct alc5623_priv), GFP_KERNEL);
 	if (alc5623 == NULL)
 		return -ENOMEM;
+
+	/* Store the MCLK clock handle */
+	alc5623->mclk = mclk;
 
 	pdata = client->dev.platform_data;
 	if (pdata) {
@@ -1108,6 +1147,7 @@ static int alc5623_i2c_probe(struct i2c_client *client,
 		&soc_codec_device_alc5623, &alc5623_dai, 1);
 	if (ret != 0) {
 		dev_err(&client->dev, "Failed to register codec: %d\n", ret);
+		clk_put(mclk);
 		kfree(alc5623);
 	}
 
