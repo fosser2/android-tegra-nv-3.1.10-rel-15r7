@@ -163,7 +163,7 @@ static struct platform_device tegra_generic_codec = {
 
 static struct platform_device smba_audio_device = {
 	.name = "tegra-snd-alc5623",
-	.id   = 0,
+	.id   = -1,
         .dev    = {
                 .platform_data  = &smba_audio_pdata,
         },
