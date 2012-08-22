@@ -147,6 +147,7 @@ extern int smba_power_register_devices(void);
 extern int smba_keyboard_register_devices(void);
 extern int smba_touch_register_devices(void);
 extern int smba_sdhci_register_devices(void);
+extern int smba_sdhci_init(void);
 extern int smba_sensors_register_devices(void);
 extern int smba_wlan_pm_register_devices(void);
 extern int smba_gps_pm_register_devices(void);
