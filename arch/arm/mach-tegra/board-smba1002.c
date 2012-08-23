@@ -686,7 +686,7 @@ static void __init tegra_smba_init(void)
 	smba_wdt_register_devices();
 
 	/* Register all the keyboard devices */
-	smba_keyboard_register_devices();
+	smba_keys_init();
 
 	/* Register touchscreen devices */
 	smba_touch_register_devices();

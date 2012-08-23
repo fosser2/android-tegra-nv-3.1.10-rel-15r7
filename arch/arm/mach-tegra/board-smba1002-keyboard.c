@@ -59,7 +59,7 @@ static struct gpio_keys_button smba_keys[] = {
 	[2] = {
 		.gpio = SMBA1002_KEY_POWER,
 		.active_low = true,
-		.debounce_interval = 40,
+		.debounce_interval = 10,
 		.wakeup = true,		
 		.code = KEY_POWER,
 		.type = EV_KEY,		
@@ -84,27 +84,29 @@ static struct gpio_keys_button smba_keys[] = {
 		.desc = "homepage",
 	},
 };
+
 #define PMC_WAKE_STATUS 0x14
 
-static int smba_wakeup_key(void)
+static int ventana_wakeup_key(void)
 {
-	unsigned long status = 
+	unsigned long status =
 		readl(IO_ADDRESS(TEGRA_PMC_BASE) + PMC_WAKE_STATUS);
+
 	return status & SMBA1002_KEY_POWER ? KEY_POWER : KEY_RESERVED;
 }
 
 static struct gpio_keys_platform_data smba_keys_platform_data = {
-	.buttons 	= smba_keys,
-	.nbuttons 	= ARRAY_SIZE(smba_keys),
-	.wakeup_key     = smba_wakeup_key,
-	.rep		= false, /* auto repeat enabled */
+	.buttons	= smba_keys,
+	.nbuttons	= ARRAY_SIZE(smba_keys),
+	.wakeup_key	= ventana_wakeup_key,
+	//.rep		= false, /* auto repeat enabled */
 };
 
 static struct platform_device smba_keys_device = {
-	.name 		= "gpio-keys",
-	.id 		= 0,
-	.dev		= {
-		.platform_data = &smba_keys_platform_data,
+	.name	= "gpio-keys",
+	.id	= 0,
+	.dev	= {
+		.platform_data	= &smba_keys_platform_data,
 	},
 };
 
@@ -114,9 +116,7 @@ static struct platform_device *smba_pmu_devices[] __initdata = {
 };
 
 /* Register all keyboard devices */
-int __init smba_keyboard_register_devices(void)
+int __init smba_keys_init(void)
 {
-  	//enable_irq_wake(gpio_to_irq(SMBA1002_KEY_POWER));
 	return platform_add_devices(smba_pmu_devices, ARRAY_SIZE(smba_pmu_devices));
 }
-

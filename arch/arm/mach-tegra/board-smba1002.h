@@ -143,7 +143,7 @@ extern int smba_aes_register_devices(void);
 extern int smba_wdt_register_devices(void);
 extern int smba_i2c_register_devices(void);
 extern int smba_power_register_devices(void);
-extern int smba_keyboard_register_devices(void);
+extern int smba_keys_init(void);
 extern int smba_touch_register_devices(void);
 extern int smba1002_sdhci_init(void);
 extern int smba_sensors_register_devices(void);
