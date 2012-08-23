@@ -87,7 +87,7 @@ static struct gpio_keys_button smba_keys[] = {
 
 #define PMC_WAKE_STATUS 0x14
 
-static int ventana_wakeup_key(void)
+static int smba_wakeup_key(void)
 {
 	unsigned long status =
 		readl(IO_ADDRESS(TEGRA_PMC_BASE) + PMC_WAKE_STATUS);
@@ -98,7 +98,7 @@ static int ventana_wakeup_key(void)
 static struct gpio_keys_platform_data smba_keys_platform_data = {
 	.buttons	= smba_keys,
 	.nbuttons	= ARRAY_SIZE(smba_keys),
-	.wakeup_key	= ventana_wakeup_key,
+	.wakeup_key	= smba_wakeup_key,
 	//.rep		= false, /* auto repeat enabled */
 };
 
