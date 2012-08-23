@@ -2,8 +2,6 @@
 /*
  * arch/arm/mach-tegra/board-smba1002-keyboard.c
  *
- * Copyright (C) 2011 Eduardo Jos� Tagle <ejtagle@tutopia.com>
- *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
  * may be copied, distributed, and modified under those terms.
@@ -19,7 +17,6 @@
 #include <linux/input.h>
 
 #include <linux/gpio_keys.h>
-//#include <linux/gpio_shortlong_key.h>
 #include <linux/leds.h>
 #include <linux/leds_pwm.h>
 #include <mach/iomap.h>
@@ -64,24 +61,6 @@ static struct gpio_keys_button smba_keys[] = {
 		.code = KEY_POWER,
 		.type = EV_KEY,		
 		.desc = "power",
-	},
-	[3] = {
-		.gpio = SMBA1002_KEY_BACK,
-		.active_low = true,
-		.debounce_interval = 10,
-		.wakeup = false,		
-		.code = KEY_BACK,
-		.type = EV_KEY,		
-		.desc = "back",
-	},
-	[4] = {
-		.gpio = SMBA1002_KEY_HOMEPAGE,
-		.active_low = true,
-		.debounce_interval = 10,
-		.wakeup = false,		
-		.code = KEY_BACK,
-		.type = EV_KEY,		
-		.desc = "homepage",
 	},
 };
 
