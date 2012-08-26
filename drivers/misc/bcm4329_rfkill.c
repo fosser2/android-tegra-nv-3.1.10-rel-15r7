@@ -33,21 +33,10 @@
 #include <linux/slab.h>
 #include <linux/delay.h>
 
-#ifdef CONFIG_MACH_SMBA1002
-#include "../../arch/arm/mach-tegra/board-smba1002.h"
-#define SMBA
-#endif
-
-#ifdef CONFIG_MACH_SMBA9701
-#include "../../arch/arm/mach-tegra/board-smba9701.h"
-#define SMBA
-#endif
-
 struct bcm4329_rfkill_data {
 	int gpio_reset;
 	int gpio_shutdown;
 	int delay;
-	bool state;
 	struct clk *bt_32k_clk;
 };
 
@@ -55,27 +44,21 @@ static struct bcm4329_rfkill_data *bcm4329_rfkill;
 
 static int bcm4329_bt_rfkill_set_power(void *data, bool blocked)
 {
+	/*
+	 * check if BT gpio_shutdown line status and current request are same.
+	 * If same, then return, else perform requested operation.
+	 */
+	if (gpio_get_value(bcm4329_rfkill->gpio_shutdown) && !blocked)
+		return 0;
+
 	if (blocked) {
-		if (!bcm4329_rfkill->state)
-			return 0;
-#ifdef SMBA
-		smba_bt_wifi_gpio_set(0);
-#else
 		if (bcm4329_rfkill->gpio_shutdown)
 			gpio_direction_output(bcm4329_rfkill->gpio_shutdown, 0);
-		if (bcm4329_rfkill->bt_32k_clk)
-			clk_disable(bcm4329_rfkill->bt_32k_clk);
-#endif
 		if (bcm4329_rfkill->gpio_reset)
 			gpio_direction_output(bcm4329_rfkill->gpio_reset, 0);
-		bcm4329_rfkill->state = 0;
-
+		if (bcm4329_rfkill->bt_32k_clk)
+			clk_disable(bcm4329_rfkill->bt_32k_clk);
 	} else {
-		if (bcm4329_rfkill->state)
-			return 0;
-#ifdef SMBA
-		smba_bt_wifi_gpio_set(1);
-#else
 		if (bcm4329_rfkill->bt_32k_clk)
 			clk_enable(bcm4329_rfkill->bt_32k_clk);
 		if (bcm4329_rfkill->gpio_shutdown)
@@ -85,7 +68,6 @@ static int bcm4329_bt_rfkill_set_power(void *data, bool blocked)
 			gpio_direction_output(bcm4329_rfkill->gpio_shutdown, 1);
 			msleep(100);
 		}
-#endif
 		if (bcm4329_rfkill->gpio_reset)
 		{
 			gpio_direction_output(bcm4329_rfkill->gpio_reset, 0);
@@ -93,8 +75,6 @@ static int bcm4329_bt_rfkill_set_power(void *data, bool blocked)
 			gpio_direction_output(bcm4329_rfkill->gpio_reset, 1);
 			msleep(100);
 		}
-		bcm4329_rfkill->state = 1;
-
 	}
 
 	return 0;
@@ -115,20 +95,13 @@ static int bcm4329_rfkill_probe(struct platform_device *pdev)
 	bcm4329_rfkill = kzalloc(sizeof(*bcm4329_rfkill), GFP_KERNEL);
 	if (!bcm4329_rfkill)
 		return -ENOMEM;
-	
-	bcm4329_rfkill->state = 0;
 
-#ifdef SMBA
-	// Init the gpio manager if it isn't already.
-	smba_bt_wifi_gpio_init();
-#else
 	bcm4329_rfkill->bt_32k_clk = clk_get(&pdev->dev, "bcm4329_32k_clk");
 	if (IS_ERR(bcm4329_rfkill->bt_32k_clk)) {
 		pr_warn("%s: can't find bcm4329_32k_clk.\
 				assuming 32k clock to chip\n", __func__);
 		bcm4329_rfkill->bt_32k_clk = NULL;
 	}
-#endif
 
 	res = platform_get_resource_byname(pdev, IORESOURCE_IO,
 						"bcm4329_nreset_gpio");
