@@ -408,6 +408,8 @@ static void so340010_work_func(struct work_struct *work)
 		}
 	}
 
+	input_sync(dev->input_dev);
+
 	dev->last_read = jiffies_to_msecs(jiffies);
 	return;
 
