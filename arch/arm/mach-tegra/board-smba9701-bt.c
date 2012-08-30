@@ -63,6 +63,7 @@ void __init smba_bt_rfkill(void)
 	/*Add Clock Resource*/
 	clk_add_alias("bcm4329_32k_clk", smba_bcm4329_rfkill_device.name, \
 				"blink", NULL);
+	platform_device_register(&smba_bcm4329_rfkill_device);
 	return;
 }
 
@@ -73,14 +74,7 @@ static struct resource smba_bluesleep_resources[] = {
 			.end    = SMBA9701_BT_IRQ,
 			.flags  = IORESOURCE_IO,
 	},
-	//FIX THIS SECTION
 	[1] = {
-		.name = "gpio_ext_wake",
-			.start  = TEGRA_GPIO_PU1,
-			.end    = TEGRA_GPIO_PU1,
-			.flags  = IORESOURCE_IO,
-	},
-	[2] = {
 		.name = "host_wake",
 			.start  = TEGRA_GPIO_TO_IRQ(SMBA9701_BT_IRQ),
 			.end    = TEGRA_GPIO_TO_IRQ(SMBA9701_BT_IRQ),
