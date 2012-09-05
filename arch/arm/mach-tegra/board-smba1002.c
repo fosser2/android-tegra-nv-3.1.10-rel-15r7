@@ -491,58 +491,6 @@ void dump_bootflags(void)
 }
 #endif
 
-static struct clk *wifi_32k_clk;
-int smba_bt_wifi_gpio_init(void)
-{
-	static bool inited = 0;
-	// Check to see if we've already been init'ed.
-	if (inited) 
-		return 0;
-	wifi_32k_clk = clk_get_sys(NULL, "blink");
-        if (IS_ERR(wifi_32k_clk)) {
-                pr_err("%s: unable to get blink clock\n", __func__);
-                return -1;
-        }
-	gpio_request(SMBA1002_WLAN_POWER, "bt_wifi_power");
-        tegra_gpio_enable(SMBA1002_WLAN_POWER);
-	gpio_direction_output(SMBA1002_WLAN_POWER, 0);
-	inited = 1;
-	return 0;	
-}
-EXPORT_SYMBOL_GPL(smba_bt_wifi_gpio_init);
-
-int smba_bt_wifi_gpio_set(bool on)
-{
-       static int count = 0;
-	if (IS_ERR(wifi_32k_clk)) {
-		pr_err("%s: Clock wasn't obtained\n", __func__);
-		return -1;
-	}
-				
-	if (on) {
-		if (count == 0) {
-			gpio_set_value(SMBA1002_WLAN_POWER, 1);
-        		mdelay(100);
-			clk_enable(wifi_32k_clk);
-		}
-		count++;
-	} else {
-		if (count == 0) {
-			pr_err("%s: Unbalanced wifi/bt power disable requests\n", __func__);
-			return -1;
-		} else if (count == 1) {
-			        gpio_set_value(SMBA1002_WLAN_POWER, 0);
-        			mdelay(100);
-				clk_disable(wifi_32k_clk);
-		} 
-		--count;
-	}
-	return 0;		
-}
-EXPORT_SYMBOL_GPL(smba_bt_wifi_gpio_set);
-
-
-
 
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
 static struct resource ram_console_resources[] = {
@@ -629,22 +577,6 @@ static struct platform_device *smba_devices[] __initdata = {
 static void __init tegra_smba_init(void)
 {
 	struct clk *clk;
-
-	/* force consoles to stay enabled across suspend/resume */
-	// console_suspend_enabled = 0;
-
-	/* Init the suspend information */
-	//tegra_init_suspend(&smba_suspend);
-
-	/* Set the SDMMC1 (wifi) tap delay to 6.  This value is determined
-	 * based on propagation delay on the PCB traces. */
-	clk = clk_get_sys("sdhci-tegra.0", NULL);
-	if (!IS_ERR(clk)) {
-		tegra_sdmmc_tap_delay(clk, 6);
-		clk_put(clk);
-	} else {
-		pr_err("Failed to set wifi sdmmc tap delay\n");
-	}
 
 	/* Initialize the pinmux */
 	smba_pinmux_init();
