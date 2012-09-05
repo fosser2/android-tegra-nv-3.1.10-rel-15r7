@@ -75,14 +75,7 @@ static struct resource smba_bluesleep_resources[] = {
 			.end    = SMBA1002_BT_IRQ,
 			.flags  = IORESOURCE_IO,
 	},
-	//FIX THIS SECTION
 	[1] = {
-		.name = "gpio_ext_wake",
-			.start  = TEGRA_GPIO_PU1,
-			.end    = TEGRA_GPIO_PU1,
-			.flags  = IORESOURCE_IO,
-	},
-	[2] = {
 		.name = "host_wake",
 			.start  = TEGRA_GPIO_TO_IRQ(SMBA1002_BT_IRQ),
 			.end    = TEGRA_GPIO_TO_IRQ(SMBA1002_BT_IRQ),
