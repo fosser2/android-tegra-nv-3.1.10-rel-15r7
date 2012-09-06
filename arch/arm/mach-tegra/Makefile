@@ -195,7 +195,6 @@ obj-${CONFIG_TEGRA_BB_XMM_POWER2}       += baseband-xmm-power2.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-aes.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-audio.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-bootinfo.o
-obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-bt.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-camera.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-clocks.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-gps.o
