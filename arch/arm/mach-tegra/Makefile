@@ -223,7 +223,6 @@ obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-pm-camera.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-aes.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-audio.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-bootinfo.o
-obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-bt.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-camera.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-clocks.o
 #obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-gps.o

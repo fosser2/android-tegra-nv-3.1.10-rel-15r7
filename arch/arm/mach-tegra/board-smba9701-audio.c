@@ -61,64 +61,6 @@
 	Codec MCLK = APxx DAP_MCLK1
 */
 
-
-static struct tegra_audio_platform_data tegra_spdif_pdata = {
-	.dma_on			= true,  /* use dma by default */
-	.mask			= TEGRA_AUDIO_ENABLE_TX | TEGRA_AUDIO_ENABLE_RX,
-	.stereo_capture = true,
-};
-
-static struct tegra_audio_platform_data tegra_audio_pdata[] = {
-	/* For I2S1 - Hifi */
-	[0] = {
-#ifdef ALC5623_IS_MASTER
-		.i2s_master		= false,	/* CODEC is master for audio */
-		.dma_on			= true,  	/* use dma by default */
-		.i2s_clk_rate 	= 2822400,
-		.dap_clk	  	= "cdev1",
-		.audio_sync_clk = "audio_2x",
-		.mode			= I2S_BIT_FORMAT_I2S,
-		.fifo_fmt		= I2S_FIFO_16_LSB,
-		.bit_size		= I2S_BIT_SIZE_16,
-#else
-		.i2s_master		= true,		/* CODEC is slave for audio */
-		.dma_on			= true,  	/* use dma by default */
-#ifdef SMBA9701_48KHZ_AUDIO						
-		.i2s_master_clk = 48000,
-		.i2s_clk_rate 	= 12288000,
-#else
-		.i2s_master_clk = 44100,
-		.i2s_clk_rate 	= 11289600,
-#endif
-		.dap_clk	  	= "cdev1",
-		.audio_sync_clk = "audio_2x",
-		.mode			= I2S_BIT_FORMAT_I2S,
-		.fifo_fmt		= I2S_FIFO_PACKED,
-		.bit_size		= I2S_BIT_SIZE_16,
-		.i2s_bus_width	= 32,
-#endif
-		.mask			= TEGRA_AUDIO_ENABLE_TX | TEGRA_AUDIO_ENABLE_RX,
-		.stereo_capture = true,
-	},
-	/* For I2S2 - Bluetooth */
-	[1] = {
-		.i2s_master		= false,	/* bluetooth is master always */
-		.dma_on			= true,  /* use dma by default */
-		.i2s_master_clk = 8000,
-		.dsp_master_clk = 8000,
-		.i2s_clk_rate	= 2000000,
-		.dap_clk		= "cdev1",
-		.audio_sync_clk = "audio_2x",
-		.mode			= I2S_BIT_FORMAT_DSP,
-		.fifo_fmt		= I2S_FIFO_16_LSB,
-		.bit_size		= I2S_BIT_SIZE_16,
-		.i2s_bus_width 	= 32,
-		.dsp_bus_width 	= 16,
-		.mask			= TEGRA_AUDIO_ENABLE_TX | TEGRA_AUDIO_ENABLE_RX,
-		.stereo_capture = true,
-	}
-}; 
-
 static struct alc5623_platform_data smba_alc5623_pdata = {
 	.add_ctrl	= 0xD300,
 	.jack_det_ctrl	= 0,
@@ -144,20 +86,11 @@ static struct tegra_alc5623_platform_data smba_audio_pdata = {
         .gpio_spkr_en           = -2,
         .gpio_hp_det            = SMBA9701_HP_DETECT,
 	.gpio_int_mic_en 	= SMBA9701_INT_MIC_EN,
-	.hifi_codec_datafmt = SND_SOC_DAIFMT_I2S,	/* HiFi codec data format */
-#ifdef ALC5623_IS_MASTER
-	.hifi_codec_master  = true,					/* If Hifi codec is master */
-#else
-	.hifi_codec_master  = false,				/* If Hifi codec is master */
-#endif
-	.bt_codec_datafmt   = SND_SOC_DAIFMT_DSP_A,	/* Bluetooth codec data format */
-	.bt_codec_master    = true,					/* If bt codec is master */
+	.hifi_codec_datafmt 	= SND_SOC_DAIFMT_I2S,	/* HiFi codec data format */
+	.hifi_codec_master  	= false,				/* If Hifi codec is master */
+	.bt_codec_datafmt   	= SND_SOC_DAIFMT_DSP_A,	/* Bluetooth codec data format */
+	.bt_codec_master    	= true,					/* If bt codec is master */
 
-};
-
-static struct platform_device tegra_generic_codec = {
-	.name = "tegra-generic-codec",
-	.id   = -1,
 };
 
 static struct platform_device smba_audio_device = {
@@ -167,6 +100,11 @@ static struct platform_device smba_audio_device = {
                 .platform_data  = &smba_audio_pdata,
         },
 
+};
+
+static struct platform_device tegra_generic_codec = {
+       .name = "tegra-generic-codec",
+       .id   = -1,
 };
 
 static struct platform_device *smba_i2s_devices[] __initdata = {
@@ -188,10 +126,6 @@ int  __init smba_audio_register_devices(void)
         pr_info("%s++ \n", __func__);
 
 	/* Patch in the platform data */
-	tegra_i2s_device1.dev.platform_data = &tegra_audio_pdata[0];
-	tegra_i2s_device2.dev.platform_data = &tegra_audio_pdata[1];
-	tegra_spdif_device.dev.platform_data = &tegra_spdif_pdata;
-
         ret = i2c_register_board_info(0, smba_i2c_bus0_board_info,
                 ARRAY_SIZE(smba_i2c_bus0_board_info));
         if (ret)

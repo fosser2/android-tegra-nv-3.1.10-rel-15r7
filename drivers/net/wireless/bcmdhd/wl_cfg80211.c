@@ -367,12 +367,6 @@ static void wl_scan_timeout_process(struct work_struct *work);
  */
 static __used u32 wl_find_msb(u16 bit16);
 
-/*
- * rfkill support
- */
-static int wl_setup_rfkill(struct wl_priv *wl, bool setup);
-static int wl_rfkill_set(void *data, bool blocked);
-
 static wl_scan_params_t *wl_cfg80211_scan_alloc_params(int channel,
 	int nprobes, int *out_params_size);
 static void get_primary_mac(struct wl_priv *wl, struct ether_addr *mac);
@@ -6777,11 +6771,6 @@ s32 wl_cfg80211_attach(struct net_device *ndev, void *data)
 		goto cfg80211_attach_out;
 	}
 
-	err = wl_setup_rfkill(wl, TRUE);
-	if (err) {
-		WL_ERR(("Failed to setup rfkill %d\n", err));
-		goto cfg80211_attach_out;
-	}
 	err = register_netdevice_notifier(&wl_cfg80211_netdev_notifier);
 	if (err) {
 		WL_ERR(("Failed to register notifierl %d\n", err));
@@ -6803,7 +6792,6 @@ s32 wl_cfg80211_attach(struct net_device *ndev, void *data)
 	return err;
 
 cfg80211_attach_out:
-	err = wl_setup_rfkill(wl, FALSE);
 	wl_free_wdev(wl);
 	return err;
 }
@@ -6823,7 +6811,6 @@ void wl_cfg80211_detach(void *para)
 #if defined(WLP2P) && defined(WL_ENABLE_P2P_IF)
 	wl_cfg80211_detach_p2p();
 #endif
-	wl_setup_rfkill(wl, FALSE);
 	if (wl->p2p_supported)
 		wl_cfgp2p_deinit_priv(wl);
 	wl_deinit_priv(wl);
@@ -7735,60 +7722,6 @@ s32 wl_cfg80211_set_wps_p2p_ie(struct net_device *net, char *buf, int len,
 	}
 exit:
 	return ret;
-}
-
-static const struct rfkill_ops wl_rfkill_ops = {
-	.set_block = wl_rfkill_set
-};
-
-static int wl_rfkill_set(void *data, bool blocked)
-{
-	struct wl_priv *wl = (struct wl_priv *)data;
-
-	WL_DBG(("Enter \n"));
-	WL_DBG(("RF %s\n", blocked ? "blocked" : "unblocked"));
-
-	if (!wl)
-		return -EINVAL;
-
-	wl->rf_blocked = blocked;
-
-	return 0;
-}
-
-static int wl_setup_rfkill(struct wl_priv *wl, bool setup)
-{
-	s32 err = 0;
-
-	WL_DBG(("Enter \n"));
-	if (!wl)
-		return -EINVAL;
-	if (setup) {
-		wl->rfkill = rfkill_alloc("brcmfmac-wifi",
-			wl_cfg80211_get_parent_dev(),
-			RFKILL_TYPE_WLAN, &wl_rfkill_ops, (void *)wl);
-
-		if (!wl->rfkill) {
-			err = -ENOMEM;
-			goto err_out;
-		}
-
-		err = rfkill_register(wl->rfkill);
-
-		if (err)
-			rfkill_destroy(wl->rfkill);
-	} else {
-		if (!wl->rfkill) {
-			err = -ENOMEM;
-			goto err_out;
-		}
-
-		rfkill_unregister(wl->rfkill);
-		rfkill_destroy(wl->rfkill);
-	}
-
-err_out:
-	return err;
 }
 
 struct device *wl_cfg80211_get_parent_dev(void)

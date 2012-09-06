@@ -33,7 +33,6 @@
 #include <wlioctl.h>
 #include <linux/wireless.h>
 #include <net/cfg80211.h>
-#include <linux/rfkill.h>
 
 #include <wl_cfgp2p.h>
 
@@ -449,7 +448,6 @@ typedef struct wl_priv {
 	u8 *escan_ioctl_buf;
 	u8 *extra_buf;	/* maily to grab assoc information */
 	struct dentry *debugfsdir;
-	struct rfkill *rfkill;
 	bool rf_blocked;
 	struct ieee80211_channel remain_on_chan;
 	enum nl80211_channel_type remain_on_chan_type;

@@ -61,6 +61,7 @@
 #include "wakeups-t2.h"
 #include "wdt-recovery.h"
 
+#include <linux/rfkill-gpio.h>
 
 /* NVidia bootloader tags */
 #define ATAG_NVIDIA		0x41000801
@@ -621,8 +622,57 @@ EXPORT_SYMBOL_GPL(smba_gps_mag_deinit);
 
 #endif
 
+static struct rfkill_gpio_platform_data bluetooth_rfkill = {
+	.name		= "bluetooth_rfkill",
+	.reset_gpio	= SMBA9701_BT_RESET,
+	.shutdown_gpio	= -1,
+	.power_clk_name	= "bcm4329_32k_clk",
+	.type		= RFKILL_TYPE_BLUETOOTH,
+};
+
+static struct platform_device bluetooth_rfkill_device = {
+	.name	= "rfkill_gpio",
+	.id	= -1,
+	.dev	= {
+		.platform_data = &bluetooth_rfkill,
+	},
+};
+
+static struct resource smba_bluesleep_resources[] = {
+	[0] = {
+		.name = "gpio_host_wake",
+			.start  = SMBA9701_BT_IRQ,
+			.end    = SMBA9701_BT_IRQ,
+			.flags  = IORESOURCE_IO,
+	},
+	[1] = {
+		.name = "host_wake",
+			.start  = TEGRA_GPIO_TO_IRQ(SMBA9701_BT_IRQ),
+			.end    = TEGRA_GPIO_TO_IRQ(SMBA9701_BT_IRQ),
+			.flags  = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHEDGE,
+	},
+};
+
+static struct platform_device smba_bluesleep_device = {
+	.name           = "bluesleep",
+	.id             = -1,
+	.num_resources  = ARRAY_SIZE(smba_bluesleep_resources),
+	.resource       = smba_bluesleep_resources,
+};
+
+void __init smba_setup_bluesleep(void)
+{
+	clk_add_alias("bcm4329_32k_clk", bluetooth_rfkill_device.name, "blink", NULL);
+	tegra_gpio_enable(SMBA9701_BT_IRQ);
+	tegra_gpio_enable(SMBA9701_BT_RESET);
+	return;
+}
+
+
 static struct platform_device *smba_devices[] __initdata = {
-        &tegra_pmu_device,
+	&tegra_pmu_device,
+	&bluetooth_rfkill_device,
+	&smba_bluesleep_device,
 };
 
 static void __init tegra_smba_init(void)
@@ -693,10 +743,6 @@ static void __init tegra_smba_init(void)
 	/* Register accelerometer device */
 	smba_sensors_register_devices();
 	
-	/* Register Bluetooth powermanagement devices */
-	smba_bt_rfkill();
-	smba_setup_bluesleep();
-
 	/* Register Camera powermanagement devices */
 	smba_camera_register_devices();
 
@@ -706,6 +752,9 @@ static void __init tegra_smba_init(void)
 	/* Register SDHCI devices */
 	smba_sdhci_init();
 	
+	/* Register Bluetooth powermanagement devices */
+	smba_setup_bluesleep();
+
 //#ifdef SMBA9701_GPS
 //	/* Register gps powermanagement devices */
 //	smba_gps_pm_register_devices();
