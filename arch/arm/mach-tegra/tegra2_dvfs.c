@@ -42,7 +42,7 @@ static bool tegra_dvfs_cpu_disabled = true;
 static const int core_millivolts[MAX_DVFS_FREQS] =
 	{950, 1000, 1100, 1200, 1250, 1300, 1350};
 static const int cpu_millivolts[MAX_DVFS_FREQS] =
-	{750, 775, 800, 825, 850, 875, 900, 925, 950, 975, 1000, 1125, 1200, 1250, 1250, 1450};
+	{750, 775, 800, 825, 850, 875, 900, 925, 950, 975, 1100, 1150, 1250, 1300, 1300}; /* We are Limited here by Vcore/Rails */ 
 
 static const int cpu_speedo_nominal_millivolts[] =
 /* spedo_id  0,    1,    2 */
@@ -72,7 +72,7 @@ static struct dvfs_rail tegra2_dvfs_rail_vdd_core = {
 
 static struct dvfs_rail tegra2_dvfs_rail_vdd_aon = {
 	.reg_id = "vdd_aon",
-	.max_millivolts = 1359,
+	.max_millivolts = 1350,
 	.min_millivolts = 950,
 	.nominal_millivolts = 1350,
 #ifndef CONFIG_TEGRA_CORE_DVFS
@@ -80,16 +80,17 @@ static struct dvfs_rail tegra2_dvfs_rail_vdd_aon = {
 #endif
 };
 
-/* vdd_core and vdd_aon must be 50 mV higher than vdd_cpu */
+/* vdd_core and vdd_aon must be 50 mV higher than vdd_cpu */ 
+/*This in my own opinion, is to high, should be 50 so we could hit a 1300mv in OC.  It is either we increase the vcore/rails higher or just decrease this limit*/
 static int tegra2_dvfs_rel_vdd_cpu_vdd_core(struct dvfs_rail *vdd_cpu,
 	struct dvfs_rail *vdd_core)
 {
 	if (vdd_cpu->new_millivolts > vdd_cpu->millivolts &&
-	    vdd_core->new_millivolts < vdd_cpu->new_millivolts + 120)
-		return vdd_cpu->new_millivolts + 120;
+	    vdd_core->new_millivolts < vdd_cpu->new_millivolts + 50)
+		return vdd_cpu->new_millivolts + 50;
 
 	if (vdd_core->new_millivolts < vdd_cpu->millivolts + 120)
-		return vdd_cpu->millivolts + 120;
+		return vdd_cpu->millivolts + 50;
 
 	return vdd_core->new_millivolts;
 }
