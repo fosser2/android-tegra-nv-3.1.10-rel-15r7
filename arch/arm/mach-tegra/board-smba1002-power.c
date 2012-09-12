@@ -36,7 +36,7 @@
 #include "pm.h"
 #include "wakeups-t2.h"
 #include "board.h"
-#include "board-smba9701.h"
+#include "board-smba1002.h"
 #include "devices.h"
 
 #include <linux/reboot.h>
@@ -62,7 +62,7 @@
 #include <mach/gpio.h>
 #include <mach/system.h>
 
-#include "board-smba9701.h"
+#include "board-smba1002.h"
 #include "gpio-names.h"
 #include "devices.h"
 
@@ -73,9 +73,9 @@
 
 int __init smba_charge_init(void)
 {
-	gpio_request(SMBA9701_CHARGING_DISABLE, "chg_disable");
-	gpio_direction_output(SMBA9701_CHARGING_DISABLE, 0);
-	tegra_gpio_enable(SMBA9701_CHARGING_DISABLE);
+	gpio_request(SMBA1002_CHARGING_DISABLE, "chg_disable");
+	gpio_direction_output(SMBA1002_CHARGING_DISABLE, 0);
+	tegra_gpio_enable(SMBA1002_CHARGING_DISABLE);
 	return 0;
 }
 
@@ -251,7 +251,7 @@ static struct tps6586x_subdev_info tps_devs[] = {
 };
 
 static struct tps6586x_platform_data tps_platform = {
-	.irq_base = TPS6586X_INT_BASE,
+	.irq_base = PMU_IRQ_BASE,
 	.num_subdevs = ARRAY_SIZE(tps_devs),
 	.subdevs = tps_devs,
 	.gpio_base = TPS6586X_GPIO_BASE,
@@ -298,7 +298,7 @@ static struct regulator_consumer_supply pnl_pwr_consumer_supply[] = {
         REGULATOR_SUPPLY("pnl_pwr", NULL),
 };
 
-FIXED_VOLTAGE_REG_INIT(2, pnl_pwr, 2800000, SMBA9701_EN_VDD_PANEL,
+FIXED_VOLTAGE_REG_INIT(2, pnl_pwr, 2800000, SMBA1002_EN_VDD_PANEL,
                                 0, 1, 0, REGULATOR_CHANGE_STATUS, 0);
 
 static struct platform_device *fixed_voltage_regulators[] __initdata = {
@@ -353,7 +353,7 @@ static char *smba_battery[] = {
 static struct gpio_charger_platform_data smba_charger_pdata = {
         .name = "ac",
         .type = POWER_SUPPLY_TYPE_MAINS,
-        .gpio = SMBA9701_AC_PRESENT,
+        .gpio = SMBA1002_AC_PRESENT,
         .gpio_active_low = 1,
         .supplied_to = smba_battery,
         .num_supplicants = ARRAY_SIZE(smba_battery),
@@ -368,7 +368,7 @@ static struct platform_device smba_charger_device = {
 
 int __init smba_charger_init(void)
 {
-        tegra_gpio_enable(SMBA9701_AC_PRESENT);
+        tegra_gpio_enable(SMBA1002_AC_PRESENT);
         platform_device_register(&smba_charger_device);
         return 0;
 }
