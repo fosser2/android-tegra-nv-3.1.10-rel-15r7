@@ -89,7 +89,7 @@ static int tegra2_dvfs_rel_vdd_cpu_vdd_core(struct dvfs_rail *vdd_cpu,
 	    vdd_core->new_millivolts < vdd_cpu->new_millivolts + 50)
 		return vdd_cpu->new_millivolts + 50;
 
-	if (vdd_core->new_millivolts < vdd_cpu->millivolts + 120)
+	if (vdd_core->new_millivolts < vdd_cpu->millivolts + 50)
 		return vdd_cpu->millivolts + 50;
 
 	return vdd_core->new_millivolts;
