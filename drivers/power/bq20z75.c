@@ -90,7 +90,7 @@ static const struct bq20z75_device_data {
 		BQ20Z75_DATA(POWER_SUPPLY_PROP_CURRENT_NOW, 0x0A, -32768,
 			32767),
 	[REG_CAPACITY] =
-		BQ20Z75_DATA(POWER_SUPPLY_PROP_CAPACITY, 0x0E, 0, 100),
+		BQ20Z75_DATA(POWER_SUPPLY_PROP_CAPACITY, 0x0D, 0, 100),
 	[REG_REMAINING_CAPACITY] =
 		BQ20Z75_DATA(POWER_SUPPLY_PROP_ENERGY_NOW, 0x0F, 0, 65535),
 	[REG_REMAINING_CAPACITY_CHARGE] =
@@ -418,7 +418,8 @@ static int bq20z75_get_battery_capacity(struct i2c_client *client,
 	if (psp == POWER_SUPPLY_PROP_CAPACITY) {
 		/* bq20z75 spec says that this can be >100 %
 		* even if max value is 100 % */
-		val->intval = min(ret, 100);
+		//val->intval = min(ret, 100);
+		val->intval = (ret<10) ? 0 : (ret-10)*10/9;
 	} else
 		val->intval = ret;
 
