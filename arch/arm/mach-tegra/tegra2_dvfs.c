@@ -1,3 +1,4 @@
+
 /*
  * arch/arm/mach-tegra/tegra2_dvfs.c
  *
@@ -42,7 +43,7 @@ static bool tegra_dvfs_cpu_disabled = true;
 static const int core_millivolts[MAX_DVFS_FREQS] =
 	{950, 1000, 1100, 1200, 1250, 1300, 1350};
 static const int cpu_millivolts[MAX_DVFS_FREQS] =
-	{750, 775, 800, 825, 850, 875, 900, 925, 950, 975, 1100, 1150, 1250, 1300, 1300}; /* We are Limited here by Vcore/Rails */ 
+	{750, 775, 800, 825, 850, 875, 900, 925, 950, 975, 1100, 1150, 1250, 1300, 1350}; /* We are Limited here by Vcore/Rails */ 
 
 static const int cpu_speedo_nominal_millivolts[] =
 /* spedo_id  0,    1,    2 */
@@ -57,7 +58,7 @@ static const int core_speedo_nominal_millivolts[] =
 
 static struct dvfs_rail tegra2_dvfs_rail_vdd_cpu = {
 	.reg_id = "vdd_cpu",
-	.max_millivolts = 1300,
+	.max_millivolts = 1350,
 	.min_millivolts = 750,
 	.nominal_millivolts = 1125,
 };
@@ -168,7 +169,7 @@ static struct dvfs dvfs_init[] = {
 	CPU_DVFS("cpu", 1, 3, MHZ, 730, 760, 845, 845, 940, 1000),
 
 	CPU_DVFS("cpu", 2, 0, MHZ,   0,   0,   0,   0, 655, 655,  798,  798,  902,  902,  960,  1000, 1100, 1100, 1200),
-	CPU_DVFS("cpu", 2, 1, MHZ,   0,   0,   0,   0, 655, 760,  798,  798,  950,  950,  1015, 1015, 1100, 1200),
+	CPU_DVFS("cpu", 2, 1, MHZ, 389, 389, 503, 503, 655, 760,  798,  798,  950,  950,  1000, 1200, 1400, 1500, 1600),
 	CPU_DVFS("cpu", 2, 2, MHZ,   0,   0,   0,   0, 769, 769,  902,  902,  1026, 1026, 1140, 1140, 1200),
 	CPU_DVFS("cpu", 2, 3, MHZ,   0,   0,   0,   0, 940, 1000, 1000, 1000, 1130, 1130, 1200),
 
