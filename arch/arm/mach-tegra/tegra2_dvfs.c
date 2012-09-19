@@ -47,11 +47,11 @@ static const int cpu_millivolts[MAX_DVFS_FREQS] =
 
 static const int cpu_speedo_nominal_millivolts[] =
 /* spedo_id  0,    1,    2 */
-	{ 1100, 1125, 1125 };
+	{ 1125, 1125, 1125 };
 
 static const int core_speedo_nominal_millivolts[] =
 /* spedo_id  0,    1,    2 */
-	{ 1225, 1350, 1300 };
+	{ 1350, 1350, 1350 };
 
 #define KHZ 1000
 #define MHZ 1000000
@@ -163,7 +163,7 @@ static struct dvfs dvfs_init[] = {
 	CPU_DVFS("cpu", 0, 2, MHZ, 494, 494, 494, 675, 675, 817,  817,  922,  922,  1000),
 	CPU_DVFS("cpu", 0, 3, MHZ, 730, 760, 845, 845, 940, 1000),
 
-	CPU_DVFS("cpu", 1, 0, MHZ, 380, 380, 503, 503, 655, 655,  798,  798,  902,  902,  960,  1000),
+	CPU_DVFS("cpu", 1, 0, MHZ, 380, 380, 503, 503, 655, 655,  798,  798,  902,  902,  960,  1000, 1200, 1400, 1500, 1600),
 	CPU_DVFS("cpu", 1, 1, MHZ, 389, 389, 503, 503, 655, 760,  798,  798,  950,  950,  1000, 1200, 1400, 1500, 1600),
 	CPU_DVFS("cpu", 1, 2, MHZ, 598, 598, 750, 750, 893, 893,  1000),
 	CPU_DVFS("cpu", 1, 3, MHZ, 730, 760, 845, 845, 940, 1000),
