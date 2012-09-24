@@ -597,7 +597,7 @@ static struct resource smba_bluesleep_resources[] = {
 		.name = "host_wake",
 			.start  = TEGRA_GPIO_TO_IRQ(SMBA9701_BT_IRQ),
 			.end    = TEGRA_GPIO_TO_IRQ(SMBA9701_BT_IRQ),
-			.flags  = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHEDGE,
+			.flags  = IORESOURCE_IRQ | IORESOURCE_IRQ_LOWEDGE,
 	},
 };
 
