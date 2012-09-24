@@ -96,7 +96,7 @@
 
 //#define SMBA9701_FB_NONROTATE TEGRA_GPIO_PH1 /*1 = screen rotation locked */
 
-#define SMBA9701_WLAN_POWER 		TEGRA_GPIO_PK5
+#define SMBA9701_WL_BT_POWER 		TEGRA_GPIO_PK5
 #define SMBA9701_WLAN_RESET 		TEGRA_GPIO_PK6
 
 #define SMBA9701_BT_RESET 		TEGRA_GPIO_PU0	/* 0= reset asserted */
