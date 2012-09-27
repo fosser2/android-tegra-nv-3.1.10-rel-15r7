@@ -298,11 +298,18 @@ static struct regulator_consumer_supply pnl_pwr_consumer_supply[] = {
         REGULATOR_SUPPLY("pnl_pwr", NULL),
 };
 
+static struct regulator_consumer_supply wireless_pwr_consumer_supply[] = {
+        REGULATOR_SUPPLY("wireless_pwr", NULL),
+};
+
 FIXED_VOLTAGE_REG_INIT(2, pnl_pwr, 2800000, SMBA9701_EN_VDD_PANEL,
                                 0, 1, 0, REGULATOR_CHANGE_STATUS, 0);
+FIXED_VOLTAGE_REG_INIT(3, wireless_pwr, 2800000, SMBA9701_WL_BT_POWER,
+                                0, 1, 1, REGULATOR_CHANGE_STATUS, 0);
 
 static struct platform_device *fixed_voltage_regulators[] __initdata = {
         ADD_FIXED_VOLTAGE_REG(pnl_pwr),
+        ADD_FIXED_VOLTAGE_REG(wireless_pwr),
 };
 
 

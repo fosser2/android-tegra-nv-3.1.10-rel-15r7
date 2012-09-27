@@ -352,25 +352,86 @@ static const struct iio_chan_spec isl29023_channels[] = {
 	}
 };
 
+static ssize_t get_sensor_data(struct device *dev, char *buf, int mode)
+{
+	struct iio_dev *indio_dev = dev_get_drvdata(dev);
+	struct isl29023_chip *chip = iio_priv(indio_dev);
+	struct i2c_client *client = chip->client;
+	int value = 0;
+	bool status;
+
+	mutex_lock(&chip->lock);
+	switch (mode) {
+		case COMMMAND1_OPMODE_ALS_ONCE:
+			status = isl29023_read_lux(client, &value);
+			break;
+		case COMMMAND1_OPMODE_IR_ONCE:
+                        status = isl29023_read_ir(client, &value);
+                        break;
+
+
+		default:
+			dev_err(&client->dev,"Mode %d is not supported\n",mode);
+			mutex_unlock(&chip->lock);
+			return -EBUSY;
+	}
+
+	if (!status) {
+		dev_err(&client->dev, "Error in Reading data");
+		mutex_unlock(&chip->lock);
+		return -EBUSY;
+	}
+
+	mutex_unlock(&chip->lock);
+	return sprintf(buf, "%d\n", value);
+}
+
+
+/* Read lux */
+static ssize_t show_lux(struct device *dev,
+        struct device_attribute *devattr, char *buf)
+        {
+        return get_sensor_data(dev, buf, COMMMAND1_OPMODE_ALS_ONCE);
+        }
+
+/* Read ir */
+static ssize_t show_ir(struct device *dev,
+        struct device_attribute *devattr, char *buf)
+        {
+        return get_sensor_data(dev, buf, COMMMAND1_OPMODE_IR_ONCE);
+        }
+
+/* Read name */
+static ssize_t show_name(struct device *dev,
+	struct device_attribute *attr, char *buf)
+        {
+        struct iio_dev *indio_dev = dev_get_drvdata(dev);
+        struct isl29023_chip *chip = indio_dev->dev_data;
+        return sprintf(buf, "%s\n", chip->client->name);
+        }
+
 static IIO_DEVICE_ATTR(range, S_IRUGO | S_IWUSR, show_range, store_range, 0);
 static IIO_CONST_ATTR(range_available, "1000 4000 16000 64000");
 static IIO_CONST_ATTR(adc_resolution_available, "4 8 12 16");
-static IIO_DEVICE_ATTR(adc_resolution, S_IRUGO | S_IWUSR, 
-					show_resolution, store_resolution, 0);
-//static IIO_DEVICE_ATTR(proximity_on_chip_ambient_infrared_supression,
-//                                        S_IRUGO | S_IWUSR,
-//                                      show_prox_infrared_supression,
-//                                        store_prox_infrared_supression, 0);
+static IIO_DEVICE_ATTR(adc_resolution, S_IRUGO | S_IWUSR, show_resolution, store_resolution, 0);
+static IIO_DEVICE_ATTR(resolution, S_IRUGO | S_IWUSR, show_resolution, store_resolution, 0);
+static IIO_DEVICE_ATTR(lux, S_IRUGO, show_lux, NULL, 0);
+static IIO_DEVICE_ATTR(ir, S_IRUGO, show_ir, NULL, 0);
+static IIO_DEVICE_ATTR(name, S_IRUGO, show_name, NULL, 0);
 
 #define ISL29023_DEV_ATTR(name) (&iio_dev_attr_##name.dev_attr.attr)
 #define ISL29023_CONST_ATTR(name) (&iio_const_attr_##name.dev_attr.attr)
+
 static struct attribute *isl29023_attributes[] = {
 	ISL29023_DEV_ATTR(range),
         ISL29023_CONST_ATTR(range_available),
         ISL29023_DEV_ATTR(adc_resolution),
         ISL29023_CONST_ATTR(adc_resolution_available),
-//        ISL29023_DEV_ATTR(proximity_on_chip_ambient_infrared_supression),
- 	NULL
+//        ISL29023_DEV_ATTR(name),
+        ISL29023_DEV_ATTR(resolution),
+        ISL29023_DEV_ATTR(lux),
+        ISL29023_DEV_ATTR(ir),
+	NULL
 };
 
 static const struct attribute_group isl29108_group = {
