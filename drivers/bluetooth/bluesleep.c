@@ -214,7 +214,6 @@ static void bluesleep_sleep_work(struct work_struct *work)
 		if (bsi->has_ext_wake == 1)
 			gpio_set_value(bsi->ext_wake, 1);
 		set_bit(BT_EXT_WAKE, &flags);
-		wake_unlock(&bsi->wake_lock);
 	} else {
 		bluesleep_sleep_wakeup();
 	}
