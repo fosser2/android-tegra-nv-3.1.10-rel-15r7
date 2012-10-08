@@ -589,16 +589,16 @@ static struct platform_device bluetooth_rfkill_device = {
 
 static struct resource smba_bluesleep_resources[] = {
 	[0] = {
-		.name = "gpio_host_wake",
-			.start  = SMBA1002_BT_IRQ,
-			.end    = SMBA1002_BT_IRQ,
+		.name = "gpio_ext_wake",
+			.start  = SMBA1002_BT_WAKEUP,
+			.end    = SMBA1002_BT_WAKEUP,
 			.flags  = IORESOURCE_IO,
 	},
 	[1] = {
 		.name = "host_wake",
 			.start  = TEGRA_GPIO_TO_IRQ(SMBA1002_BT_IRQ),
 			.end    = TEGRA_GPIO_TO_IRQ(SMBA1002_BT_IRQ),
-			.flags  = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHEDGE,
+			.flags  = IORESOURCE_IRQ | IORESOURCE_IRQ_LOWEDGE,
 	},
 };
 

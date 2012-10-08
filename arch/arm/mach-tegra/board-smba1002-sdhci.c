@@ -28,6 +28,8 @@
 #include <mach/iomap.h>
 #include <mach/sdhci.h>
 
+#include <linux/regulator/consumer.h>
+
 #include "gpio-names.h"
 #include "board.h"
 #include "board-smba1002.h"
@@ -40,6 +42,8 @@ static struct clk *wifi_32k_clk;
 static int smba1002_wifi_reset(int on);
 static int smba1002_wifi_power(int on);
 static int smba1002_wifi_set_carddetect(int val);
+
+static struct regulator *wireless_pwr;
 
 static struct wifi_platform_data smba1002_wifi_control = {
 	.set_power	= smba1002_wifi_power,
@@ -233,8 +237,8 @@ static int smba1002_wifi_power(int on)
 {
 	pr_debug("%s: %d\n", __func__, on);
 
-	gpio_set_value(SMBA1002_WLAN_POWER, on);
-	mdelay(100);
+//	gpio_set_value(SMBA1002_WLAN_POWER, on);
+//	mdelay(100);
 	gpio_set_value(SMBA1002_WLAN_RESET, on);
 	mdelay(200);
 
@@ -274,19 +278,20 @@ static int __init smba1002_wifi_init(void)
 		return PTR_ERR(wifi_32k_clk);
 	}
 
-	gpio_request(SMBA1002_WLAN_POWER, "wlan_power");
+wireless_pwr = regulator_get(NULL, "wireless_pwr");
+	regulator_enable(wireless_pwr);
+mdelay(100);
+	
 	gpio_request(SMBA1002_WLAN_RESET, "wlan_rst");
 
-	tegra_gpio_enable(SMBA1002_WLAN_POWER);
 	tegra_gpio_enable(SMBA1002_WLAN_RESET);
 
-	gpio_direction_output(SMBA1002_WLAN_POWER, 0);
 	gpio_direction_output(SMBA1002_WLAN_RESET, 0);
 
 	platform_device_register(&smba1002_wifi_device);
 
-	device_init_wakeup(&smba1002_wifi_device.dev, 1);
-	device_set_wakeup_enable(&smba1002_wifi_device.dev, 0);
+//	device_init_wakeup(&smba1002_wifi_device.dev, 1);
+//	device_set_wakeup_enable(&smba1002_wifi_device.dev, 0);
 
 	return 0;
 }

@@ -54,7 +54,7 @@
 #define SMBA1002_SDHC_CD			TEGRA_GPIO_PI5
 #define SMBA1002_SDHC_WP			-1				/*1=Write Protected */
 #define SMBA1002_NVEC_REQ			TEGRA_GPIO_PD0	/* Set to 0 to send a command to the NVidia Embedded controller */
-#define SMBA1002_WLAN_POWER 		TEGRA_GPIO_PK5
+#define SMBA1002_WL_BT_POWER 		TEGRA_GPIO_PK5
 #define SMBA1002_WLAN_RESET 		TEGRA_GPIO_PK6
 #define SMBA1002_BT_RESET 			TEGRA_GPIO_PU0  /* 0=reset asserted */
 #define SMBA1002_BT_WAKEUP			TEGRA_GPIO_PU5
