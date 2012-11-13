@@ -358,6 +358,7 @@ struct early_suspend smba_panel_early_suspender;
 
 static void smba_panel_early_suspend(struct early_suspend *h)
 {
+	tps6586x_suspend_led(1);
 	/* power down LCD, add use a black screen for HDMI */
 	if (num_registered_fb > 0)
 		fb_blank(registered_fb[0], FB_BLANK_POWERDOWN);
@@ -374,6 +375,7 @@ static void smba_panel_early_suspend(struct early_suspend *h)
 static void smba_panel_late_resume(struct early_suspend *h)
 {
 	unsigned i;
+	tps6586x_suspend_led(0);
 #ifdef CONFIG_TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND
 	if (cpufreq_restore_default_gov())
 			pr_err("Early_suspend: Unable to restore governor\n");
