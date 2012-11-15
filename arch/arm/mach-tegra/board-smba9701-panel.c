@@ -32,6 +32,7 @@
 #include <mach/iomap.h>
 #include <mach/dc.h>
 #include <mach/fb.h>
+#include <linux/mfd/tps6586x.h>
 
 #include "devices.h"
 #include "gpio-names.h"
