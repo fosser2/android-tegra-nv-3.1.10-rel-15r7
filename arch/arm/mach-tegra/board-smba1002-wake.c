@@ -49,7 +49,7 @@ DECLARE_WORK(do_wake, smba_wake_do_wake);
 static void smba_wake_force_shutdown(struct work_struct *work) {
 	// Need to queue this function since i2c is slow and this handler
 	// should be atomic.
-	// tps6586x_power_off();
+	 tps6586x_power_off();
 }
 DECLARE_DELAYED_WORK(do_shutdown, smba_wake_force_shutdown);
 
