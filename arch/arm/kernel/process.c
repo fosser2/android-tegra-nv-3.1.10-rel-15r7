@@ -266,6 +266,7 @@ __setup("reboot=", reboot_setup);
 void machine_shutdown(void)
 {
 #ifdef CONFIG_SMP
+	#ifndef CONFIG_MACH_SMBA1002
 	/*
 	 * Disable preemption so we're guaranteed to
 	 * run to power off or reboot and prevent
@@ -273,7 +274,11 @@ void machine_shutdown(void)
 	 * thread that might wind up blocking on
 	 * one of the stopped CPUs.
 	 */
-	preempt_disable();
+	//TODO: TheXfactor2011. This is not present in the 
+	//3.1 mainline kernel. It poses all kinds of problems
+	//Shutdown. Figure it out later.
+	//preempt_disable();
+	#endif
 
 	smp_send_stop();
 #endif

@@ -23,6 +23,7 @@
 #include <linux/slab.h>
 #include <linux/gpio.h>
 #include <linux/i2c.h>
+#include <linux/delay.h>
 
 #include <linux/mfd/core.h>
 #include <linux/mfd/tps6586x.h>
@@ -267,16 +268,48 @@ static struct i2c_client *tps6586x_i2c_client = NULL;
 int tps6586x_power_off(void)
 {
 	struct device *dev = NULL;
+	uint8_t data = 0;
+	uint32_t count = 0;
+	int ret;
 
 	if (!tps6586x_i2c_client)
 		return;
 
 	dev = &tps6586x_i2c_client->dev;
+	printk(KERN_EMERG "tps6586x power off called.\n");
+	while (1) {
+		/* SLEEP REQUEST EXIT CONTROL */
+		tps6586x_clr_bits(dev, TPS6586X_SUPPLYENE, EXITSLREQ_BIT);
+		ret = tps6586x_read(dev, TPS6586X_SUPPLYENE, &data);
+		if (ret < 0) {
+			pr_err("%s() failed to read with return : %d\n",
+				__func__, ret);
+			continue;
+		}
+		if (data & EXITSLREQ_BIT) {
+			pr_warn("%s: EXITSLREQ_BIT is not set(0x%x)\n", __func__, data);
+			continue;
+		}
 
-	if (tps6586x_clr_bits(dev, TPS6586X_SUPPLYENE, EXITSLREQ_BIT))
-		return;
+		/* Set TPS6586X in SLEEP MODE. The device will be powered off */
+		tps6586x_set_bits(dev, TPS6586X_SUPPLYENE, SLEEP_MODE_BIT);
+		printk(KERN_EMERG "tps6586x put in sleep mode.\n");
+		mdelay(100);
+		/* The below code should not excute in normal case */
+		ret = tps6586x_read(dev, TPS6586X_SUPPLYENE, &data);
+		printk(KERN_EMERG "tps6586x out of sleep mode.\n");
+		if (ret < 0) {
+			pr_err("%s() failed to read with return : %d\n",
+				__func__, ret);
+		} else if (data & SLEEP_MODE_BIT) {
+			pr_info("%s: SLEEP_MODE_BIT is set\n", __func__);
+			break;
+		}
 
-	tps6586x_set_bits(dev, TPS6586X_SUPPLYENE, SLEEP_MODE_BIT);
+		mdelay(1000);
+	}
+	
+	return 0;
 }
 
 int tps6586x_cancel_sleep(void)
