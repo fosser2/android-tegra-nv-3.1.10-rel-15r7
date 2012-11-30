@@ -79,7 +79,8 @@ typedef struct {
 typedef struct {
         unsigned           unknown[18];
         t_nvtegra_partinfo partinfo_bct;
-        t_nvtegra_partinfo partinfo[23];
+        t_nvtegra_partinfo partinfo_pt;
+        t_nvtegra_partinfo partinfo[22];
 } t_nvtegra_ptable;
 
 
@@ -134,6 +135,7 @@ nvtegra_partition(struct parsed_partitions *state)
         int count;
         int i;
         char *s;
+        int part_offset;
 
         bdev = state->bdev;
 
@@ -157,7 +159,14 @@ nvtegra_partition(struct parsed_partitions *state)
         if (memcmp(p->name2, "BCT\0", 4))
                 return 0;
 
-        parts = kzalloc(23*sizeof(t_partinfo), GFP_KERNEL);
+        /* check PT partinfo for real offset */
+        p = &pt->partinfo_pt;
+        if (p->id != 3)
+                return 0;
+
+        part_offset = p->start*4-0x1000;
+
+        parts = kzalloc(22*sizeof(t_partinfo), GFP_KERNEL);
         if (!parts)
                 return -1;
 
@@ -166,10 +175,10 @@ nvtegra_partition(struct parsed_partitions *state)
         part = parts;
 
         count=1;
-        for (i=1; (p->id < 128) && (i<=23); i++) {
+        for (i=1; (p->id < 128) && (i<=22); i++) {
                 memcpy(part->name, p->name, 4);
                 part->valid = 1;
-                part->start = p->start*4 - 0x800;
+                part->start = p->start*4 - part_offset;
                 part->size  = p->size*4;
                 p++;
                 part++;
@@ -183,7 +192,7 @@ nvtegra_partition(struct parsed_partitions *state)
                 len = strcspn(s, ",: ");
                 part = parts;
 
-                for(i=1; i<=23; i++) {
+                for(i=1; i<=22; i++) {
                         if (part->valid) {
                                 if (!strncmp(part->name, s, len) && ((len>=4) || (part->name[len]=='\0'))) {
                                         part->valid = 0;
@@ -203,7 +212,7 @@ nvtegra_partition(struct parsed_partitions *state)
 #endif
         /* log partitions */
         part = parts;
-        for(i=1; i<=23; i++) {
+        for(i=1; i<=22; i++) {
           if (part->valid)
 #ifdef BRIEF
                 printk(KERN_INFO "nvtegrapart: #%d [%-4.4s] start=%u size=%u\n",
@@ -215,7 +224,7 @@ nvtegra_partition(struct parsed_partitions *state)
         /* finally register valid partitions */
         count = 1;
         part = parts;
-        for(i=1; i<=23; i++) {
+        for(i=1; i<=22; i++) {
           if (part->valid)
                 put_partition(state, count++, part->start, part->size);
           part++;
