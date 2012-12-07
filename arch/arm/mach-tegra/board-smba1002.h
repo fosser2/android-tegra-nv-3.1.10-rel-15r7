@@ -114,7 +114,6 @@
 #define PMU_IRQ_BASE				(TEGRA_NR_IRQS)
 //#define PMU_IRQ_RTC_ALM1 			(TPS6586X_INT_BASE + TPS6586X_INT_RTC_ALM1)
 
-extern int smba_s5k6aa_set_power(int enable);
 
 
 
