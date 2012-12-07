@@ -114,6 +114,8 @@
 #define PMU_IRQ_BASE				(TEGRA_NR_IRQS)
 //#define PMU_IRQ_RTC_ALM1 			(TPS6586X_INT_BASE + TPS6586X_INT_RTC_ALM1)
 
+extern int smba_s5k6aa_set_power(int enable);
+
 
 
 
@@ -157,6 +159,7 @@ extern int smba_camera_register_devices(void);
 extern int smba_charge_init(void);
 extern int smba_regulator_init(void);
 extern int smba_charger_init(void);
+extern int smba_s5k6aa_set_power(int enable);
 
 /* Autocalculate framebuffer sizes */
 
