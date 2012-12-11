@@ -370,12 +370,11 @@ static int wl_android_get_p2p_dev_addr(struct net_device *ndev, char *command, i
 /**
  * Global function definitions (declared in wl_android.h)
  */
+
 int wl_android_wifi_on(struct net_device *dev)
 {
 	int ret = 0;
-	int retry = 1;
 
-onretry:
 	printk("%s in\n", __FUNCTION__);
 	if (!dev) {
 		DHD_ERROR(("%s: dev is null\n", __FUNCTION__));
@@ -393,17 +392,9 @@ onretry:
 				ret = -EFAULT;
 		}
 		g_wifi_on = 1;
-
 	}
 	dhd_net_if_unlock(dev);
-////////////////////////////////// Adam Patch /////////////////////////////////////
-	if (ret == -EIO && retry < 5) {
-		wl_android_wifi_off(dev);
-		msleep(1000);
-		printk("I/O Error on wifi, power down and try again. Attempt %d/5\n", retry);
-		goto onretry;
-	}
-////////////////////////////////////////////////////////////////////////////////////
+
 	return ret;
 }
 
@@ -745,7 +736,7 @@ int wifi_set_power(int on, unsigned long msec)
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35))
 int wifi_get_mac_addr(unsigned char *buf)
 {
-	DHD_TRACE(("%s\n", __FUNCTION__));
+	DHD_ERROR(("%s\n", __FUNCTION__));
 	if (!buf)
 		return -EINVAL;
 	if (wifi_control_data && wifi_control_data->get_mac_addr) {

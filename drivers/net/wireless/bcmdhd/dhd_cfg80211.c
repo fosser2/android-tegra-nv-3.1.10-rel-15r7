@@ -69,9 +69,6 @@ s32 dhd_cfg80211_down(struct wl_priv *wl)
 	return 0;
 }
 
-/*
- * dhd_cfg80211_set_p2p_info : gets called when GO or GC created
- */
 s32 dhd_cfg80211_set_p2p_info(struct wl_priv *wl, int val)
 {
 	dhd_pub_t *dhd =  (dhd_pub_t *)(wl->pub);
@@ -86,7 +83,7 @@ s32 dhd_cfg80211_set_p2p_info(struct wl_priv *wl, int val)
 	dhd_arp_offload_set(dhd, 0);
 	dhd_arp_offload_enable(dhd, false);
 #endif /* ARP_OFFLOAD_SUPPORT */
-	/* diable all filtering in p2p mode */
+
 	dhd_os_set_packet_filter(dhd, 0);
 
 	/* Setup timeout if Beacons are lost and roam is off to report link down */
@@ -97,9 +94,6 @@ s32 dhd_cfg80211_set_p2p_info(struct wl_priv *wl, int val)
 	return 0;
 }
 
-/*
- * dhd_cfg80211_clean_p2p_info : gets called when GO or GC terminated
- */
 s32 dhd_cfg80211_clean_p2p_info(struct wl_priv *wl)
 {
 	dhd_pub_t *dhd =  (dhd_pub_t *)(wl->pub);
@@ -114,6 +108,7 @@ s32 dhd_cfg80211_clean_p2p_info(struct wl_priv *wl)
 	dhd_arp_offload_set(dhd, dhd_arp_mode);
 	dhd_arp_offload_enable(dhd, true);
 #endif /* ARP_OFFLOAD_SUPPORT */
+
 	dhd_os_set_packet_filter(dhd, 1);
 
 	/* Setup timeout if Beacons are lost and roam is off to report link down */
@@ -438,7 +433,7 @@ static void wl_cfg80211_bt_handler(struct work_struct *work)
 				__FUNCTION__));
 			btcx_inf->bt_state = BT_DHCP_OPPR_WIN;
 			mod_timer(&btcx_inf->timer,
-				jiffies + msecs_to_jiffies(BT_DHCP_OPPR_WIN_TIME));
+				jiffies + BT_DHCP_OPPR_WIN_TIME*HZ/1000);
 			btcx_inf->timer_on = 1;
 			break;
 
@@ -458,7 +453,7 @@ static void wl_cfg80211_bt_handler(struct work_struct *work)
 				wl_cfg80211_bt_setflag(btcx_inf->dev, TRUE);
 			btcx_inf->bt_state = BT_DHCP_FLAG_FORCE_TIMEOUT;
 			mod_timer(&btcx_inf->timer,
-				jiffies + msecs_to_jiffies(BT_DHCP_FLAG_FORCE_TIME));
+				jiffies + BT_DHCP_FLAG_FORCE_TIME*HZ/1000);
 			btcx_inf->timer_on = 1;
 			break;
 
