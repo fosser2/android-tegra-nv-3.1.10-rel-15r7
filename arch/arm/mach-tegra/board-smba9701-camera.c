@@ -101,15 +101,6 @@ static struct platform_device tegra_camera_power_device = {
   .id     = 0,
 };
 
-static struct resource smba_camera_resources[] = {
-	{
-		.name	= "regs",
-		.start	= TEGRA_VI_BASE,
-		.end	= TEGRA_VI_BASE + TEGRA_VI_SIZE - 1,
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
 /* In theory we might want to use this callback to reference the 
    tegra_camera driver from the soc_camera host driver instead of
    the i2c client driver */

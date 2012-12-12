@@ -66,6 +66,10 @@ static __initdata struct tegra_clk_init_table smba_clk_init_table[] = {
         { "i2s2",		"pll_a_out0",	0,		false},
 	{ "audio",              "pll_a_out0",   0,       	true},
         { "spdif_out",		"pll_a_out0",	0,		false},
+	{ "csus",               "clk_m",                0,      false},         /* tegra_camera */
+	{ "isp",                "clk_m",                0,      false},         /* tegra_camera? */
+	{ "vi_sensor",          "pll_m",         20000000,      false},         /* tegra_camera */
+	{ "vi",                 "pll_m",         21000000,      false},         /* tegra_camera */
         { NULL,                 NULL,		0,		0},
 };
 
