@@ -51,7 +51,7 @@ enum {
 	REG_DESIGN_VOLTAGE,
 };
 
-#define POLL_INTERVAL			5
+#define POLL_INTERVAL			30
 #define CHARGE_FLAG_CHANGE_INTERVAL	3
 
 /* Battery Mode defines */
