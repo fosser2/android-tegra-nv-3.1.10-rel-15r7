@@ -663,7 +663,6 @@ static int __init tegra_camera_init(void)
 {
 	return platform_driver_register(&tegra_camera_driver);
 }
-subsys_initcall(tegra_camera_init);
 
 static void __exit tegra_camera_exit(void)
 {
@@ -672,4 +671,3 @@ static void __exit tegra_camera_exit(void)
 
 module_init(tegra_camera_init);
 module_exit(tegra_camera_exit);
-

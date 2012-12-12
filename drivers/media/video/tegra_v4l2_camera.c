@@ -267,8 +267,8 @@
 #define TEGRA_CSI_PIXEL_STREAM_B_EXPECTED_FRAME		0x08cc
 #define TEGRA_CSI_DSI_MIPI_CAL_CONFIG			0x08d0
 
-#define TC_VI_REG_RD(DEV, REG) readl(DEV->vi_base + REG)
-#define TC_VI_REG_WT(DEV, REG, VAL) writel(VAL, DEV->vi_base + REG)
+#define TC_VI_REG_RD(DEV, REG) readl(DEV->ndev->aperture + REG)
+#define TC_VI_REG_WT(DEV, REG, VAL) writel(VAL, DEV->ndev->aperture + REG)
 
 /*
  * Structures
@@ -813,7 +813,7 @@ static void tegra_camera_work(struct work_struct *work)
 
 static void tegra_camera_activate(struct tegra_camera_dev *pcdev)
 {
-	nvhost_module_busy(pcdev->ndev);
+	nvhost_module_busy(nvhost_get_host(pcdev->ndev)->dev);
 
 	/* Save current syncpt values. */
 	tegra_camera_save_syncpts(pcdev);
@@ -833,7 +833,7 @@ static void tegra_camera_deactivate(struct tegra_camera_dev *pcdev)
 
 	mutex_unlock(&pcdev->work_mutex);
 
-	nvhost_module_idle(pcdev->ndev);
+	nvhost_module_idle(nvhost_get_host(pcdev->ndev)->dev);
 }
 
 static void tegra_camera_init_buffer(struct tegra_camera_dev *pcdev,
@@ -1397,7 +1397,7 @@ static int __devinit tegra_camera_probe(struct nvhost_device *ndev)
 {
 	struct tegra_camera_dev *pcdev;
 	struct resource *res;
-	u32 vi_base_phys;
+//	u32 vi_base_phys;
 	int err = 0;
 
 	pcdev = kzalloc(sizeof(struct tegra_camera_dev), GFP_KERNEL);
@@ -1428,27 +1428,36 @@ static int __devinit tegra_camera_probe(struct nvhost_device *ndev)
 		err = -EBUSY;
 		goto exit_free_pcdev;
 	}
-
-	if (!request_mem_region(res->start, resource_size(res), ndev->name)) {
-		dev_err(&ndev->dev,
-			"Unable to request mem region for device.\n");
-		err = -EBUSY;
-		goto exit_free_pcdev;
-	}
-
-	vi_base_phys = res->start;
-	pcdev->vi_base = ioremap_nocache(res->start, resource_size(res));
-	if (!pcdev->vi_base) {
-		dev_err(&ndev->dev, "Unable to grab IOs for device.\n");
-		err = -EBUSY;
-		goto exit_release_mem_region;
-	}
+//	dev_err(&ndev->dev,"1request name %s size:%d start:%d\n",ndev->name,res->start,resource_size(res));
+//	if (!request_mem_region(res->start, resource_size(res), ndev->name)) {
+//		dev_err(&ndev->dev,
+//			"Unable to request mem region for device.\n");
+//		dev_err(&ndev->dev,"2request name %s size:%d start:%d\n",ndev->name,res->start,resource_size(res));
+//		err = -EBUSY;
+//		goto exit_free_pcdev;
+//	}
+//	
+//	vi_base_phys = res->start;
+//	pcdev->vi_base = ioremap_nocache(res->start, resource_size(res));
+//	if (!pcdev->vi_base) {
+//		dev_err(&ndev->dev, "Unable to grab IOs for device.\n");
+//		err = -EBUSY;
+//		goto exit_release_mem_region;
+//	}
+//	vi_base_phys = devm_request_and_ioremap(&ndev->dev,res);
+//	if (!vi_base_phys) {
+//			dev_err(&ndev->dev,
+//			"Unable to request and remap mem region for device.\n");
+//			return -EBUSY;
+//	}
+	dev_err(&ndev->dev,"apperture=%d.\n",&ndev->aperture);
 
 	pm_suspend_ignore_children(&ndev->dev, true);
 	pm_runtime_enable(&ndev->dev);
 	pm_runtime_resume(&ndev->dev);
 
 	err = soc_camera_host_register(&pcdev->soc_host);
+	dev_err(&ndev->dev,"soc_camera_registre=err:%d.\n",err);
 	if (IS_ERR_VALUE(err))
 		goto exit_iounmap;
 
@@ -1460,9 +1469,6 @@ static int __devinit tegra_camera_probe(struct nvhost_device *ndev)
 /*	soc_camera_host_unregister(&pcdev->soc_host); */
 exit_iounmap:
 	pm_runtime_disable(&ndev->dev);
-	iounmap(pcdev->vi_base);
-exit_release_mem_region:
-	release_mem_region(res->start, resource_size(res));
 exit_free_pcdev:
 	kfree(pcdev);
 exit:
