@@ -669,5 +669,5 @@ static void __exit tegra_camera_exit(void)
 	platform_driver_unregister(&tegra_camera_driver);
 }
 
-module_init(tegra_camera_init);
+subsys_initcall(tegra_camera_init);
 module_exit(tegra_camera_exit);
