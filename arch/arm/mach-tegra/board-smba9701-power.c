@@ -141,7 +141,7 @@ static struct regulator_consumer_supply tps658621_ldo5_supply[] = {
 };
 static struct regulator_consumer_supply tps658621_ldo6_supply[] = {
 	REGULATOR_SUPPLY("vdd_ldo6", NULL),
-	REGULATOR_SUPPLY("vcsi", "tegra_camera"),
+//	REGULATOR_SUPPLY("vcsi", "tegra_camera"),
 //	REGULATOR_SUPPLY("vdd_i2c", "3-0030"),
 //	REGULATOR_SUPPLY("dvdd", "6-0072"),
 //	REGULATOR_SUPPLY("dvdd", "7-0072"),
@@ -160,7 +160,8 @@ static struct regulator_consumer_supply tps658621_ldo9_supply[] = {
 	REGULATOR_SUPPLY("vdd_ldo9", NULL),
 	REGULATOR_SUPPLY("avdd_2v85", NULL),
 	REGULATOR_SUPPLY("vdd_ddr_rx", NULL),
-        REGULATOR_SUPPLY("vddio_vi", NULL),
+	REGULATOR_SUPPLY("vddio_vi", NULL),
+	REGULATOR_SUPPLY("vcsi",NULL),
 };
 
 static struct tps6586x_settings sm0_config = {
