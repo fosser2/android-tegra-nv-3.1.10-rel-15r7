@@ -689,7 +689,7 @@ static int tegra_cpu_init(struct cpufreq_policy *policy)
 	target_cpu_speed[policy->cpu] = policy->cur;
 
 	/* FIXME: what's the actual transition time? */
-	policy->cpuinfo.transition_latency = 40 * 1000; /*default 300 too high even for Tegra2 */
+	policy->cpuinfo.transition_latency = 30 * 1000; /*default 300 too high even for Tegra2 */
 
 	policy->shared_type = CPUFREQ_SHARED_TYPE_ALL;
 	cpumask_copy(policy->related_cpus, cpu_possible_mask);
