@@ -61,6 +61,7 @@ static __initdata struct tegra_clk_init_table smba_clk_init_table[] = {
         /* name			parent		rate		enabled */
 	{ "cdev1",		NULL,		0,		true},
         { "blink",		"clk_32k",	32768,		true},
+	{ "pll_p_out4", 	"pll_p",  	24000000,	true},
         { "pwm",		"clk_32k",	32768,		false},
         { "i2s1",		"pll_a_out0",	0,		false},
         { "i2s2",		"pll_a_out0",	0,		false},
