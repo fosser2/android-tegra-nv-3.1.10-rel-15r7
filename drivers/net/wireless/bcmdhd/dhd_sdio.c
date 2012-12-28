@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd_sdio.c 352730 2012-08-23 20:55:11Z $
+ * $Id: dhd_sdio.c 326662 2012-04-10 06:38:08Z $
  */
 
 #include <typedefs.h>
@@ -539,8 +539,6 @@ dhdsdio_set_siaddr_window(dhd_bus_t *bus, uint32 address)
 static int
 dhdsdio_htclk(dhd_bus_t *bus, bool on, bool pendok)
 {
-#define HT_AVAIL_ERROR_MAX	10
-	static int ht_avail_error = 0;
 	int err;
 	uint8 clkctl, clkreq, devctl;
 	bcmsdh_info_t *sdh;
@@ -553,22 +551,18 @@ dhdsdio_htclk(dhd_bus_t *bus, bool on, bool pendok)
 	clkctl = 0;
 	sdh = bus->sdh;
 
+
 	if (on) {
 		/* Request HT Avail */
 		clkreq = bus->alp_only ? SBSDIO_ALP_AVAIL_REQ : SBSDIO_HT_AVAIL_REQ;
 
+
+
+
 		bcmsdh_cfg_write(sdh, SDIO_FUNC_1, SBSDIO_FUNC1_CHIPCLKCSR, clkreq, &err);
 		if (err) {
-			ht_avail_error++;
-			if (ht_avail_error < HT_AVAIL_ERROR_MAX) {
-				DHD_ERROR(("%s: HT Avail request error: %d\n", __FUNCTION__, err));
-			} else {
-				if (ht_avail_error == HT_AVAIL_ERROR_MAX)
-					dhd_os_send_hang_message(bus->dhd);
-			}
+			DHD_ERROR(("%s: HT Avail request error: %d\n", __FUNCTION__, err));
 			return BCME_ERROR;
-		} else {
-			ht_avail_error = 0;
 		}
 
 		if (pendok &&
@@ -1375,13 +1369,7 @@ dhd_bus_txctl(struct dhd_bus *bus, uchar *msg, uint msglen)
 		/* Send from dpc */
 		bus->ctrl_frame_buf = frame;
 		bus->ctrl_frame_len = len;
-		if (!bus->dpc_sched) {
-			bus->dpc_sched = TRUE;
-			dhd_sched_dpc(bus->dhd);
-		}
-		if (bus->ctrl_frame_stat) {
-			dhd_wait_for_event(bus->dhd, &bus->ctrl_frame_stat);
-		}
+		dhd_wait_for_event(bus->dhd, &bus->ctrl_frame_stat);
 		if (bus->ctrl_frame_stat == FALSE) {
 			DHD_INFO(("%s: ctrl_frame_stat == FALSE\n", __FUNCTION__));
 			ret = 0;
@@ -1493,7 +1481,7 @@ dhd_bus_rxctl(struct dhd_bus *bus, uchar *msg, uint msglen)
 		dhd_os_sdunlock(bus->dhd);
 #endif /* DHD_DEBUG */
 	} else if (pending == TRUE) {
-		/* possibly fw hangs so never responsed back */
+		/* signal pending */
 		DHD_ERROR(("%s: signal pending\n", __FUNCTION__));
 		return -EINTR;
 	} else {
@@ -2223,7 +2211,7 @@ dhdsdio_doiovar(dhd_bus_t *bus, const bcm_iovar_t *vi, uint32 actionid, const ch
 	int32 int_val = 0;
 	bool bool_val = 0;
 
-	DHD_TRACE(("%s: Enter, action %d name %s params %p plen %d arg %p len %d val_size %d\n",
+	DHD_ERROR(("%s: Enter, action %d name %s params %p plen %d arg %p len %d val_size %d\n",
 	           __FUNCTION__, actionid, name, params, plen, arg, len, val_size));
 
 	if ((bcmerror = bcm_iovar_lencheck(vi, arg, len, IOV_ISSET(actionid))) != 0)
@@ -5198,7 +5186,7 @@ done:
 }
 #endif /* DHD_DEBUG */
 
-#if (defined DHD_DEBUG)
+#ifdef DHD_DEBUG
 static void
 dhd_dump_cis(uint fn, uint8 *cis)
 {
@@ -5255,7 +5243,7 @@ dhdsdio_chipmatch(uint16 chipid)
 
 static void *
 dhdsdio_probe(uint16 venid, uint16 devid, uint16 bus_no, uint16 slot,
-	uint16 func, uint bustype, void *regsva, osl_t * osh, void *sdh)
+	uint16 func, uint bustype, void *regsva, osl_t * osh, void *sdh, void *dev)
 {
 	int ret;
 	dhd_bus_t *bus;
@@ -5362,7 +5350,7 @@ dhdsdio_probe(uint16 venid, uint16 devid, uint16 bus_no, uint16 slot,
 	bus->usebufpool = FALSE; /* Use bufpool if allocated, else use locally malloced rxbuf */
 
 	/* attach the common module */
-	if (!(cmn = dhd_common_init(osh))) {
+	if (!(cmn = dhd_common_init(bus->cl_devid, osh))) {
 		DHD_ERROR(("%s: dhd_common_init failed\n", __FUNCTION__));
 		goto fail;
 	}
@@ -5375,7 +5363,7 @@ dhdsdio_probe(uint16 venid, uint16 devid, uint16 bus_no, uint16 slot,
 	}
 
 	/* Attach to the dhd/OS/network interface */
-	if (!(bus->dhd = dhd_attach(osh, bus, SDPCM_RESERVE))) {
+	if (!(bus->dhd = dhd_attach(osh, bus, SDPCM_RESERVE, dev))) {
 		DHD_ERROR(("%s: dhd_attach failed\n", __FUNCTION__));
 		goto fail;
 	}
@@ -5474,10 +5462,11 @@ dhdsdio_probe_attach(struct dhd_bus *bus, osl_t *osh, void *sdh, void *regsva,
 		clkctl = bcmsdh_cfg_read(sdh, SDIO_FUNC_1, SBSDIO_FUNC1_CHIPCLKCSR, &err);
 
 	if (err || ((clkctl & ~SBSDIO_AVBITS) != DHD_INIT_CLKCTL1)) {
-		DHD_ERROR(("%s: ChipClkCSR access: err %d wrote 0x%02x read 0x%02x\n",
-		           __FUNCTION__, err, DHD_INIT_CLKCTL1, clkctl));
+		DHD_ERROR(("dhdsdio_probe: ChipClkCSR access: err %d wrote 0x%02x read 0x%02x\n",
+		           err, DHD_INIT_CLKCTL1, clkctl));
 		goto fail;
 	}
+
 
 #ifdef DHD_DEBUG
 	if (DHD_INFO_ON()) {
@@ -6108,6 +6097,7 @@ static int
 _dhdsdio_download_firmware(struct dhd_bus *bus)
 {
 	int bcmerror = -1;
+	char *p;
 
 	bool embed = FALSE;	/* download embedded firmware */
 	bool dlok = FALSE;	/* download firmware succeeded */
@@ -6129,6 +6119,19 @@ _dhdsdio_download_firmware(struct dhd_bus *bus)
 
 	/* External image takes precedence if specified */
 	if ((bus->fw_path != NULL) && (bus->fw_path[0] != '\0')) {
+
+		/* replace bcm43xx with bcm4330 or bcm4329 */
+		if ((p = strstr(bus->fw_path, "bcm43xx"))) {
+			if (bus->cl_devid == 0x4329) {
+				*(p + 5)='2';
+				*(p + 6)='9';
+			}
+			if (bus->cl_devid == 0x4330) {
+				*(p + 5)='3';
+				*(p + 6)='0';
+			}
+		}
+
 		if (dhdsdio_download_code_file(bus, bus->fw_path)) {
 			DHD_ERROR(("%s: dongle image file download failed\n", __FUNCTION__));
 #ifdef BCMEMBEDIMAGE
@@ -6331,23 +6334,7 @@ uint dhd_bus_chip_id(dhd_pub_t *dhdp)
 {
 	dhd_bus_t *bus = dhdp->bus;
 
-	return bus->sih->chip;
-}
-
-/* Get Chip Rev ID version */
-uint dhd_bus_chiprev_id(dhd_pub_t *dhdp)
-{
-	dhd_bus_t *bus = dhdp->bus;
-
-	return bus->sih->chiprev;
-}
-
-/* Get Chip Pkg ID version */
-uint dhd_bus_chippkg_id(dhd_pub_t *dhdp)
-{
-	dhd_bus_t *bus = dhdp->bus;
-
-	return bus->sih->chippkg;
+	return  bus->sih->chip;
 }
 
 int

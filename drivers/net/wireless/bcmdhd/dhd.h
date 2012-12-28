@@ -24,7 +24,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd.h 344123 2012-07-11 09:33:49Z $
+ * $Id: dhd.h 333052 2012-05-12 02:09:28Z $
  */
 
 /****************
@@ -51,7 +51,6 @@
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) && defined(CONFIG_HAS_WAKELOCK)
 #include <linux/wakelock.h>
 #endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) && defined (CONFIG_HAS_WAKELOCK) */
-
 /* The kernel threading is sdio-specific */
 struct task_struct;
 struct sched_param;
@@ -251,7 +250,7 @@ typedef struct dhd_cmn {
 			SMP_RD_BARRIER_DEPENDS(); \
 			while (dhd_mmc_suspend && retry++ != b) { \
 				SMP_RD_BARRIER_DEPENDS(); \
-				wait_event_interruptible_timeout(a, !dhd_mmc_suspend, 1); \
+				wait_event_interruptible_timeout(a, !dhd_mmc_suspend, HZ/100); \
 			} \
 		} while (0)
 	#define DHD_PM_RESUME_WAIT(a) 		_DHD_PM_RESUME_WAIT(a, 200)
@@ -263,7 +262,7 @@ typedef struct dhd_cmn {
 	#define SPINWAIT_SLEEP(a, exp, us) do { \
 		uint countdown = (us) + 9999; \
 		while ((exp) && (countdown >= 10000)) { \
-			wait_event_interruptible_timeout(a, FALSE, 1); \
+			wait_event_interruptible_timeout(a, FALSE, HZ/100); \
 			countdown -= 10000; \
 		} \
 	} while (0)
@@ -301,8 +300,6 @@ extern int dhd_os_wake_unlock(dhd_pub_t *pub);
 extern int dhd_os_wake_lock_timeout(dhd_pub_t *pub);
 extern int dhd_os_wake_lock_rx_timeout_enable(dhd_pub_t *pub, int val);
 extern int dhd_os_wake_lock_ctrl_timeout_enable(dhd_pub_t *pub, int val);
-extern int dhd_os_wd_wake_lock(dhd_pub_t *pub);
-extern int dhd_os_wd_wake_unlock(dhd_pub_t *pub);
 
 inline static void MUTEX_LOCK_SOFTAP_SET_INIT(dhd_pub_t * dhdp)
 {
@@ -325,10 +322,8 @@ inline static void MUTEX_UNLOCK_SOFTAP_SET(dhd_pub_t * dhdp)
 #endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) */
 }
 
-#define DHD_OS_WAKE_LOCK(pub)			dhd_os_wake_lock(pub)
-#define DHD_OS_WAKE_UNLOCK(pub)			dhd_os_wake_unlock(pub)
-#define DHD_OS_WD_WAKE_LOCK(pub)		dhd_os_wd_wake_lock(pub)
-#define DHD_OS_WD_WAKE_UNLOCK(pub)		dhd_os_wd_wake_unlock(pub)
+#define DHD_OS_WAKE_LOCK(pub) 			dhd_os_wake_lock(pub)
+#define DHD_OS_WAKE_UNLOCK(pub) 		dhd_os_wake_unlock(pub)
 #define DHD_OS_WAKE_LOCK_TIMEOUT(pub)		dhd_os_wake_lock_timeout(pub)
 #define DHD_OS_WAKE_LOCK_RX_TIMEOUT_ENABLE(pub, val)	dhd_os_wake_lock_rx_timeout_enable(pub, val)
 #define DHD_OS_WAKE_LOCK_CTRL_TIMEOUT_ENABLE(pub, val)	dhd_os_wake_lock_ctrl_timeout_enable(pub, val)
@@ -382,16 +377,17 @@ void dhd_osl_detach(osl_t *osh);
  * Returned structure should have bus and prot pointers filled in.
  * bus_hdrlen specifies required headroom for bus module header.
  */
-extern dhd_pub_t *dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen);
+extern dhd_pub_t *dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen, void *dev);
+extern int dhd_net_attach(dhd_pub_t *dhdp, int idx);
+
+/* Indication from bus module regarding removal/absence of dongle */
+extern void dhd_detach(dhd_pub_t *dhdp);
 #if defined(WLP2P) && defined(WL_CFG80211)
 /* To allow attach/detach calls corresponding to p2p0 interface  */
 extern int dhd_attach_p2p(dhd_pub_t *);
 extern int dhd_detach_p2p(dhd_pub_t *);
 #endif /* WLP2P && WL_CFG80211 */
-extern int dhd_net_attach(dhd_pub_t *dhdp, int idx);
 
-/* Indication from bus module regarding removal/absence of dongle */
-extern void dhd_detach(dhd_pub_t *dhdp);
 extern void dhd_free(dhd_pub_t *dhdp);
 
 /* Indication from bus module to change flow-control state */
@@ -435,9 +431,6 @@ extern void dhd_os_sdunlock_sndup_rxq(dhd_pub_t * pub);
 extern void dhd_os_sdlock_eventq(dhd_pub_t * pub);
 extern void dhd_os_sdunlock_eventq(dhd_pub_t * pub);
 extern bool dhd_os_check_hang(dhd_pub_t *dhdp, int ifidx, int ret);
-extern int dhd_os_send_hang_message(dhd_pub_t *dhdp);
-extern int net_os_send_hang_message(struct net_device *dev);
-extern void dhd_set_version_info(dhd_pub_t *pub, char *fw);
 
 #ifdef PNO_SUPPORT
 extern int dhd_pno_enable(dhd_pub_t *dhd, int pfn_enabled);
@@ -498,7 +491,7 @@ extern int dhd_wl_ioctl(dhd_pub_t *dhd_pub, int ifindex, wl_ioctl_t *ioc, void *
 extern int dhd_wl_ioctl_cmd(dhd_pub_t *dhd_pub, int cmd, void *arg, int len, uint8 set,
                             int ifindex);
 
-extern struct dhd_cmn *dhd_common_init(osl_t *osh);
+extern struct dhd_cmn *dhd_common_init(uint16 devid, osl_t *osh);
 extern void dhd_common_deinit(dhd_pub_t *dhd_pub, dhd_cmn_t *sa_cmn);
 
 extern int dhd_do_driver_init(struct net_device *net);
@@ -527,8 +520,6 @@ extern int dhd_bus_membytes(dhd_pub_t *dhdp, bool set, uint32 address, uint8 *da
 extern void dhd_print_buf(void *pbuf, int len, int bytes_per_line);
 extern bool dhd_is_associated(dhd_pub_t *dhd, void *bss_buf, int *retval);
 extern uint dhd_bus_chip_id(dhd_pub_t *dhdp);
-extern uint dhd_bus_chiprev_id(dhd_pub_t *dhdp);
-extern uint dhd_bus_chippkg_id(dhd_pub_t *dhdp);
 
 #if defined(KEEP_ALIVE)
 extern int dhd_keep_alive_onoff(dhd_pub_t *dhd);
@@ -612,26 +603,10 @@ extern uint dhd_pktgen_len;
 #endif
 
 
-/* hooks for custom Roaming Trigger  setting via Makefile */
-#define DEFAULT_ROAM_TRIGGER_VALUE -75 /* dBm default roam trigger all band */
-#define DEFAULT_ROAM_TRIGGER_SETTING 	-1
-#ifndef CUSTOM_ROAM_TRIGGER_SETTING
-#define CUSTOM_ROAM_TRIGGER_SETTING 	DEFAULT_ROAM_TRIGGER_VALUE
-#endif
-
-/* hooks for custom Roaming Romaing  setting via Makefile */
-#define DEFAULT_ROAM_DELTA_VALUE  10 /* dBm default roam delta all band */
-#define DEFAULT_ROAM_DELTA_SETTING 	-1
-#ifndef CUSTOM_ROAM_DELTA_SETTING
-#define CUSTOM_ROAM_DELTA_SETTING 	DEFAULT_ROAM_DELTA_VALUE
-#endif
-
 /* optionally set by a module_param_string() */
 #define MOD_PARAM_PATHLEN	2048
 extern char fw_path[MOD_PARAM_PATHLEN];
 extern char nv_path[MOD_PARAM_PATHLEN];
-
-#define MOD_PARAM_INFOLEN	512
 
 #ifdef SOFTAP
 extern char fw_path2[MOD_PARAM_PATHLEN];

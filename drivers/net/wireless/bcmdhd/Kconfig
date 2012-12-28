@@ -26,29 +26,72 @@ config BCMDHD_NVRAM_PATH
 
 config BCMDHD_WEXT
 	bool "Enable WEXT support"
-	depends on BCMDHD && CFG80211 = n
+	depends on BCMDHD
 	select WIRELESS_EXT
 	select WEXT_PRIV
 	help
 	  Enables WEXT support
 
 config DHD_USE_STATIC_BUF
-	bool "Enable memory preallocation"
-	depends on BCMDHD
-	default n
-	---help---
-	  Use memory preallocated in platform
+       bool "Enable memory preallocation"
+       depends on BCMDHD
+       default n
+       ---help---
+         Use memory preallocated in platform
 
 config DHD_USE_SCHED_SCAN
 	bool "Use CFG80211 sched scan"
 	depends on BCMDHD && CFG80211
 	default n
 	---help---
-	  Use CFG80211 sched scan
+	Use CFG80211 sched scan
 
 config DHD_ENABLE_P2P
 	bool "Enable Wifi Direct"
 	depends on BCMDHD && CFG80211
 	default n
 	---help---
-	  Use Enable Wifi Direct
+	Use Enable Wifi Direct
+
+config BCMDHD_CFG80211
+	bool "Enable CFG80211 support"
+	depends on BCMDHD && CFG80211
+	default n
+	help
+	  Enables CFG80211 support
+
+config BCMDHD_WIFI_CONTROL_FUNC
+	bool "Use bcmdhd_wlan device"
+	depends on BCMDHD
+	default n
+	---help---
+	  Use this option to get various parameters from architecture specific
+	  bcmdhd_wlan platform device. Say n if unsure.
+
+config BCMDHD_HW_OOB
+	bool "Use out of band interrupt"
+	depends on BCMDHD
+	default n
+	---help---
+	  Use out of band interrupt for card interrupt and wake on wireless.
+
+config BCMDHD_CSCAN_ENABLE
+	bool "Enable Combo Scan"
+	depends on BCMDHD
+	default n
+	---help---
+	Enable Combo Scan
+
+config BCMDHD_INSMOD_NO_FW_LOAD
+	bool "Enable delayed firmware load"
+	depends on BCMDHD
+	default n
+	---help---
+	Enable delayes firmware
+
+config BCMDHD_CUSTOM_REGULATORY_DOMAIN
+	bool "Enable Custom Regulatory Domain"
+	depends on BCMDHD
+	default y
+	---help---
+	Use Custom Regulatory Domain set by driver.

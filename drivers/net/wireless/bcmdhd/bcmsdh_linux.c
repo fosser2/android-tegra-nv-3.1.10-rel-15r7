@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: bcmsdh_linux.c 352863 2012-08-24 04:48:50Z $
+ * $Id: bcmsdh_linux.c 312788 2012-02-03 23:06:32Z $
  */
 
 /**
@@ -35,6 +35,7 @@
 
 #include <linux/pci.h>
 #include <linux/completion.h>
+#include <linux/mmc/sdio_func.h>
 
 #include <osl.h>
 #include <pcicfg.h>
@@ -134,27 +135,28 @@ bcmsdh_chipmatch(uint16 vendor, uint16 device)
 #if defined(BCMPLATFORM_BUS)
 #if defined(BCMLXSDMMC)
 /* forward declarations */
-int bcmsdh_probe(struct device *dev);
-int bcmsdh_remove(struct device *dev);
+int bcmsdh_probe_bcmdhd(struct device *dev);
+int bcmsdh_remove_bcmdhd(struct device *dev);
 
-EXPORT_SYMBOL(bcmsdh_probe);
-EXPORT_SYMBOL(bcmsdh_remove);
+EXPORT_SYMBOL(bcmsdh_probe_bcmdhd);
+EXPORT_SYMBOL(bcmsdh_remove_bcmdhd);
 
 #else
 /* forward declarations */
-static int __devinit bcmsdh_probe(struct device *dev);
-static int __devexit bcmsdh_remove(struct device *dev);
+static int __devinit bcmsdh_probe_bcmdhd(struct device *dev);
+static int __devexit bcmsdh_remove_bcmdhd(struct device *dev);
 #endif /* BCMLXSDMMC */
 
 #ifndef BCMLXSDMMC
 static
 #endif /* BCMLXSDMMC */
-int bcmsdh_probe(struct device *dev)
+int bcmsdh_probe_bcmdhd(struct device *dev)
 {
 	osl_t *osh = NULL;
 	bcmsdh_hc_t *sdhc = NULL;
 	ulong regs = 0;
 	bcmsdh_info_t *sdh = NULL;
+	struct sdio_func *func = container_of(dev, struct sdio_func, dev);
 #if !defined(BCMLXSDMMC) && defined(BCMPLATFORM_BUS)
 	struct platform_device *pdev;
 	struct resource *r;
@@ -227,13 +229,14 @@ int bcmsdh_probe(struct device *dev)
 	/* chain SDIO Host Controller info together */
 	sdhc->next = sdhcinfo;
 	sdhcinfo = sdhc;
-
 	/* Read the vendor/device ID from the CIS */
 	vendevid = bcmsdh_query_device(sdh);
+
+
 	/* try to attach to the target device */
 	if (!(sdhc->ch = drvinfo.attach((vendevid >> 16),
-	                                 (vendevid & 0xFFFF), 0, 0, 0, 0,
-	                                (void *)regs, NULL, sdh))) {
+					func->device, 0, 0, 0, 0,
+					(void *)regs, NULL, sdh, dev))) {
 		SDLX_MSG(("%s: device attach failed\n", __FUNCTION__));
 		goto err;
 	}
@@ -255,7 +258,7 @@ err:
 #ifndef BCMLXSDMMC
 static
 #endif /* BCMLXSDMMC */
-int bcmsdh_remove(struct device *dev)
+int bcmsdh_remove_bcmdhd(struct device *dev)
 {
 	bcmsdh_hc_t *sdhc, *prev;
 	osl_t *osh;
@@ -404,10 +407,6 @@ bcmsdh_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	/* match this pci device with what we support */
 	/* we can't solely rely on this to believe it is our SDIO Host Controller! */
 	if (!bcmsdh_chipmatch(pdev->vendor, pdev->device)) {
-		if (pdev->vendor == VENDOR_BROADCOM) {
-			SDLX_MSG(("%s: Unknown Broadcom device (vendor: %#x, device: %#x).\n",
-				__FUNCTION__, pdev->vendor, pdev->device));
-		}
 		return -ENODEV;
 	}
 
@@ -455,7 +454,7 @@ bcmsdh_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	/* try to attach to the target device */
 	if (!(sdhc->ch = drvinfo.attach(VENDOR_BROADCOM, /* pdev->vendor, */
 	                                bcmsdh_query_device(sdh) & 0xFFFF, 0, 0, 0, 0,
-	                                (void *)regs, NULL, sdh))) {
+	                                (void *)regs, NULL, sdh, pdev->dev))) {
 		SDLX_MSG(("%s: device attach failed\n", __FUNCTION__));
 		goto err;
 	}
@@ -686,11 +685,6 @@ module_param(sd_f2_blocksize, int, 0);
 #ifdef BCMSDIOH_STD
 extern int sd_uhsimode;
 module_param(sd_uhsimode, int, 0);
-#endif
-
-#ifdef BCMSDIOH_TXGLOM
-extern uint sd_txglom;
-module_param(sd_txglom, uint, 0);
 #endif
 
 #ifdef BCMSDH_MODULE
