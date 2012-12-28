@@ -372,14 +372,6 @@ static void __init tegra_smba_init(void)
 	smba_init_emc();
 #endif
 
-#ifdef _DUMP_WBCODE
-	dump_warmboot(tegra_lp0_vec_start,tegra_lp0_vec_size);
-#endif
-
-#ifdef _DUMP_BOOTCAUSE
-	dump_bootflags();
-#endif
-
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
 	/* Register the RAM console device */
 	platform_device_register(&ram_console_device);
@@ -421,31 +413,13 @@ static void __init tegra_smba_fixup(struct machine_desc *desc,
 #endif
 } 
 
-/* the Shuttle bootloader identifies itself as MACH_TYPE_HARMONY [=2731]
-   or as MACH_TYPE_LEGACY[=3333]. We MUST handle both cases in order
-   to make the kernel bootable */
 MACHINE_START(HARMONY, "harmony")
-	.boot_params	= 0x00000100,
-	.map_io         = tegra_map_common_io,
-	.init_early     = tegra_init_early,
-	.init_irq       = tegra_init_irq,
-	.timer          = &tegra_timer,
-	.init_machine	= tegra_smba_init,
-	.reserve		= tegra_smba_reserve,
-	.fixup			= tegra_smba_fixup,
-MACHINE_END
-
-#ifdef MACH_TYPE_TEGRA_LEGACY
-MACHINE_START(TEGRA_LEGACY, "tegra_legacy")
-#else
-MACHINE_START(LEGACY, "legacy")
-#endif
-	.boot_params	= 0x00000100,
-	.map_io         = tegra_map_common_io,
-	.init_early     = tegra_init_early,
-	.init_irq       = tegra_init_irq,
-	.timer          = &tegra_timer, 	
-	.init_machine	= tegra_smba_init,
-	.reserve		= tegra_smba_reserve,
-	.fixup			= tegra_smba_fixup,
+.boot_params = 0x00000100,
+.fixup	= tegra_smba_fixup,
+.map_io = tegra_map_common_io,
+.reserve = tegra_smba_reserve,
+.init_early	= tegra_init_early,
+.init_irq = tegra_init_irq,
+.timer = &tegra_timer,
+.init_machine = tegra_smba_init,
 MACHINE_END
