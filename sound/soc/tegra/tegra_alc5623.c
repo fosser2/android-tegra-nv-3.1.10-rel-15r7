@@ -30,7 +30,7 @@
  *
  */
 
-#define DEBUG
+//#define DEBUG
 
 #include <asm/mach-types.h>
 
