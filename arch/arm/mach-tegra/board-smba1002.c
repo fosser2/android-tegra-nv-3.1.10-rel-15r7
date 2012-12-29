@@ -388,11 +388,7 @@ static void __init tegra_smba_reserve(void)
 
 	/* Reserve the graphics memory */		
 #if defined(DYNAMIC_GPU_MEM)
-#if defined(CONFIG_NVMAP_CONVERT_CARVEOUT_TO_IOVMM)	
-	tegra_reserve(0, SMBA1002_FB1_MEM_SIZE, SMBA1002_FB2_MEM_SIZE);
-#else
 	tegra_reserve(SMBA1002_GPU_MEM_SIZE, SMBA1002_FB1_MEM_SIZE, SMBA1002_FB2_MEM_SIZE);
-#endif
 #endif
 
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
