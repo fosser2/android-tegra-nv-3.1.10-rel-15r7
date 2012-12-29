@@ -58,10 +58,11 @@ static struct platform_device *smba_uart_devices[] __initdata = {
 	&tegra_uarte_device,
 };
 
+/* Prefer lower clocks if possible */
 static struct uart_clk_parent uart_parent_clk[] = {
-	[0] = {.name = "pll_p"},
-	[1] = {.name = "pll_m"},	
-	[2] = {.name = "clk_m"},
+	[0] = {.name = "clk_m"}, 	//  12000000
+	[1] = {.name = "pll_p"},	// 216000000
+	[2] = {.name = "pll_c"},	// 600000000
 };
 
 static struct tegra_uart_platform_data smba_uart_pdata;
