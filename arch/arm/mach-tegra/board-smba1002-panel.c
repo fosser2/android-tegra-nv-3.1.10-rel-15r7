@@ -145,6 +145,15 @@ static int smba_hdmi_disable(void)
 	return 0;
 }
 
+#if !defined(DYNAMIC_GPU_MEM)
+/* Estimate memory layout for GPU - static layout */
+#define SMBA1002_GPU_MEM_START	(SMBA1002_MEM_SIZE - SMBA1002_GPU_MEM_SIZE)
+#define SMBA1002_FB_BASE		 	(SMBA1002_GPU_MEM_START)
+#define SMBA1002_FB_HDMI_BASE 	(SMBA1002_GPU_MEM_START + SMBA1002_FB_SIZE)
+#define SMBA1002_CARVEOUT_BASE 	(SMBA1002_GPU_MEM_START + SMBA1002_FB_SIZE + SMBA1002_FB_HDMI_SIZE)
+#define SMBA1002_CARVEOUT_SIZE	(SMBA1002_MEM_SIZE - SMBA1002_CARVEOUT_BASE)
+#endif
+
 static struct resource smba_disp1_resources[] = {
 	{
 		.name	= "irq",
@@ -160,6 +169,10 @@ static struct resource smba_disp1_resources[] = {
 	},
 	{
 		.name	= "fbmem",
+#if !defined(DYNAMIC_GPU_MEM)
+		.start	= SMBA1002_FB_BASE,
+		.end	= SMBA1002_FB_BASE + SMBA1002_FB_SIZE - 1, 
+#endif
 		.flags	= IORESOURCE_MEM,
 	},
 };
@@ -179,6 +192,10 @@ static struct resource smba_disp2_resources[] = {
 	},
 	{
 		.name	= "fbmem",
+#if !defined(DYNAMIC_GPU_MEM)
+		.start	= SMBA1002_FB_HDMI_BASE,
+		.end	= SMBA1002_FB_HDMI_BASE + SMBA1002_FB_HDMI_SIZE - 1,
+#endif
 		.flags	= IORESOURCE_MEM,
 	},
 	{
@@ -303,6 +320,10 @@ static struct nvmap_platform_carveout smba_carveouts[] = {
 	[1] = {
 		.name		= "generic-0",
 		.usage_mask	= NVMAP_HEAP_CARVEOUT_GENERIC,
+#if !defined(DYNAMIC_GPU_MEM)
+		.base		= SMBA1002_CARVEOUT_BASE,
+		.size		= SMBA1002_CARVEOUT_SIZE,
+#endif
 		.buddy_size	= SZ_32K,
 	},
 };
