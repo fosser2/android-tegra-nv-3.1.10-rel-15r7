@@ -685,7 +685,7 @@ void lru_add_page_tail(struct zone* zone,
 			head = page->lru.prev;
 		else
 			head = &zone->lru[lru].list;
-		__add_page_to_lru_list(zone, page_tail, lru, head);
+		__add_page_to_lru_list(zone, page_tail, lru, head, 0);
 	} else {
 		SetPageUnevictable(page_tail);
 		add_page_to_lru_list(zone, page_tail, LRU_UNEVICTABLE);
