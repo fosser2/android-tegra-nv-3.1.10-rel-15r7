@@ -35,8 +35,8 @@
 
 
 #define DRIVER_NAME			"at168_touch"
-#define TS_POLL_DELAY			4 /* ms delay between samples */
-#define TS_POLL_PERIOD			4 /* ms delay between samples */
+#define TS_POLL_DELAY			2 /* ms delay between samples */
+#define TS_POLL_PERIOD			2 /* ms delay between samples */
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void at168_early_suspend(struct early_suspend *h);
@@ -73,7 +73,7 @@ static void at168_reset(struct at168_data *touch)
 		return;
 
 	gpio_set_value(touch->gpio_reset, 0);
-	msleep(60);
+	msleep(5);
 	gpio_set_value(touch->gpio_reset, 1);
 	msleep(60);
 }
@@ -134,7 +134,7 @@ static int at168_read_registers(struct at168_data *touch, unsigned char reg, uns
 	msgs[0].addr = touch->client->addr;
 	msgs[0].len = 1;
 	msgs[0].buf = &reg;
-	msgs[0].flags = 0;
+	msgs[0].flags = 0;//I2C_M_REV_DIR_ADDR;
 	
 	msgs[1].addr = touch->client->addr;
 	msgs[1].len=len;
