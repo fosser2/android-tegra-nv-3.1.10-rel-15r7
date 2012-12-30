@@ -378,9 +378,7 @@ static void smba_panel_early_suspend(struct early_suspend *h)
 		fb_blank(registered_fb[1], FB_BLANK_NORMAL);
 #ifdef CONFIG_TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND
 	cpufreq_store_default_gov();
-	if (cpufreq_change_gov(cpufreq_conservative_gov))
-			pr_err("Early_suspend: Error changing governor to %s\n",
-					cpufreq_conservative_gov);
+	cpufreq_change_gov(cpufreq_conservative_gov);
 #endif
 }
 
@@ -388,8 +386,7 @@ static void smba_panel_late_resume(struct early_suspend *h)
 {
 	unsigned i;
 #ifdef CONFIG_TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND
-	if (cpufreq_restore_default_gov())
-			pr_err("Early_suspend: Unable to restore governor\n");
+	cpufreq_restore_default_gov();
 #endif
 	for (i = 0; i < num_registered_fb; i++)
 		fb_blank(registered_fb[i], FB_BLANK_UNBLANK);
@@ -454,6 +451,11 @@ int __init smba_panel_init(void)
 	/* Copy the bootloader fb to the fb. */
 	tegra_move_framebuffer(tegra_fb_start, tegra_bootloader_fb_start,
 		min(tegra_fb_size, tegra_bootloader_fb_size));
+
+	/* Copy the bootloader fb to the fb2. */
+	tegra_move_framebuffer(tegra_fb2_start, tegra_bootloader_fb_start,
+		min(tegra_fb2_size, tegra_bootloader_fb_size));
+
 
 #if defined(CONFIG_TEGRA_GRHOST) && defined(CONFIG_TEGRA_DC)
 	if (!err)
