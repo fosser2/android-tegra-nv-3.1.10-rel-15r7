@@ -873,6 +873,9 @@ static int tegra_alc5623_event_int_mic(struct snd_soc_dapm_widget *w,
 			(1 << 11),
 		    (!!SND_SOC_DAPM_EVENT_ON(event))*(1<<11));
 
+	/* Make sure I2S is enabled */
+	if (SND_SOC_DAPM_EVENT_ON(event))
+	      snd_soc_update_bits(codec, ALC5623_PWR_MANAG_ADD1, (1 << 15), 1*(1<<15));
 
         gpio_set_value_cansleep(pdata->gpio_int_mic_en,
                                 SND_SOC_DAPM_EVENT_ON(event));
@@ -898,6 +901,8 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{"Int Spk", NULL, "AUXOUTL"},
 	{"Mic Bias1", NULL, "Int Mic"},
 	{"MIC1", NULL, "Mic Bias1"},
+        {"I2S Mix", NULL, "Left ADC"},
+        {"I2S Mix", NULL, "Right ADC"},
 	{"AUXINR", NULL, "FM Radio"},
 	{"AUXINL", NULL, "FM Radio"},
 };
