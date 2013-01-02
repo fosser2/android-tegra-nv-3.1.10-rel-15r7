@@ -34,39 +34,8 @@
 #include "gpio-names.h"
 #include "fuse.h"
 #include "pm.h"
-#include "wakeups-t2.h"
 #include "board.h"
 #include "board-smba1002.h"
-#include "devices.h"
-
-#include <linux/reboot.h>
-#include <linux/console.h>
-#include <linux/regulator/machine.h>
-#include <linux/regulator/fixed.h>
-//#include <linux/regulator/virtual_adj.h>
-#include <linux/regulator/consumer.h>
-#include <linux/mfd/tps6586x.h>
-#include <linux/power_supply.h>
-//#include <linux/power/nvec_power.h>
-#include <linux/gpio.h>
-#include <linux/platform_device.h>
-#include <linux/power_supply.h>
-#include <linux/err.h>
-//#include <linux/mfd/nvec.h>
-
-#include <asm/io.h>
-
-#include <mach/io.h>
-#include <mach/irqs.h>
-#include <mach/iomap.h>
-#include <mach/gpio.h>
-#include <mach/system.h>
-
-#include "board-smba1002.h"
-#include "gpio-names.h"
-#include "devices.h"
-
-
 
 #define PMC_CTRL		0x0
 #define PMC_CTRL_INTR_LOW	(1 << 17)
@@ -91,20 +60,10 @@ static struct regulator_consumer_supply tps658621_sm2_supply[] = {
 static struct regulator_consumer_supply tps658621_ldo0_supply[] = {
 	REGULATOR_SUPPLY("vdd_ldo0", NULL),
 	REGULATOR_SUPPLY("p_cam_avdd", NULL),
-        REGULATOR_SUPPLY("vdd_pex_clk_1", NULL),
-        REGULATOR_SUPPLY("vcore_wifi", NULL),
 };
 static struct regulator_consumer_supply tps658621_ldo1_supply[] = {
 	REGULATOR_SUPPLY("vdd_ldo1", NULL),
 	REGULATOR_SUPPLY("avdd_pll", NULL),
-        REGULATOR_SUPPLY("pll_a", NULL),
-        REGULATOR_SUPPLY("pll_m", NULL),
-        REGULATOR_SUPPLY("pll_p", NULL),
-        REGULATOR_SUPPLY("pll_c", NULL),
-        REGULATOR_SUPPLY("pll_u", NULL),
-        REGULATOR_SUPPLY("pll_u1", NULL),
-        REGULATOR_SUPPLY("pll_s", NULL),
-        REGULATOR_SUPPLY("pll_x", NULL),
 };
 static struct regulator_consumer_supply tps658621_ldo2_supply[] = {
 	REGULATOR_SUPPLY("vdd_ldo2", NULL),
@@ -115,29 +74,15 @@ static struct regulator_consumer_supply tps658621_ldo3_supply[] = {
 	REGULATOR_SUPPLY("vdd_ldo3", NULL),
 	REGULATOR_SUPPLY("avdd_usb", NULL),
 	REGULATOR_SUPPLY("avdd_usb_pll", NULL),
-        REGULATOR_SUPPLY("vddio_nand_3v3", NULL), /* AON? */
-        REGULATOR_SUPPLY("sdio", NULL),
-        REGULATOR_SUPPLY("vmmc", NULL),
-        REGULATOR_SUPPLY("avdd_lvds", NULL),
-        REGULATOR_SUPPLY("tmon0", NULL),
 };
 static struct regulator_consumer_supply tps658621_ldo4_supply[] = {
 	REGULATOR_SUPPLY("vdd_ldo4", NULL),
-	REGULATOR_SUPPLY("vddio_sys", NULL),
-        REGULATOR_SUPPLY("avdd_osc", NULL),       /* AVDD_OSC */
-        REGULATOR_SUPPLY("vddio_sys", NULL),
-        REGULATOR_SUPPLY("vddio_lcd", NULL),      /* AON? */
-        REGULATOR_SUPPLY("vddio_audio", NULL),    /* AON? */
-        REGULATOR_SUPPLY("vddio_ddr", NULL),      /* AON? */
-        REGULATOR_SUPPLY("vddio_uart", NULL),     /* AON? */
-        REGULATOR_SUPPLY("vddio_bb", NULL),       /* AON? */
-        REGULATOR_SUPPLY("tmon1.8vs", NULL),
-        REGULATOR_SUPPLY("vddhostif_bt", NULL),
-        REGULATOR_SUPPLY("wifi3vs", NULL),
-        REGULATOR_SUPPLY("vddio_wlan", NULL),
+    REGULATOR_SUPPLY("avdd_osc", NULL),
+    REGULATOR_SUPPLY("vddio_sys", "at168_touch"),
 };
 static struct regulator_consumer_supply tps658621_ldo5_supply[] = {
 	REGULATOR_SUPPLY("vdd_ldo5", NULL),
+	REGULATOR_SUPPLY("vmmc", "sdhci-tegra.3"),
 };
 static struct regulator_consumer_supply tps658621_ldo6_supply[] = {
 	REGULATOR_SUPPLY("vdd_ldo6", NULL),
@@ -160,7 +105,7 @@ static struct regulator_consumer_supply tps658621_ldo9_supply[] = {
 	REGULATOR_SUPPLY("vdd_ldo9", NULL),
 	REGULATOR_SUPPLY("avdd_2v85", NULL),
 	REGULATOR_SUPPLY("vdd_ddr_rx", NULL),
-        REGULATOR_SUPPLY("vddio_vi", NULL),
+    REGULATOR_SUPPLY("vddio_vi", NULL),
 };
 
 static struct tps6586x_settings sm0_config = {
@@ -203,11 +148,11 @@ static struct regulator_init_data sm1_data = REGULATOR_INIT(sm1, 725, 1500, ON, 
 static struct regulator_init_data sm2_data = REGULATOR_INIT(sm2, 3000, 4550, ON, NULL);
 static struct regulator_init_data ldo0_data = REGULATOR_INIT(ldo0, 1250, 3300, OFF, NULL);
 static struct regulator_init_data ldo1_data = REGULATOR_INIT(ldo1, 725, 1500, ON, NULL);
-static struct regulator_init_data ldo2_data = REGULATOR_INIT(ldo2, 725, 1500, ON, NULL);
+static struct regulator_init_data ldo2_data = REGULATOR_INIT(ldo2, 725, 1500, OFF, NULL);
 static struct regulator_init_data ldo3_data = REGULATOR_INIT(ldo3, 1250, 3300, OFF, NULL);
-static struct regulator_init_data ldo4_data = REGULATOR_INIT(ldo4, 1700, 2000, ON, NULL);
-static struct regulator_init_data ldo5_data = REGULATOR_INIT(ldo5, 1250, 3300, OFF, NULL);
-static struct regulator_init_data ldo6_data = REGULATOR_INIT(ldo6, 1250, 3300, ON, NULL);
+static struct regulator_init_data ldo4_data = REGULATOR_INIT(ldo4, 1700, 2475, ON, NULL);
+static struct regulator_init_data ldo5_data = REGULATOR_INIT(ldo5, 1250, 3300, ON, NULL);
+static struct regulator_init_data ldo6_data = REGULATOR_INIT(ldo6, 1800, 1800, OFF, NULL);
 static struct regulator_init_data ldo7_data = REGULATOR_INIT(ldo7, 1250, 3300, OFF, NULL);
 static struct regulator_init_data ldo8_data = REGULATOR_INIT(ldo8, 1250, 3300, OFF, NULL);
 static struct regulator_init_data ldo9_data = REGULATOR_INIT(ldo9, 1250, 3300, ON, NULL);
@@ -315,16 +260,8 @@ static struct platform_device *fixed_voltage_regulators[] __initdata = {
 
 int __init smba_fixed_voltage_regulator_init(void)
 {
-        int i;
-
-        for (i = 0; i < ARRAY_SIZE(fixed_voltage_regulators); ++i) {
-                struct fixed_voltage_config *fixed_voltage_regulators_pdata =
-                                fixed_voltage_regulators[i]->dev.platform_data;
-                if (fixed_voltage_regulators_pdata->gpio < TEGRA_NR_GPIOS)
-                        tegra_gpio_enable(fixed_voltage_regulators_pdata->gpio);
-        }
-        return platform_add_devices(fixed_voltage_regulators,
-                                ARRAY_SIZE(fixed_voltage_regulators));
+	return platform_add_devices(fixed_voltage_regulators,
+				ARRAY_SIZE(fixed_voltage_regulators));
 }
 
 int __init smba_regulator_init(void)
