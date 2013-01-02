@@ -206,7 +206,7 @@ static struct tps6586x_platform_data tps_platform = {
 static struct i2c_board_info __initdata smba_regulators[] = {
 	{
 		I2C_BOARD_INFO("tps6586x", 0x34),
-		.irq		= INT_EXTERNAL_PMU,
+		.irq		= INT_EXTERNAL_PMU, //on .39 treznorx had this commented out? check commit d5305db209e18037de61183bde0693273bbe9236
 		.platform_data	= &tps_platform,
 	},
 };
