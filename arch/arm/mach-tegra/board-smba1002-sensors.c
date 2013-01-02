@@ -78,23 +78,18 @@ static struct i2c_board_info __initdata smba_i2c_bus4_sensor_info[] = {
 
 int __init smba_sensors_register_devices(void)
 {
-	tegra_gpio_enable(SMBA1002_ISL29023);
 	gpio_request(SMBA1002_ISL29023, "isl29023_irq");
 	gpio_direction_input(SMBA1002_ISL29023);
 
-	tegra_gpio_enable(SMBA1002_AC_PRESENT);
 	gpio_request(SMBA1002_AC_PRESENT, "ac_present_irq");
 	gpio_direction_input(SMBA1002_AC_PRESENT);
 
-	tegra_gpio_enable(SMBA1002_LIS3LV02D);
 	gpio_request(SMBA1002_LIS3LV02D, "lis33de_irq");
 	gpio_direction_input(SMBA1002_LIS3LV02D);
 
-	tegra_gpio_enable(SMBA1002_KEYBOARD);
 	gpio_request(SMBA1002_KEYBOARD, "so340010_kbd_irq");
 	gpio_direction_input(SMBA1002_KEYBOARD);
 	
-	tegra_gpio_enable(SMBA1002_TEMP_ALERT);
 	gpio_request(SMBA1002_TEMP_ALERT, "adt7461_temp_alert_irq");
 	gpio_direction_input(SMBA1002_TEMP_ALERT);
 
