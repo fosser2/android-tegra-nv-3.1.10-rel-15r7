@@ -28,8 +28,6 @@
 #include <mach/iomap.h>
 #include <mach/sdhci.h>
 
-#include <linux/regulator/consumer.h>
-
 #include "gpio-names.h"
 #include "board.h"
 #include "board-smba1002.h"
@@ -42,8 +40,6 @@ static struct clk *wifi_32k_clk;
 static int smba1002_wifi_reset(int on);
 static int smba1002_wifi_power(int on);
 static int smba1002_wifi_set_carddetect(int val);
-
-static struct regulator *wireless_pwr;
 
 static struct wifi_platform_data smba1002_wifi_control = {
 	.set_power	= smba1002_wifi_power,
@@ -278,9 +274,6 @@ static int __init smba1002_wifi_init(void)
 		return PTR_ERR(wifi_32k_clk);
 	}
 
-wireless_pwr = regulator_get(NULL, "wireless_pwr");
-	regulator_enable(wireless_pwr);
-mdelay(100);
 	
 	gpio_request(SMBA1002_WLAN_RESET, "wlan_rst");
 
