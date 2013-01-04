@@ -33,7 +33,6 @@
 static struct i2c_board_info __initdata smba_i2c_bus0_sensor_info[] = {
 	{
 		I2C_BOARD_INFO("bq20z75", 0x0B),
-		.irq = TEGRA_GPIO_TO_IRQ(SMBA1002_AC_PRESENT),
 	},
 	{
 		I2C_BOARD_INFO("so340010_kbd", 0x2c),
@@ -80,9 +79,6 @@ int __init smba_sensors_register_devices(void)
 {
 	gpio_request(SMBA1002_ISL29023, "isl29023_irq");
 	gpio_direction_input(SMBA1002_ISL29023);
-
-	gpio_request(SMBA1002_AC_PRESENT, "ac_present_irq");
-	gpio_direction_input(SMBA1002_AC_PRESENT);
 
 	gpio_request(SMBA1002_LIS3LV02D, "lis33de_irq");
 	gpio_direction_input(SMBA1002_LIS3LV02D);
