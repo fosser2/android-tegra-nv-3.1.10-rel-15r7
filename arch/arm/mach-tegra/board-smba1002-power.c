@@ -44,7 +44,6 @@ int __init smba_charge_init(void)
 {
 	gpio_request(SMBA1002_CHARGING_DISABLE, "chg_disable");
 	gpio_direction_output(SMBA1002_CHARGING_DISABLE, 0);
-	tegra_gpio_enable(SMBA1002_CHARGING_DISABLE);
 	return 0;
 }
 
@@ -305,7 +304,6 @@ static struct platform_device smba_charger_device = {
 
 int __init smba_charger_init(void)
 {
-        tegra_gpio_enable(SMBA1002_AC_PRESENT);
         platform_device_register(&smba_charger_device);
         return 0;
 }
