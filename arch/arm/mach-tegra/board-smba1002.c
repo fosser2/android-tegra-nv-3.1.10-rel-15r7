@@ -316,7 +316,7 @@ static void __init tegra_smba_init(void)
 	/* Register the power subsystem - Including the poweroff handler - Required by all the others */
 	smba_charge_init();
 	smba_regulator_init();
-        smba_charger_init();
+    smba_charger_init();
 
 	/* Register the USB device */
 	smba_usb_register_devices();
@@ -332,12 +332,6 @@ static void __init tegra_smba_init(void)
 
 	/* Register Audio devices */
 	smba_audio_register_devices();
-
-	/* Register Jack devices */
-	//smba_jack_register_devices();
-
-	/* Register AES encryption devices */
-	smba_aes_register_devices();
 
 	/* Register Watchdog devices */
 	smba_wdt_register_devices();

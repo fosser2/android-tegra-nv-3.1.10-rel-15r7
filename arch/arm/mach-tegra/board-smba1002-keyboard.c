@@ -71,14 +71,14 @@ static int smba_wakeup_key(void)
 	unsigned long status =
 		readl(IO_ADDRESS(TEGRA_PMC_BASE) + PMC_WAKE_STATUS);
 
-	return status & SMBA1002_KEY_POWER ? KEY_POWER : KEY_RESERVED;
+	return (status & (1 << SMBA1002_KEY_POWER)) ?
+		KEY_POWER : KEY_RESERVED;	
 }
 
 static struct gpio_keys_platform_data smba_keys_platform_data = {
 	.buttons	= smba_keys,
 	.nbuttons	= ARRAY_SIZE(smba_keys),
 	.wakeup_key	= smba_wakeup_key,
-	//.rep		= false, /* auto repeat enabled */
 };
 
 static struct platform_device smba_keys_device = {
