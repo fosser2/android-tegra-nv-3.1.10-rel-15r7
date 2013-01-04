@@ -68,12 +68,6 @@
 #define SMBA1002_INT_MIC_EN    		TEGRA_GPIO_PX0  /* 0 = disabled */
 #define SMBA1002_USB0_VBUS			TEGRA_GPIO_PB1	/* 1= VBUS usb0 */
 
-
-/* #define SMBA1002_EMC_SAMSUNG		*/
-/* #define SMBA1002_EMC_ELPIDA50NM	*/
-/* #define SMBA1002_EMC_ELPIDA40NM	*/
-
-
 #define SMBA1002_WAKE_KEY_POWER 	TEGRA_WAKE_GPIO_PV2
 #define SMBA1002_WAKE_KEY_RESUME	TEGRA_WAKE_GPIO_PV2
 
@@ -129,7 +123,6 @@ extern int smba_bt_wifi_gpio_init(void);
 
 extern void smba_wifi_set_cd(int val);
 
-extern void smba_init_emc(void);
 extern int  smba_pinmux_init(void);
 extern void smba_clks_init(void);
 

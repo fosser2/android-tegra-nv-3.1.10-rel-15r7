@@ -200,7 +200,6 @@ obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-panel.o
 #obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-gsm.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-i2c.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-keyboard.o
-obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-memory.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-nand.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-pinmux.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-power.o

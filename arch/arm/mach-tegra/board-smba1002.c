@@ -360,14 +360,6 @@ static void __init tegra_smba_init(void)
 #endif	
 	tegra_release_bootloader_fb();
 
-#if 0
-	/* Finally, init the external memory controller and memory frequency scaling
-   	   NB: This is not working on SMBA1002. And seems there is no point in fixing it,
-	   as the EMC clock is forced to the maximum speed as soon as the 2D/3D engine
-	   starts.*/
-	smba_init_emc();
-#endif
-
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
 	/* Register the RAM console device */
 	platform_device_register(&ram_console_device);
