@@ -297,6 +297,7 @@ static struct platform_device *smba_devices[] __initdata = {
 	&tegra_pmu_device,
 	&bluetooth_rfkill_device,
 	&smba_bluesleep_device,
+	&tegra_wdt_device
 };
 
 static void __init tegra_smba_init(void)
@@ -333,9 +334,6 @@ static void __init tegra_smba_init(void)
 	/* Register Audio devices */
 	smba_audio_register_devices();
 
-	/* Register Watchdog devices */
-	smba_wdt_register_devices();
-
 	/* Register all the keyboard devices */
 	smba_keys_init();
 
@@ -361,9 +359,7 @@ static void __init tegra_smba_init(void)
 	smba_gps_pm_register_devices();
 #endif	
 	tegra_release_bootloader_fb();
-#ifdef CONFIG_TEGRA_WDT_RECOVERY
-	tegra_wdt_recovery_init();
-#endif
+
 #if 0
 	/* Finally, init the external memory controller and memory frequency scaling
    	   NB: This is not working on SMBA1002. And seems there is no point in fixing it,
