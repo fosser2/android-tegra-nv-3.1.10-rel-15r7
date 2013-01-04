@@ -350,7 +350,7 @@ static void __init tegra_smba_init(void)
 	smba_nand_register_devices();
 	
 	/* Register SDHCI devices */
-	smba1002_sdhci_init();	
+	smba_sdhci_init();	
 	
 	/* Register Bluetooth powermanagement devices */
 	smba_setup_bluesleep();

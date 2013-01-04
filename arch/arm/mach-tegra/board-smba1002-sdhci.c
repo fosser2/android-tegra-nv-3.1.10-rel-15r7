@@ -266,7 +266,7 @@ static int __init smba1002_wifi_prepower(void)
 subsys_initcall_sync(smba1002_wifi_prepower);
 #endif
 
-static int __init smba1002_wifi_init(void)
+static int __init smba_wifi_init(void)
 {
 	wifi_32k_clk = clk_get_sys(NULL, "blink");
 	if (IS_ERR(wifi_32k_clk)) {
@@ -288,7 +288,7 @@ static int __init smba1002_wifi_init(void)
 
 	return 0;
 }
-int __init smba1002_sdhci_init(void)
+int __init smba_sdhci_init(void)
 {
 	tegra_gpio_enable(tegra_sdhci_platform_data2.power_gpio);
 	tegra_gpio_enable(tegra_sdhci_platform_data2.cd_gpio);
@@ -299,6 +299,6 @@ int __init smba1002_sdhci_init(void)
 	platform_device_register(&tegra_sdhci_device3);
 	platform_device_register(&tegra_sdhci_device2);
 
-	smba1002_wifi_init();
+	smba_wifi_init();
 	return 0;
 }
