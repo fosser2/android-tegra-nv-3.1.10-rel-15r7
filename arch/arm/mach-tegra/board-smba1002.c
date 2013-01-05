@@ -72,6 +72,134 @@
 #include "pm.h"
 
 
+#define PMC_CTRL 0x0
+#define PMC_CTRL_INTR_LOW (1 << 17)
+
+/* NVidia bootloader tags */
+#define ATAG_NVIDIA 0x41000801
+#define MAX_MEMHDL 8
+
+struct tag_tegra {
+        __u32 bootarg_len;
+        __u32 bootarg_key;
+        __u32 bootarg_nvkey;
+        __u32 bootarg[];
+};
+
+struct memhdl {
+        __u32 id;
+        __u32 start;
+        __u32 size;
+};
+
+enum {
+        RM = 1,
+        DISPLAY,
+        FRAMEBUFFER,
+        CHIPSHMOO,
+        CHIPSHMOO_PHYS,
+        CARVEOUT,
+        WARMBOOT,
+};
+
+static int num_memhdl = 0;
+
+static struct memhdl nv_memhdl[MAX_MEMHDL];
+
+static const char atag_ids[][16] = {
+        "RM ",
+        "DISPLAY ",
+        "FRAMEBUFFER ",
+        "CHIPSHMOO ",
+        "CHIPSHMOO_PHYS ",
+        "CARVEOUT ",
+        "WARMBOOT ",
+};
+
+static int __init parse_tag_nvidia(const struct tag *tag)
+{
+        int i;
+        struct tag_tegra *nvtag = (struct tag_tegra *)tag;
+        __u32 id;
+
+        switch (nvtag->bootarg_nvkey) {
+        case FRAMEBUFFER:
+                id = nvtag->bootarg[1];
+                for (i=0; i<num_memhdl; i++)
+              if (nv_memhdl[i].id == id) {
+tegra_bootloader_fb_start = nv_memhdl[i].start;
+tegra_bootloader_fb_size = nv_memhdl[i].size;
+
+      }
+                break;
+        case WARMBOOT:
+                id = nvtag->bootarg[1];
+                for (i=0; i<num_memhdl; i++) {
+                        if (nv_memhdl[i].id == id) {
+                                tegra_lp0_vec_start = nv_memhdl[i].start;
+                                tegra_lp0_vec_size = nv_memhdl[i].size;
+                        }
+                }
+                break;
+        }
+
+        if (nvtag->bootarg_nvkey & 0x10000) {
+                char pmh[] = " PreMemHdl ";
+                id = nvtag->bootarg_nvkey;
+                if (num_memhdl < MAX_MEMHDL) {
+                        nv_memhdl[num_memhdl].id = id;
+                        nv_memhdl[num_memhdl].start = nvtag->bootarg[1];
+                        nv_memhdl[num_memhdl].size = nvtag->bootarg[2];
+                        num_memhdl++;
+                }
+                pmh[11] = '0' + id;
+                print_hex_dump(KERN_INFO, pmh, DUMP_PREFIX_NONE,
+                                32, 4, &nvtag->bootarg[0], 4*(tag->hdr.size-2), false);
+        }
+        else if (nvtag->bootarg_nvkey <= ARRAY_SIZE(atag_ids))
+                print_hex_dump(KERN_INFO, atag_ids[nvtag->bootarg_nvkey-1], DUMP_PREFIX_NONE,
+                                32, 4, &nvtag->bootarg[0], 4*(tag->hdr.size-2), false);
+        else
+                pr_warning("unknown ATAG key %d\n", nvtag->bootarg_nvkey);
+
+        return 0;
+}
+__tagtable(ATAG_NVIDIA, parse_tag_nvidia);
+
+
+static struct resource ram_console_resources[] = {
+	{
+		.flags = IORESOURCE_MEM,
+	},
+ };
+ 
+ static struct platform_device ram_console_device = {
+	.name           = "ram_console",
+	.id             = -1,
+	.num_resources  = ARRAY_SIZE(ram_console_resources),
+	.resource       = ram_console_resources,
+};
+
+static void __init tegra_ramconsole_reserve(unsigned long size)
+{
+	struct resource *res;
+	long ret;
+
+	res = platform_get_resource(&ram_console_device, IORESOURCE_MEM, 0);
+	if (!res) {
+		pr_err("Failed to find memory resource for ram console\n");
+		return;
+	}
+	res->start = memblock_end_of_DRAM() - size;
+	res->end = res->start + size - 1;
+	ret = memblock_remove(res->start, size);
+	if (ret) {
+		ram_console_device.resource = NULL;
+		ram_console_device.num_resources = 0;
+		pr_err("Failed to reserve memory block for ram console\n");
+	}
+}
+
 static struct rfkill_gpio_platform_data smba_bt_rfkill_pdata[] = {
 	{
 		.name           = "bt_rfkill",
@@ -586,7 +714,7 @@ static int __init smba_gps_init(void)
 	return 0;
 }
 */
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 static struct tegra_usb_platform_data tegra_udc_pdata = {
 	.port_otg = true,
 	.has_hostpc = false,
@@ -677,11 +805,14 @@ static void smba_usb_init(void)
 
 static void __init tegra_smba_init(void)
 {
+	struct clk *clk;
+	
 	tegra_clk_init_from_table(smba_clk_init_table);
 	smba_pinmux_init();
 	smba_i2c_init();
 	smba_uart_init();
-	tegra_ram_console_debug_init();
+	//tegra_ram_console_debug_init();
+	platform_device_register(&ram_console_device);
 	smba_nand_register_devices();
 	smba_sdhci_init();
 	smba_charge_init();
@@ -704,7 +835,7 @@ void __init tegra_smba_reserve(void)
 		pr_warn("Cannot reserve first 4K of memory for safety\n");
 
 	/*tegra_reserve(SZ_256M, SZ_8M + SZ_1M, SZ_16M);
-	tegra_ram_console_debug_reserve(SZ_1M); WHAT DOES THIS DO?*/ 
+	tegra_ram_console_debug_reserve(SZ_1M); WHAT DOES THIS DO?*/
 }
 
 static void __init tegra_smba_fixup(struct machine_desc *desc,
