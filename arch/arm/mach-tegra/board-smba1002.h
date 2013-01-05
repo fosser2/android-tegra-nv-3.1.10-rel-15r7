@@ -124,23 +124,17 @@ extern int smba_bt_wifi_gpio_init(void);
 extern void smba_wifi_set_cd(int val);
 
 extern int  smba_pinmux_init(void);
-extern void smba_clks_init(void);
 
 extern int smba_usb_register_devices(void);
 extern int smba_audio_register_devices(void);
 extern int smba_panel_init(void);
 extern int smba_uart_register_devices(void);
 extern int smba_spi_register_devices(void);
-extern int smba_i2c_register_devices(void);
 extern int smba_power_register_devices(void);
-extern int smba_keys_init(void);
-extern int smba_touch_register_devices(void);
 extern int smba_sdhci_init(void);
 extern int smba_sensors_register_devices(void);
 extern int smba_wlan_pm_register_devices(void);
 extern int smba_gps_pm_register_devices(void);
-extern void smba_setup_bluesleep(void);
-extern void smba_bt_rfkill(void);
 extern int smba_nand_register_devices(void);
 extern int smba_camera_register_devices(void);
 extern int smba_charge_init(void);
@@ -161,3 +155,4 @@ extern int smba_charger_init(void);
 
 
 #endif
+
