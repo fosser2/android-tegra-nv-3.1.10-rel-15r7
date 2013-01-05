@@ -55,9 +55,12 @@
 #include <mach/tegra_alc5623_pdata.h>
 #include <mach/audio.h>
 #include <mach/usb_phy.h>
+#include <mach/memory.h>
 
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
+#include <asm/mach/time.h>
+#include <asm/setup.h>
 
 #include "board.h"
 #include "clock.h"
@@ -709,12 +712,8 @@ static void __init tegra_smba_fixup(struct machine_desc *desc,
 {
 	mi->nr_banks = SMBA1002_MEM_BANKS;
 	mi->bank[0].start = PHYS_OFFSET;
-#if defined(DYNAMIC_GPU_MEM)
-	mi->bank[0].size  = SMBA1002_MEM_SIZE;
-#else
 	mi->bank[0].size  = SMBA1002_MEM_SIZE - SMBA1002_GPU_MEM_SIZE;
-#endif
-}
+}	
 
 MACHINE_START(HARMONY, "harmony")
 .boot_params = 0x00000100,
