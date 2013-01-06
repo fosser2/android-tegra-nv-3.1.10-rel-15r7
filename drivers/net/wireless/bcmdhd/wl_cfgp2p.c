@@ -1595,7 +1595,7 @@ wl_cfgp2p_supported(struct wl_priv *wl, struct net_device *ndev)
 	               &p2p_supported);
 	if (ret < 0) {
 		CFGP2P_ERR(("wl p2p error %d\n", ret));
-		return 0;
+		//return 0;
 	}
 	if (p2p_supported == 1) {
 		CFGP2P_INFO(("p2p is supported\n"));
