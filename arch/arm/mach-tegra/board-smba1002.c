@@ -242,9 +242,8 @@ EXPORT_SYMBOL_GPL(smba_gps_mag_deinit);
 
 static struct rfkill_gpio_platform_data bluetooth_rfkill = {
 	.name		= "bluetooth_rfkill",
-	.reset_gpio	= SMBA1002_BT_RESET,
 	.shutdown_gpio	= -1,
-	.power_clk_name	= "bcm4329_32k_clk",
+	.reset_gpio	= SMBA1002_BT_RESET,	
 	.type		= RFKILL_TYPE_BLUETOOTH,
 };
 
@@ -255,6 +254,14 @@ static struct platform_device bluetooth_rfkill_device = {
 		.platform_data = &bluetooth_rfkill,
 	},
 };
+
+void __init smba_setup_bluesleep(void)
+{
+	/*Add Clock Resource*/
+	clk_add_alias("bcm4329_32k_clk", bluetooth_rfkill_device.name, \
+				"blink", NULL);
+	return;
+}
 
 static struct resource smba_bluesleep_resources[] = {
 	[0] = {
@@ -273,7 +280,7 @@ static struct resource smba_bluesleep_resources[] = {
 		.name = "host_wake",
 			.start  = TEGRA_GPIO_TO_IRQ(SMBA1002_BT_IRQ),
 			.end    = TEGRA_GPIO_TO_IRQ(SMBA1002_BT_IRQ),
-			.flags  = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHEDGE,
+			.flags  = IORESOURCE_IRQ | IORESOURCE_IRQ_LOWEDGE,
 	},
 };
 
@@ -284,15 +291,6 @@ static struct platform_device smba_bluesleep_device = {
 	.resource       = smba_bluesleep_resources,
 };
 
-void __init smba_setup_bluesleep(void)
-{
-	clk_add_alias("bcm4329_32k_clk", bluetooth_rfkill_device.name, "blink", NULL);
-	tegra_gpio_enable(SMBA1002_BT_IRQ);
-	tegra_gpio_enable(SMBA1002_BT_RESET);
-	return;
-}
-
-
 static struct platform_device *smba_devices[] __initdata = {
 	&tegra_pmu_device,
 	&bluetooth_rfkill_device,
@@ -302,8 +300,6 @@ static struct platform_device *smba_devices[] __initdata = {
 
 static void __init tegra_smba_init(void)
 {
-	struct clk *clk;
-
 	/* Initialize the pinmux */
 	smba_pinmux_init();
 
