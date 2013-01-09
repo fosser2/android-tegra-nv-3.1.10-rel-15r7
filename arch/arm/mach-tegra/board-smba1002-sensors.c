@@ -24,7 +24,7 @@
 #include <linux/platform_device.h>
 #include <linux/gpio.h>
 #include <linux/adt7461.h>
-#include <linux/power/bq20z75.h>
+#include <linux/power/smba-battery.h>
 
 #include "board-smba1002.h"
 #include "gpio-names.h"
@@ -32,7 +32,7 @@
 
 static struct i2c_board_info __initdata smba_i2c_bus0_sensor_info[] = {
 	{
-		I2C_BOARD_INFO("bq20z75", 0x0B),
+		I2C_BOARD_INFO("smba-battery", 0x0B),
 	},
 	{
 		I2C_BOARD_INFO("so340010_kbd", 0x2c),
