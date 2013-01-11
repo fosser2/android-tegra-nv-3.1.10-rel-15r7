@@ -24,6 +24,11 @@ config VIDEOBUF_DMA_CONTIG
 	select VIDEOBUF_GEN
 	tristate
 
+config VIDEOBUF_DMA_NVMAP
+        depends on HAS_DMA
+        select VIDEOBUF_GEN
+        tristate
+
 config VIDEOBUF_DVB
 	tristate
 	select VIDEOBUF_GEN
@@ -977,6 +982,20 @@ config VIDEO_S5P_MIPI_CSIS
 	  To compile this driver as a module, choose M here: the
 	  module will be called s5p-csis.
 
+config VIDEO_TEGRA
+        tristate "Tegra soc_camera host driver"
+        depends on VIDEO_DEV && ARCH_TEGRA && SOC_CAMERA
+        select VIDEOBUF_DMA_NVMAP
+        ---help---
+          This is a v4l2 driver for the Tegra camera interface
+
+config VIDEO_S5K6AA
+        tristate "Samsung S5K6AAFX sensor support"
+        depends on I2C && VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+        ---help---
+          This is a V4L2 sensor-level driver for Samsung S5K6AA(FX) 1.3M
+          camera sensor with an embedded SoC image signal processor.
+        
 source "drivers/media/video/s5p-tv/Kconfig"
 
 #

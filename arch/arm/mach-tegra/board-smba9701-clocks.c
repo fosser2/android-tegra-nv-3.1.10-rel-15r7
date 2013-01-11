@@ -65,9 +65,14 @@ static __initdata struct tegra_clk_init_table smba_clk_init_table[] = {
         { "pwm",		"clk_32k",	32768,		false},
         { "i2s1",		"pll_a_out0",	0,		false},
         { "i2s2",		"pll_a_out0",	0,		false},
-	{ "audio",              "pll_a_out0",   0,       	true},
+	{ "audio",		"pll_a_out0",	0,		true},
         { "spdif_out",		"pll_a_out0",	0,		false},
-        { NULL,                 NULL,		0,		0},
+	{ "pll_m",		NULL,		0,		false},         /* always on - memory clocks */
+	{ "csus",		"clk_m",	0,		false},         /* tegra_camera */
+	{ "isp",		"clk_m",	0,		false},         /* tegra_camera? */
+	{ "vi_sensor",		"pll_m",	20000000,	false},         /* tegra_camera */
+	{ "vi",			"pll_m",	21000000,	false},         /* tegra_camera */
+	{ NULL,			NULL,		0,		0},
 };
 
 void __init smba_clks_init(void)
