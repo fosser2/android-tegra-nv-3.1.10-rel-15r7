@@ -765,7 +765,7 @@ unsigned int to_rgb888(unsigned int temp)
 		red = (red << 3) | (red >> 2);
 		green = (green << 2) | (green >> 4);
 		blue = (blue << 3) | (blue >> 2);
-		return (red << 16) | (green << 8) | (blue << 0);
+		return (blue << 16) | (green << 8) | (red << 0);
 	}
  
     void tegra_move_framebuffer(unsigned long to, unsigned long from,
