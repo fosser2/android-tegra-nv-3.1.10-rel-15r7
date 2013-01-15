@@ -159,44 +159,6 @@ tegra_bootloader_fb_size = nv_memhdl[i].size;
 }
 __tagtable(ATAG_NVIDIA, parse_tag_nvidia);
 
-
-
-
-#ifdef CONFIG_ANDROID_RAM_CONSOLE
-static struct resource ram_console_resources[] = {
-	{
-		.flags = IORESOURCE_MEM,
-	},
- };
- 
- static struct platform_device ram_console_device = {
-	.name           = "ram_console",
-	.id             = -1,
-	.num_resources  = ARRAY_SIZE(ram_console_resources),
-	.resource       = ram_console_resources,
-};
-
-static void __init tegra_ramconsole_reserve(unsigned long size)
-{
-	struct resource *res;
-	long ret;
-
-	res = platform_get_resource(&ram_console_device, IORESOURCE_MEM, 0);
-	if (!res) {
-		pr_err("Failed to find memory resource for ram console\n");
-		return;
-	}
-	res->start = memblock_end_of_DRAM() - size;
-	res->end = res->start + size - 1;
-	ret = memblock_remove(res->start, size);
-	if (ret) {
-		ram_console_device.resource = NULL;
-		ram_console_device.num_resources = 0;
-		pr_err("Failed to reserve memory block for ram console\n");
-	}
-}
-#endif
-
 #ifdef SMBA1002_GPS
 /*Fosser2's GPS MOD*/
 static atomic_t smba_gps_mag_powered = ATOMIC_INIT(0);
@@ -354,12 +316,6 @@ static void __init tegra_smba_init(void)
 	/* Register gps powermanagement devices */
 	smba_gps_pm_register_devices();
 #endif	
-	tegra_release_bootloader_fb();
-
-#ifdef CONFIG_ANDROID_RAM_CONSOLE
-	/* Register the RAM console device */
-	platform_device_register(&ram_console_device);
-#endif
 
 	/* Release the tegra bootloader framebuffer */
 	tegra_release_bootloader_fb();
@@ -373,11 +329,6 @@ static void __init tegra_smba_reserve(void)
 	/* Reserve the graphics memory */		
 #if defined(DYNAMIC_GPU_MEM)
 	tegra_reserve(SMBA1002_GPU_MEM_SIZE, SMBA1002_FB1_MEM_SIZE, SMBA1002_FB2_MEM_SIZE);
-#endif
-
-#ifdef CONFIG_ANDROID_RAM_CONSOLE
-	/* Reserve 1M memory for the RAM console */
-	tegra_ramconsole_reserve(SZ_1M);
 #endif
 }
 
