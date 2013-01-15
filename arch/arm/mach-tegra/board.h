@@ -101,7 +101,7 @@ void __init tegra_release_bootloader_fb(void);
 void __init tegra_protected_aperture_init(unsigned long aperture);
 int  __init tegra_init_board_info(void);
 void tegra_move_framebuffer(unsigned long to, unsigned long from,
-	unsigned long size);
+unsigned long to_size, unsigned long from_size);
 bool is_tegra_debug_uartport_hs(void);
 int get_tegra_uart_debug_port_id(void);
 int arb_lost_recovery(int scl_gpio, int sda_gpio);
@@ -178,3 +178,4 @@ int get_maximum_cpu_current_supported(void);
 enum image_type get_tegra_image_type(void);
 
 #endif
+
