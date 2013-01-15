@@ -71,10 +71,6 @@
 #include "wakeups-t2.h"
 #include "pm.h"
 
-
-#define PMC_CTRL 0x0
-#define PMC_CTRL_INTR_LOW (1 << 17)
-
 /* NVidia bootloader tags */
 #define ATAG_NVIDIA 0x41000801
 #define MAX_MEMHDL 8
@@ -165,40 +161,6 @@ tegra_bootloader_fb_size = nv_memhdl[i].size;
         return 0;
 }
 __tagtable(ATAG_NVIDIA, parse_tag_nvidia);
-
-
-static struct resource ram_console_resources[] = {
-	{
-		.flags = IORESOURCE_MEM,
-	},
- };
- 
- static struct platform_device ram_console_device = {
-	.name           = "ram_console",
-	.id             = -1,
-	.num_resources  = ARRAY_SIZE(ram_console_resources),
-	.resource       = ram_console_resources,
-};
-
-static void __init tegra_ramconsole_reserve(unsigned long size)
-{
-	struct resource *res;
-	long ret;
-
-	res = platform_get_resource(&ram_console_device, IORESOURCE_MEM, 0);
-	if (!res) {
-		pr_err("Failed to find memory resource for ram console\n");
-		return;
-	}
-	res->start = memblock_end_of_DRAM() - size;
-	res->end = res->start + size - 1;
-	ret = memblock_remove(res->start, size);
-	if (ret) {
-		ram_console_device.resource = NULL;
-		ram_console_device.num_resources = 0;
-		pr_err("Failed to reserve memory block for ram console\n");
-	}
-}
 
 static struct rfkill_gpio_platform_data smba_bt_rfkill_pdata[] = {
 	{
@@ -812,7 +774,7 @@ static void __init tegra_smba_init(void)
 	smba_i2c_init();
 	smba_uart_init();
 	//tegra_ram_console_debug_init();
-	platform_device_register(&ram_console_device);
+	//platform_device_register(&ram_console_device);
 	smba_nand_register_devices();
 	smba_sdhci_init();
 	smba_charge_init();
@@ -834,8 +796,7 @@ void __init tegra_smba_reserve(void)
 	if (memblock_reserve(0x0, 4096) < 0)
 		pr_warn("Cannot reserve first 4K of memory for safety\n");
 
-	/*tegra_reserve(SZ_256M, SZ_8M + SZ_1M, SZ_16M);
-	tegra_ram_console_debug_reserve(SZ_1M); WHAT DOES THIS DO?*/
+	tegra_reserve(SZ_128M, SZ_8M, SZ_16M);
 }
 
 static void __init tegra_smba_fixup(struct machine_desc *desc,
@@ -856,4 +817,5 @@ MACHINE_START(HARMONY, "harmony")
 .timer = &tegra_timer,
 .init_machine = tegra_smba_init,
 MACHINE_END
+
 
