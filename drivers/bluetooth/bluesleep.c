@@ -70,7 +70,9 @@
 /* enable/disable wake-on-bluetooth */
 #define BT_ENABLE_IRQ_WAKE 1
 
+#ifdef CONFIG_BT_BLUEDROID
 #define BT_BLUEDROID_SUPPORT 1
+#endif
 
 struct bluesleep_info {
 	unsigned host_wake;

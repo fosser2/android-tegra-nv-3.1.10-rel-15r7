@@ -113,6 +113,15 @@ config BT_TIBLUESLEEP
           Say Y here to compile support for bluesleep support into the kernel
           or say M to compile it as module (bluesleep).
 
+config BT_BLUEDROID
+        tristate "Bluedroid support in bluesleep"		  
+		depends on BT_BLUESLEEP
+		help
+			Bluedroid support in Bluetooth Bluesleep Driver.
+			
+			Say Y here to compile support for BlueDroid in bluesleep driver,
+			otherwise BlueZ will be used.
+		  
 config BT_HCIBPA10X
 	tristate "HCI BPA10x USB driver"
 	depends on USB
