@@ -261,7 +261,9 @@ static struct platform_device *smba_devices[] __initdata = {
 	&tegra_pmu_device,
 	&bluetooth_rfkill_device,
 	&smba_bluesleep_device,
+#ifdef CONFIG_BT_BLUEDROID
 	&tegra_uartc_device,
+#endif
 	&tegra_wdt_device
 };
 
@@ -359,4 +361,3 @@ MACHINE_START(HARMONY, "harmony")
 .timer = &tegra_timer,
 .init_machine = tegra_smba_init,
 MACHINE_END
-
