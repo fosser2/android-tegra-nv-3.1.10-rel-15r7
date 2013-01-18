@@ -217,6 +217,10 @@ static struct platform_device bluetooth_rfkill_device = {
 	},
 };
 
+#ifdef CONFIG_BT_BLUEDROID
+extern void bluesleep_setup_uart_port(struct platform_device *uart_dev);
+#endif
+
 void __init smba_setup_bluesleep(void)
 {
 	/*Add Clock Resource*/
@@ -257,6 +261,7 @@ static struct platform_device *smba_devices[] __initdata = {
 	&tegra_pmu_device,
 	&bluetooth_rfkill_device,
 	&smba_bluesleep_device,
+	&tegra_uartc_device,
 	&tegra_wdt_device
 };
 
@@ -354,3 +359,4 @@ MACHINE_START(HARMONY, "harmony")
 .timer = &tegra_timer,
 .init_machine = tegra_smba_init,
 MACHINE_END
+
