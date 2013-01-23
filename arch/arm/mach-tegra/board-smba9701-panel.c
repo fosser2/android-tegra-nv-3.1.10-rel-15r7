@@ -33,6 +33,7 @@
 #include <mach/dc.h>
 #include <mach/fb.h>
 #include <linux/mfd/tps6586x.h>
+#include <linux/antares_dock.h>
 
 #include "devices.h"
 #include "gpio-names.h"
@@ -60,8 +61,6 @@ static int smba_backlight_init(struct device *dev) {
 	ret = gpio_direction_output(SMBA9701_BL_ENB, 1);
 	if (ret < 0)
 		gpio_free(SMBA9701_BL_ENB);
-	else
-		tegra_gpio_enable(SMBA9701_BL_ENB);
 
 	return ret;
 };
@@ -69,7 +68,6 @@ static int smba_backlight_init(struct device *dev) {
 static void smba_backlight_exit(struct device *dev) {
 	gpio_set_value(SMBA9701_BL_ENB, 0);
 	gpio_free(SMBA9701_BL_ENB);
-	tegra_gpio_disable(SMBA9701_BL_ENB);
 }
 
 static int smba_backlight_notify(struct device *unused, int brightness)
@@ -343,12 +341,26 @@ static struct platform_device smba_nvmap_device = {
 	},
 };
 
+static struct dock_platform_data dock_on_platform_data = {
+	.irq = TEGRA_GPIO_TO_IRQ(SMBA9701_DOCK),
+	.gpio_num = SMBA9701_DOCK,
+      };
+static struct platform_device tegra_dock_device = {
+	.name = "tegra_dock",
+	.id   = -1,
+	.dev = {
+	    .platform_data = &dock_on_platform_data,
+	},
+};
+                                              
+
 static struct platform_device *smba_gfx_devices[] __initdata = {
 	&smba_nvmap_device,
 	&tegra_pwfm0_device,
 	&smba_backlight_device,
         &tegra_gart_device,
         &tegra_avp_device,
+        &tegra_dock_device
 };
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -442,7 +454,11 @@ int __init smba_panel_init(void)
 
 	/* Copy the bootloader fb to the fb. */
 	tegra_move_framebuffer(tegra_fb_start, tegra_bootloader_fb_start,
-		min(tegra_fb_size, tegra_bootloader_fb_size));
+		tegra_fb_size, tegra_bootloader_fb_size);
+
+	/* Copy the bootloader fb to the fb2. */
+	tegra_move_framebuffer(tegra_fb2_start, tegra_bootloader_fb_start,
+		tegra_fb2_size, tegra_bootloader_fb_size);
 
 #if defined(CONFIG_TEGRA_GRHOST) && defined(CONFIG_TEGRA_DC)
 	if (!err)
