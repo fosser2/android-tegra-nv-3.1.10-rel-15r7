@@ -69,7 +69,7 @@ enum sbs_battery_mode {
 #define BATTERY_FULL_CHARGED		0x20
 #define BATTERY_FULL_DISCHARGED		0x10
 
-#define BATTERY_POLLING_RATE	(10)
+#define BATTERY_POLLING_RATE	(60)
 
 #define SBS_DATA(_psp, _addr, _min_value, _max_value) { \
 	.psp = _psp, \
