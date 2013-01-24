@@ -81,7 +81,7 @@
 #define SMBA1002_MEM_SIZE 			SZ_512M			/* Total memory */
 #define SMBA1002_MEM_BANKS			1
 
-#define SMBA1002_GPU_MEM_SIZE  			(SZ_1M*100)			/* Memory reserved for GPU */
+#define SMBA1002_GPU_MEM_SIZE  			(SZ_1M*128)			/* Memory reserved for GPU */
 
 #define SMBA1002_FB1_MEM_SIZE 	SZ_16M			/* Memory reserved for Framebuffer 1: LCD */
 #define SMBA1002_FB2_MEM_SIZE 	SZ_8M			/* Memory reserved for Framebuffer 2: HDMI out */
