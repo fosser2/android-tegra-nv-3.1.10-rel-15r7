@@ -1,7 +1,6 @@
 /*
- * arch/arm/mach-tegra/board-smba1002-sdhci.c
- *
  * Copyright (C) 2010 Google, Inc.
+ * Copyright (C) 2010-2012 NVIDIA Corporation.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -68,19 +67,6 @@ static struct resource sdhci_resource0[] = {
 	},
 };
 
-static struct resource sdhci_resource1[] = {
-	[0] = {
-		.start	= INT_SDMMC2,
-		.end	= INT_SDMMC2,
-		.flags	= IORESOURCE_IRQ,
-	},
-	[1] = {
-		.start	= TEGRA_SDMMC2_BASE,
-		.end	= TEGRA_SDMMC2_BASE + TEGRA_SDMMC2_SIZE-1,
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
 static struct resource sdhci_resource2[] = {
 	[0] = {
 		.start	= INT_SDMMC3,
@@ -141,13 +127,6 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data0 = {
 	.power_gpio = -1,
 };
 
-static struct tegra_sdhci_platform_data tegra_sdhci_platform_data1 = {
-	.is_8bit = 1,
-	.cd_gpio = -1,
-	.wp_gpio = -1,
-	.power_gpio = -1,
-};
-
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data2 = {
 	.cd_gpio = SMBA1002_SDHC_CD,
 	.wp_gpio = SMBA1002_SDHC_WP,
@@ -175,16 +154,6 @@ static struct platform_device tegra_sdhci_device0 = {
 	.num_resources	= ARRAY_SIZE(sdhci_resource0),
 	.dev = {
 		.platform_data = &tegra_sdhci_platform_data0,
-	},
-};
-
-static struct platform_device tegra_sdhci_device1 = {
-	.name		= "sdhci-tegra",
-	.id		= 1,
-	.resource	= sdhci_resource1,
-	.num_resources	= ARRAY_SIZE(sdhci_resource1),
-	.dev = {
-		.platform_data = &tegra_sdhci_platform_data1,
 	},
 };
 
@@ -232,9 +201,6 @@ static int smba1002_wifi_set_carddetect(int val)
 static int smba1002_wifi_power(int on)
 {
 	pr_debug("%s: %d\n", __func__, on);
-
-//	gpio_set_value(SMBA1002_WLAN_POWER, on);
-//	mdelay(100);
 	gpio_set_value(SMBA1002_WLAN_RESET, on);
 	mdelay(200);
 
@@ -290,14 +256,9 @@ static int __init smba_wifi_init(void)
 }
 int __init smba_sdhci_init(void)
 {
-	tegra_gpio_enable(tegra_sdhci_platform_data2.power_gpio);
-	tegra_gpio_enable(tegra_sdhci_platform_data2.cd_gpio);
-
-	tegra_gpio_enable(tegra_sdhci_platform_data3.power_gpio);
-
-	platform_device_register(&tegra_sdhci_device0);
-	platform_device_register(&tegra_sdhci_device3);
-	platform_device_register(&tegra_sdhci_device2);
+	platform_device_register(&tegra_sdhci_device3); //INTERNAL SD CARD
+	platform_device_register(&tegra_sdhci_device2); //EXTERNAL SD CARD
+	platform_device_register(&tegra_sdhci_device0); //WIFI (BCMDHD)
 
 	smba_wifi_init();
 	return 0;
