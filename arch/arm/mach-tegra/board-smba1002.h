@@ -50,10 +50,8 @@
 #define SMBA1002_BL_VDD				TEGRA_GPIO_PW0
 #define SMBA1002_BL_PWM				TEGRA_GPIO_PU3  /* PWM */
 #define	SMBA1002_ENABLE_VDD_VID		TEGRA_GPIO_PD1	/* 1=enabled.  Powers HDMI. Wait 500uS to let it stabilize before returning */
-#define SMBA1002_SDIO0_CD			TEGRA_GPIO_PI5
-#define SMBA1002_SDHC_CD			TEGRA_GPIO_PI5
+#define SMBA1002_SDHC_CD			TEGRA_GPIO_PI5  /* External SD Card Detect */
 #define SMBA1002_SDHC_WP			-1				/*1=Write Protected */
-#define SMBA1002_NVEC_REQ			TEGRA_GPIO_PD0	/* Set to 0 to send a command to the NVidia Embedded controller */
 #define SMBA1002_WL_BT_POWER 		TEGRA_GPIO_PK5
 #define SMBA1002_WLAN_RESET 		TEGRA_GPIO_PK6
 #define SMBA1002_BT_RESET 			TEGRA_GPIO_PU0  /* 0=reset asserted */
@@ -61,8 +59,7 @@
 #define SMBA1002_LOW_BATT			TEGRA_GPIO_PW3  /*(0=low battery)*/
 #define SMBA1002_TS_RESET			TEGRA_GPIO_PH1
 #define SMBA1002_TS_POWER			TEGRA_GPIO_PK2
-#define SMBA1002_SDIO0_POWER		TEGRA_GPIO_PD0	/* SDIO0 and SDIO2 power */
-#define SMBA1002_SDHC_POWER			TEGRA_GPIO_PD0
+#define SMBA1002_SDHC_POWER			TEGRA_GPIO_PD0  /* External SD Power On */
 #define SMBA1002_CAMERA_RESET   	TEGRA_GPIO_PD2  /* 1=powered on */
 #define SMBA1002_CHARGING_DISABLE  	TEGRA_GPIO_PK7
 #define SMBA1002_INT_MIC_EN    		TEGRA_GPIO_PX0  /* 0 = disabled */
@@ -163,3 +160,4 @@ extern int smba_s5k6aa_set_power(int enable);
 
 
 #endif
+
