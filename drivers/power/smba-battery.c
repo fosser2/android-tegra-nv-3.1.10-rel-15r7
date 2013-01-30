@@ -833,9 +833,8 @@ static int sbs_suspend(struct i2c_client *client,
 	struct sbs_info *chip = i2c_get_clientdata(client);
 	s32 ret;
 
-	if (chip->poll_time > 0)
-		cancel_delayed_work_sync(&chip->work);
-
+	//if (chip->poll_time > 0)
+	cancel_delayed_work_sync(&chip->work);
 	flush_workqueue(battery_work_queue);
 
 	/* write to manufacturer access with sleep command */
@@ -851,7 +850,8 @@ static int sbs_suspend(struct i2c_client *client,
 static int sbs_resume(struct i2c_client *client)
 {
 	struct sbs_info *chip = i2c_get_clientdata(client);
-	cancel_delayed_work_sync(&chip->work);	
+	cancel_delayed_work_sync(&chip->work);
+	INIT_DELAYED_WORK(&chip->work, sbs_delayed_work);
 	queue_delayed_work(battery_work_queue, &chip->work, 5*HZ);
 
 	return 0;	
