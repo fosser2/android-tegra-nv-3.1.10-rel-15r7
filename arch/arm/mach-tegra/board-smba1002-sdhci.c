@@ -131,9 +131,6 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data2 = {
 	.cd_gpio = SMBA1002_SDHC_CD,
 	.wp_gpio = SMBA1002_SDHC_WP,
 	.power_gpio = SMBA1002_SDHC_POWER,
-	.mmc_data = {
-		.built_in = 1,
-	}
 };
 
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
