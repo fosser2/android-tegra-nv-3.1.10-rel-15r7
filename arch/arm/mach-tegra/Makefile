@@ -213,6 +213,7 @@ obj-${CONFIG_MACH_SMBA1002}              += board-smba1002.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-sdhci.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-pm-gps.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-pm-camera.o
+obj-${CONFIG_MACH_SMBA1002}              += bcb.o
 
 # smba9701 arch drivers
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-audio.o
