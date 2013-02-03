@@ -48,16 +48,6 @@ struct bootloader_message {
 	uint32_t magic;
 };
 
-/* TODO: device names/partition numbers are unstable. Add support for looking
- * by GPT partition UUIDs */
-static char *bootdev = "sda";
-module_param(bootdev, charp, S_IRUGO);
-MODULE_PARM_DESC(bootdev, "Block device for bootloader communication");
-
-static int partno;
-module_param(partno, int, S_IRUGO);
-MODULE_PARM_DESC(partno, "Partition number for bootloader communication");
-
 static int misc_write(struct bootloader_message *boot);
 
 static void mmtdchar_erase_callback (struct erase_info *instr)
@@ -193,13 +183,15 @@ static int bcb_reboot_notifier_call(
 		goto out;
 	}
 
+	memset(bcb, 0, sizeof(*bcb));
 	snprintf(bcb->command, sizeof(bcb->command), "boot-%s", cmd);
 	snprintf(bcb->recovery, sizeof(bcb->recovery), "%s", cmd);
 	misc_write(bcb);
 
 	ret = NOTIFY_OK;
 out:
-	kfree(bcb);
+	if(bcb)
+		kfree(bcb);
 
 	return ret;
 }
@@ -210,16 +202,11 @@ static struct notifier_block bcb_reboot_notifier = {
 
 static int __init bcb_init(void)
 {
-	if (partno < 1) {
-		pr_err("bcb: partition number not specified\n");
-		return -1;
-	}
 	if (register_reboot_notifier(&bcb_reboot_notifier)) {
 		pr_err("bcb: unable to register reboot notifier\n");
 		return -1;
 	}
-	pr_info("bcb: writing commands to (%s,%d)\n",
-			bootdev, partno);
+	pr_info("bcb: registered reboot notifier\n");
 	return 0;
 }
 module_init(bcb_init);
