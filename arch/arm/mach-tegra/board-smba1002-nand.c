@@ -373,54 +373,11 @@ static struct tegra_nand_chip_parms smba_nand_chip_parms[] = {
      },
 };
 
-/*
-	Default NAND layout is:
-	16384K@9984K(misc)
-	16384K@26880K(recovery)
-	16384K@43776K(boot)
-	204800K@60672K(system)
-	781952K@266112K(cache)
-	
-	Can be overriden from the command line
-*/
-	
-static struct mtd_partition smba_nand_partitions[] = {
-	[0] = {
-		.name		= "misc",
-		.offset		=  9984*1024,
-		.size		=  16384*1024,
-		.mask_flags	= MTD_WRITEABLE, /* r/o */
-	},
-	[1] = {
-		.name		= "recovery",
-		.offset		=  26880*1024,
-		.size		=  16384*1024,
-		.mask_flags	= MTD_WRITEABLE, /* r/o */
-	},
-	[2] = {
-		.name		= "boot",
-		.offset		=  43776*1024,
-		.size		=  16384*1024,
-	},
-	[3] = {
-		.name		= "system",
-		.offset		=  60672*1024,
-		.size		= 204800*1024,
-	},
-	[4] = {
-		.name		= "cache",
-		.offset		= 266112*1024,
-		.size		=  781952*1024,
-	},
-};
-
 static struct tegra_nand_platform smba_nand_data = {
 	.max_chips	= 8,
 	.chip_parms	= smba_nand_chip_parms,
 	.nr_chip_parms  = ARRAY_SIZE(smba_nand_chip_parms),
-	.parts		= smba_nand_partitions,
-	.nr_parts	= ARRAY_SIZE(smba_nand_partitions),
-	.wp_gpio = TEGRA_GPIO_PC7,
+	.wp_gpio = SMBA1002_NAND_WPN,
 };
 
 static struct resource resources_nand[] = {
@@ -443,11 +400,6 @@ struct platform_device tegra_nand_device = {
 
 int __init smba_nand_register_devices(void)
 {
-
-	/* Enable writes on NAND */
-	gpio_request(SMBA1002_NAND_WPN, "nand_wp#");
-	gpio_direction_output(SMBA1002_NAND_WPN, 1);
-
 	platform_device_register(&tegra_nand_device);
 	return 0;
 } 
