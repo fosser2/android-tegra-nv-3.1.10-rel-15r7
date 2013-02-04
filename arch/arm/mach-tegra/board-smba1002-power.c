@@ -238,24 +238,6 @@ static struct tegra_suspend_platform_data smba_suspend_data = {
         .board_resume = smba_board_resume,
 };
 
-static struct regulator_consumer_supply wireless_pwr_consumer_supply[] = {
-	REGULATOR_SUPPLY("wireless_pwr", NULL),
-};
-
-FIXED_VOLTAGE_REG_INIT(3, wireless_pwr, 2800000, SMBA1002_WL_BT_POWER,
-								0, 1, 1, REGULATOR_CHANGE_STATUS, 0);
-
-static struct platform_device *fixed_voltage_regulators[] __initdata = {
-        ADD_FIXED_VOLTAGE_REG(wireless_pwr),
-};
-
-
-int __init smba_fixed_voltage_regulator_init(void)
-{
-	return platform_add_devices(fixed_voltage_regulators,
-				ARRAY_SIZE(fixed_voltage_regulators));
-}
-
 int __init smba_regulator_init(void)
 {
 	void __iomem *pmc = IO_ADDRESS(TEGRA_PMC_BASE);
@@ -275,9 +257,8 @@ int __init smba_regulator_init(void)
 
 	i2c_register_board_info(4, smba_regulators, 1);
 
+//	regulator_has_full_constraints();
 	tegra_init_suspend(&smba_suspend_data);
-
-	smba_fixed_voltage_regulator_init();
 
 	return 0;
 }
