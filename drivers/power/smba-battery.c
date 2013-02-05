@@ -65,7 +65,7 @@ enum {
 #define BATTERY_FULL_CHARGED		0x20
 #define BATTERY_FULL_DISCHARGED		0x10
 
-#define BATTERY_POLLING_RATE		100
+#define BATTERY_POLLING_RATE		60
 
 #define SMBA_DATA(_psp, _addr, _min_value, _max_value)	\
 	{							\

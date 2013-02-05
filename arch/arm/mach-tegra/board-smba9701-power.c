@@ -353,30 +353,3 @@ int __init smba_regulator_init(void)
 
 	return 0;
 }
-
-static char *smba_battery[] = {
-        "battery",
-};
-
-static struct gpio_charger_platform_data smba_charger_pdata = {
-        .name = "ac",
-        .type = POWER_SUPPLY_TYPE_MAINS,
-        .gpio = SMBA9701_AC_PRESENT,
-        .gpio_active_low = 1,
-        .supplied_to = smba_battery,
-        .num_supplicants = ARRAY_SIZE(smba_battery),
-};
-
-static struct platform_device smba_charger_device = {
-        .name = "gpio-charger",
-        .dev = {
-                .platform_data = &smba_charger_pdata,
-        },
-};
-
-int __init smba_charger_init(void)
-{
-        tegra_gpio_enable(SMBA9701_AC_PRESENT);
-        platform_device_register(&smba_charger_device);
-        return 0;
-}

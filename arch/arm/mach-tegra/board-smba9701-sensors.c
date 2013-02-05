@@ -24,7 +24,6 @@
 #include <linux/platform_device.h>
 #include <linux/gpio.h>
 #include <linux/adt7461.h>
-#include <linux/power/bq20z75.h>
 #include <linux/lis3lv02d.h>
 
 #include "board-smba9701.h"
@@ -33,8 +32,8 @@
 
 static struct i2c_board_info __initdata smba_i2c_bus0_sensor_info[] = {
 	{
-		I2C_BOARD_INFO("bq20z75", 0x0B),
-//		.irq = TEGRA_GPIO_TO_IRQ(SMBA9701_AC_PRESENT_IRQ),
+		I2C_BOARD_INFO("smba-battery", 0x0B),
+		.irq = TEGRA_GPIO_TO_IRQ(SMBA9701_AC_PRESENT),
 	},
 };
 
