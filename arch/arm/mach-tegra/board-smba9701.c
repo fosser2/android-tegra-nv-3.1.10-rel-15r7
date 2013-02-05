@@ -281,7 +281,6 @@ static void __init tegra_smba_init(void)
 	/* Register the power subsystem - Including the poweroff handler - Required by all the others */
 	smba_charge_init();
 	smba_regulator_init();
-	smba_charger_init();
 
 	/* Register the USB device */
 	smba_usb_register_devices();
