@@ -1,9 +1,11 @@
 /*
- * TeamDRH smba-smart-battery is built off sbs-battery
+ * drivers/power/smba-battery.c
  *
- * Gas Gauge driver for SBS Compliant Batteries
+ * Gas Gauge driver for SMBA1002
+ * TeamDRH (theXfactor2011)
+ * Based of sbs-battery and BQ20z75
  *
- * Copyright (c) 2010, NVIDIA Corporation.
+ * Copyright (c) 2012, NVIDIA Corporation.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,105 +26,80 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/err.h>
+#include <linux/debugfs.h>
 #include <linux/power_supply.h>
 #include <linux/i2c.h>
 #include <linux/slab.h>
 #include <linux/interrupt.h>
-#include <linux/gpio.h>
 
-#include <linux/power/smba-battery.h>
+#include <mach/gpio.h>
 
 enum {
 	REG_MANUFACTURER_DATA,
 	REG_TEMPERATURE,
 	REG_VOLTAGE,
 	REG_CURRENT,
-	REG_CAPACITY,
 	REG_TIME_TO_EMPTY,
 	REG_TIME_TO_FULL,
 	REG_STATUS,
 	REG_CYCLE_COUNT,
+	REG_CAPACITY,
 	REG_SERIAL_NUMBER,
 	REG_REMAINING_CAPACITY,
-	REG_REMAINING_CAPACITY_CHARGE,
 	REG_FULL_CHARGE_CAPACITY,
-	REG_FULL_CHARGE_CAPACITY_CHARGE,
 	REG_DESIGN_CAPACITY,
-	REG_DESIGN_CAPACITY_CHARGE,
 	REG_DESIGN_VOLTAGE,
+	REG_MAX
 };
 
-/* Battery Mode defines */
-#define BATTERY_MODE_OFFSET		0x03
-#define BATTERY_MODE_MASK		0x8000
-enum sbs_battery_mode {
-	BATTERY_MODE_AMPS,
-	BATTERY_MODE_WATTS
-};
+#define BATTERY_MANUFACTURER_SIZE	12
+#define BATTERY_NAME_SIZE		8
 
 /* manufacturer access defines */
 #define MANUFACTURER_ACCESS_STATUS	0x0006
 #define MANUFACTURER_ACCESS_SLEEP	0x0011
 
 /* battery status value bits */
+#define BATTERY_INIT_DONE		0x80
 #define BATTERY_DISCHARGING		0x40
 #define BATTERY_FULL_CHARGED		0x20
 #define BATTERY_FULL_DISCHARGED		0x10
 
-#define BATTERY_POLLING_RATE	(60)
+#define BATTERY_POLLING_RATE		100
 
-#define SBS_DATA(_psp, _addr, _min_value, _max_value) { \
-	.psp = _psp, \
-	.addr = _addr, \
-	.min_value = _min_value, \
-	.max_value = _max_value, \
-}
+#define SMBA_DATA(_psp, _addr, _min_value, _max_value)	\
+	{							\
+		.psp = POWER_SUPPLY_PROP_##_psp,		\
+		.addr = _addr,					\
+		.min_value = _min_value,			\
+		.max_value = _max_value,			\
+	}
 
 struct workqueue_struct *battery_work_queue = NULL;
 
-static const struct chip_data {
+static struct smba_device_data {
 	enum power_supply_property psp;
 	u8 addr;
 	int min_value;
 	int max_value;
-} sbs_data[] = {
-	[REG_MANUFACTURER_DATA] =
-		SBS_DATA(POWER_SUPPLY_PROP_PRESENT, 0x00, 0, 65535),
-	[REG_TEMPERATURE] =
-		SBS_DATA(POWER_SUPPLY_PROP_TEMP, 0x08, 0, 65535),
-	[REG_VOLTAGE] =
-		SBS_DATA(POWER_SUPPLY_PROP_VOLTAGE_NOW, 0x09, 0, 20000),
-	[REG_CURRENT] =
-		SBS_DATA(POWER_SUPPLY_PROP_CURRENT_NOW, 0x0A, -32768, 32767),
-	[REG_CAPACITY] =
-		SBS_DATA(POWER_SUPPLY_PROP_CAPACITY, 0x0D, 0, 100),
-	[REG_REMAINING_CAPACITY] =
-		SBS_DATA(POWER_SUPPLY_PROP_ENERGY_NOW, 0x0F, 0, 65535),
-	[REG_REMAINING_CAPACITY_CHARGE] =
-		SBS_DATA(POWER_SUPPLY_PROP_CHARGE_NOW, 0x0F, 0, 65535),
-	[REG_FULL_CHARGE_CAPACITY] =
-		SBS_DATA(POWER_SUPPLY_PROP_ENERGY_FULL, 0x10, 0, 65535),
-	[REG_FULL_CHARGE_CAPACITY_CHARGE] =
-		SBS_DATA(POWER_SUPPLY_PROP_CHARGE_FULL, 0x10, 0, 65535),
-	[REG_TIME_TO_EMPTY] =
-		SBS_DATA(POWER_SUPPLY_PROP_TIME_TO_EMPTY_AVG, 0x12, 0, 65535),
-	[REG_TIME_TO_FULL] =
-		SBS_DATA(POWER_SUPPLY_PROP_TIME_TO_FULL_AVG, 0x13, 0, 65535),
-	[REG_STATUS] =
-		SBS_DATA(POWER_SUPPLY_PROP_STATUS, 0x16, 0, 65535),
-	[REG_CYCLE_COUNT] =
-		SBS_DATA(POWER_SUPPLY_PROP_CYCLE_COUNT, 0x17, 0, 65535),
-	[REG_DESIGN_CAPACITY] =
-		SBS_DATA(POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN, 0x18, 0, 65535),
-	[REG_DESIGN_CAPACITY_CHARGE] =
-		SBS_DATA(POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN, 0x18, 0, 65535),
-	[REG_DESIGN_VOLTAGE] =
-		SBS_DATA(POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN, 0x19, 0, 65535),
-	[REG_SERIAL_NUMBER] =
-		SBS_DATA(POWER_SUPPLY_PROP_SERIAL_NUMBER, 0x1C, 0, 65535),
+} smba_data[] = {
+	[REG_MANUFACTURER_DATA] = SMBA_DATA(PRESENT, 0x00, 0, 65535),
+	[REG_TEMPERATURE]       = SMBA_DATA(TEMP, 0x08, 0, 65535),
+	[REG_VOLTAGE]           = SMBA_DATA(VOLTAGE_NOW, 0x09, 0, 20000),
+	[REG_CURRENT]           = SMBA_DATA(CURRENT_NOW, 0x0A, -32768, 32767),
+	[REG_CAPACITY]          = SMBA_DATA(CAPACITY, 0x0D, 0, 100),
+	[REG_REMAINING_CAPACITY] = SMBA_DATA(ENERGY_NOW, 0x0F, 0, 65535),
+	[REG_FULL_CHARGE_CAPACITY] = SMBA_DATA(ENERGY_FULL, 0x10, 0, 65535),
+	[REG_TIME_TO_EMPTY]     = SMBA_DATA(TIME_TO_EMPTY_AVG, 0x12, 0, 65535),
+	[REG_TIME_TO_FULL]      = SMBA_DATA(TIME_TO_FULL_AVG, 0x13, 0, 65535),
+	[REG_STATUS]            = SMBA_DATA(STATUS, 0x16, 0, 65535),
+	[REG_CYCLE_COUNT]       = SMBA_DATA(CYCLE_COUNT, 0x17, 0, 65535),
+	[REG_DESIGN_CAPACITY]   = SMBA_DATA(ENERGY_FULL_DESIGN, 0x18, 0, 65535),
+	[REG_DESIGN_VOLTAGE]    = SMBA_DATA(VOLTAGE_MAX_DESIGN, 0x19, 0, 65535),
+	[REG_SERIAL_NUMBER]     = SMBA_DATA(SERIAL_NUMBER, 0x1C, 0, 65535),
 };
 
-static enum power_supply_property sbs_properties[] = {
+static enum power_supply_property smba_battery_properties[] = {
 	POWER_SUPPLY_PROP_STATUS,
 	POWER_SUPPLY_PROP_HEALTH,
 	POWER_SUPPLY_PROP_PRESENT,
@@ -139,114 +116,98 @@ static enum power_supply_property sbs_properties[] = {
 	POWER_SUPPLY_PROP_ENERGY_NOW,
 	POWER_SUPPLY_PROP_ENERGY_FULL,
 	POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN,
-	POWER_SUPPLY_PROP_CHARGE_NOW,
-	POWER_SUPPLY_PROP_CHARGE_FULL,
-	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 };
 
-struct sbs_info {
-	struct i2c_client		*client;
-	struct power_supply		power_supply;
-	struct sbs_platform_data	*pdata;
-	bool				is_present;
-	bool				gpio_detect;
-	bool				enable_detection;
-	int				irq;
-	int				last_state;
-	int				poll_time;
-	struct delayed_work		work;
-	int				ignore_changes;
+static enum power_supply_property smba_ac_properties[] = {
+	POWER_SUPPLY_PROP_ONLINE,
 };
 
-static int sbs_read_word_data(struct i2c_client *client, u8 address)
+static char *power_supplied_to[] = {
+	"battery",
+};
+
+static int smba_bat_get_property(struct power_supply *psy,
+	enum power_supply_property psp, union power_supply_propval *val);
+static int smba_ac_get_property(struct power_supply *psy,
+	enum power_supply_property psp, union power_supply_propval *val);
+
+enum supply_type {
+	SUPPLY_TYPE_BATTERY = 0,
+	SUPPLY_TYPE_AC,
+};
+
+static struct power_supply smba_supply[] = {
+	[SUPPLY_TYPE_BATTERY] = {
+		.name		= "battery",
+		.type		= POWER_SUPPLY_TYPE_BATTERY,
+		.properties	= smba_battery_properties,
+		.num_properties	= ARRAY_SIZE(smba_battery_properties),
+		.get_property	= smba_bat_get_property,
+	},
+	[SUPPLY_TYPE_AC] = {
+		.name = "ac",
+		.type = POWER_SUPPLY_TYPE_MAINS,
+		.supplied_to = power_supplied_to,
+		.num_supplicants = ARRAY_SIZE(power_supplied_to),
+		.properties = smba_ac_properties,
+		.num_properties = ARRAY_SIZE(smba_ac_properties),
+		.get_property = smba_ac_get_property,
+	},
+};
+
+static struct smba_device_info {	
+	struct delayed_work	work;
+	struct i2c_client	*client;
+	int irq;
+	bool battery_present;
+} *smba_device;
+
+static int smba_get_ac_status(void)
 {
-	struct sbs_info *chip = i2c_get_clientdata(client);
-	s32 ret = 0;
-	int retries = 1;
-
-	if (chip->pdata)
-		retries = max(chip->pdata->i2c_retry_count + 1, 1);
-
-	while (retries > 0) {
-		ret = i2c_smbus_read_word_data(client, address);
-		if (ret >= 0)
-			break;
-		retries--;
-	}
-
-	if (ret < 0) {
-		dev_dbg(&client->dev,
-			"%s: i2c read at address 0x%x failed\n",
-			__func__, address);
-		return ret;
-	}
-
-	return le16_to_cpu(ret);
+	int charger_gpio = irq_to_gpio(smba_device->irq);
+	return !gpio_get_value(charger_gpio);
 }
 
-static int sbs_write_word_data(struct i2c_client *client, u8 address,
-	u16 value)
+static int smba_ac_get_property(struct power_supply *psy,
+	enum power_supply_property psp,
+	union power_supply_propval *val)
 {
-	struct sbs_info *chip = i2c_get_clientdata(client);
-	s32 ret = 0;
-	int retries = 1;
-
-	if (chip->pdata)
-		retries = max(chip->pdata->i2c_retry_count + 1, 1);
-
-	while (retries > 0) {
-		ret = i2c_smbus_write_word_data(client, address,
-			le16_to_cpu(value));
-		if (ret >= 0)
-			break;
-		retries--;
-	}
-
-	if (ret < 0) {
-		dev_dbg(&client->dev,
-			"%s: i2c write to address 0x%x failed\n",
-			__func__, address);
-		return ret;
+	switch (psp) {
+	case POWER_SUPPLY_PROP_ONLINE:
+		val->intval = smba_get_ac_status();
+		break;
+	default:
+		dev_err(&smba_device->client->dev,
+			"%s: INVALID property\n", __func__);
+		return -EINVAL;
 	}
 
 	return 0;
 }
 
-static int sbs_get_battery_presence_and_health(
+static int smba_get_battery_presence_and_health(
 	struct i2c_client *client, enum power_supply_property psp,
 	union power_supply_propval *val)
 {
 	s32 ret;
-	struct sbs_info *chip = i2c_get_clientdata(client);
-
-	if (psp == POWER_SUPPLY_PROP_PRESENT &&
-		chip->gpio_detect) {
-		ret = gpio_get_value(chip->pdata->battery_detect);
-		if (ret == chip->pdata->battery_detect_present)
-			val->intval = 1;
-		else
-			val->intval = 0;
-		chip->is_present = val->intval;
-		return ret;
-	}
 
 	/* Write to ManufacturerAccess with
 	 * ManufacturerAccess command and then
 	 * read the status */
-	ret = sbs_write_word_data(client, sbs_data[REG_MANUFACTURER_DATA].addr,
-					MANUFACTURER_ACCESS_STATUS);
-	if (ret < 0) {
-		if (psp == POWER_SUPPLY_PROP_PRESENT)
-			val->intval = 0; /* battery removed */
-		return ret;
-	}
-
-	ret = sbs_read_word_data(client, sbs_data[REG_MANUFACTURER_DATA].addr);
+	ret = i2c_smbus_write_word_data(client,
+		smba_data[REG_MANUFACTURER_DATA].addr,
+		MANUFACTURER_ACCESS_STATUS);
 	if (ret < 0)
 		return ret;
 
-	if (ret < sbs_data[REG_MANUFACTURER_DATA].min_value ||
-	    ret > sbs_data[REG_MANUFACTURER_DATA].max_value) {
+
+	ret = i2c_smbus_read_word_data(client,
+		smba_data[REG_MANUFACTURER_DATA].addr);
+	if (ret < 0)
+		return ret;
+
+	if (ret < smba_data[REG_MANUFACTURER_DATA].min_value ||
+	    ret > smba_data[REG_MANUFACTURER_DATA].max_value) {
 		val->intval = 0;
 		return 0;
 	}
@@ -276,44 +237,34 @@ static int sbs_get_battery_presence_and_health(
 	return 0;
 }
 
-static int sbs_get_battery_property(struct i2c_client *client,
-	int reg_offset, enum power_supply_property psp,
-	union power_supply_propval *val)
+static int smba_get_battery_property(struct i2c_client *client, int reg_offset,
+	enum power_supply_property psp, union power_supply_propval *val)
 {
-	struct sbs_info *chip = i2c_get_clientdata(client);
 	s32 ret;
+	int ac_status;
 
-	ret = sbs_read_word_data(client, sbs_data[reg_offset].addr);
-	if (ret < 0)
-		return ret;
+	ret = i2c_smbus_read_word_data(client, smba_data[reg_offset].addr);
+	if (ret < 0) {
+		dev_err(&client->dev,
+			"%s: i2c read for %d failed\n", __func__, reg_offset);
+		return -EINVAL;
+	}
 
 	/* returned values are 16 bit */
-	if (sbs_data[reg_offset].min_value < 0)
+	if (smba_data[reg_offset].min_value < 0)
 		ret = (s16)ret;
 
-	if (ret >= sbs_data[reg_offset].min_value &&
-	    ret <= sbs_data[reg_offset].max_value) {
+	if (ret >= smba_data[reg_offset].min_value &&
+	    ret <= smba_data[reg_offset].max_value) {
 		val->intval = ret;
-		if (psp != POWER_SUPPLY_PROP_STATUS)
-			return 0;
+		if (psp == POWER_SUPPLY_PROP_STATUS) {
+			ac_status = smba_get_ac_status();
+			val->intval = ac_status ?
+				POWER_SUPPLY_STATUS_CHARGING :
+				POWER_SUPPLY_STATUS_DISCHARGING;
 
-		if (ret & BATTERY_FULL_CHARGED)
-			val->intval = POWER_SUPPLY_STATUS_FULL;
-		else if (ret & BATTERY_FULL_DISCHARGED)
-			val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
-		else if (ret & BATTERY_DISCHARGING)
-			val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
-		else
-			val->intval = POWER_SUPPLY_STATUS_CHARGING;
-
-		if (chip->poll_time == 0){
-			chip->last_state = val->intval;
-			//power_supply_changed(&chip->power_supply);
-		}
-		else if (chip->last_state != val->intval) {
-			cancel_delayed_work_sync(&chip->work);
-			power_supply_changed(&chip->power_supply);
-			chip->poll_time = 0;
+			if (ret & BATTERY_FULL_CHARGED)
+				val->intval = POWER_SUPPLY_STATUS_FULL;
 		}
 	} else {
 		if (psp == POWER_SUPPLY_PROP_STATUS)
@@ -325,44 +276,34 @@ static int sbs_get_battery_property(struct i2c_client *client,
 	return 0;
 }
 
-static void  sbs_unit_adjustment(struct i2c_client *client,
+static void  smba_unit_adjustment(struct i2c_client *client,
 	enum power_supply_property psp, union power_supply_propval *val)
 {
 #define BASE_UNIT_CONVERSION		1000
 #define BATTERY_MODE_CAP_MULT_WATT	(10 * BASE_UNIT_CONVERSION)
-#define TIME_UNIT_CONVERSION		60
-#define TEMP_KELVIN_TO_CELSIUS		2731
+#define TIME_UNIT_CONVERSION		600
+#define TEMP_KELVIN_TO_CELCIUS		2731
 	switch (psp) {
 	case POWER_SUPPLY_PROP_ENERGY_NOW:
 	case POWER_SUPPLY_PROP_ENERGY_FULL:
 	case POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN:
-		/* sbs provides energy in units of 10mWh.
-		 * Convert to µWh
-		 */
 		val->intval *= BATTERY_MODE_CAP_MULT_WATT;
 		break;
 
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
-	case POWER_SUPPLY_PROP_CHARGE_NOW:
-	case POWER_SUPPLY_PROP_CHARGE_FULL:
-	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
 		val->intval *= BASE_UNIT_CONVERSION;
 		break;
 
 	case POWER_SUPPLY_PROP_TEMP:
-		/* sbs provides battery temperature in 0.1K
-		 * so convert it to 0.1°C
-		 */
-		val->intval -= TEMP_KELVIN_TO_CELSIUS;
+		/* smba provides battery tempreture in 0.1Â°K
+		 * so convert it to 0.1Â°C */
+		val->intval -= TEMP_KELVIN_TO_CELCIUS;
 		break;
 
 	case POWER_SUPPLY_PROP_TIME_TO_EMPTY_AVG:
 	case POWER_SUPPLY_PROP_TIME_TO_FULL_AVG:
-		/* sbs provides time to empty and time to full in minutes.
-		 * Convert to seconds
-		 */
 		val->intval *= TIME_UNIT_CONVERSION;
 		break;
 
@@ -372,129 +313,82 @@ static void  sbs_unit_adjustment(struct i2c_client *client,
 	}
 }
 
-static enum sbs_battery_mode sbs_set_battery_mode(struct i2c_client *client,
-	enum sbs_battery_mode mode)
-{
-	int ret, original_val;
-
-	original_val = sbs_read_word_data(client, BATTERY_MODE_OFFSET);
-	if (original_val < 0)
-		return original_val;
-
-	if ((original_val & BATTERY_MODE_MASK) == mode)
-		return mode;
-
-	if (mode == BATTERY_MODE_AMPS)
-		ret = original_val & ~BATTERY_MODE_MASK;
-	else
-		ret = original_val | BATTERY_MODE_MASK;
-
-	ret = sbs_write_word_data(client, BATTERY_MODE_OFFSET, ret);
-	if (ret < 0)
-		return ret;
-
-	return original_val & BATTERY_MODE_MASK;
-}
-
-static int sbs_get_battery_capacity(struct i2c_client *client,
+static int smba_get_battery_capacity(struct i2c_client *client,
 	int reg_offset, enum power_supply_property psp,
 	union power_supply_propval *val)
 {
 	s32 ret;
-	enum sbs_battery_mode mode = BATTERY_MODE_WATTS;
 
-	if (power_supply_is_amp_property(psp))
-		mode = BATTERY_MODE_AMPS;
-
-	mode = sbs_set_battery_mode(client, mode);
-	if (mode < 0)
-		return mode;
-
-	ret = sbs_read_word_data(client, sbs_data[reg_offset].addr);
+	ret = i2c_smbus_read_word_data(client, smba_data[reg_offset].addr);
 	if (ret < 0)
 		return ret;
 
 	if (psp == POWER_SUPPLY_PROP_CAPACITY) {
-		/* sbs spec says that this can be >100 %
+		/* smba spec says that this can be >100 %
 		* even if max value is 100 % */
 		val->intval = min(ret, 100);
 	} else
 		val->intval = ret;
 
-	ret = sbs_set_battery_mode(client, mode);
-	if (ret < 0)
-		return ret;
-
 	return 0;
 }
 
-static char sbs_serial[5];
-static int sbs_get_battery_serial_number(struct i2c_client *client,
+static char smba_serial[5];
+static int smba_get_battery_serial_number(struct i2c_client *client,
 	union power_supply_propval *val)
 {
 	int ret;
 
-	ret = sbs_read_word_data(client, sbs_data[REG_SERIAL_NUMBER].addr);
+	ret = i2c_smbus_read_word_data(client,
+		smba_data[REG_SERIAL_NUMBER].addr);
 	if (ret < 0)
 		return ret;
 
-	ret = sprintf(sbs_serial, "%04x", ret);
-	val->strval = sbs_serial;
+	ret = sprintf(smba_serial, "%04x", ret);
+	val->strval = smba_serial;
 
 	return 0;
 }
 
-static int sbs_get_property_index(struct i2c_client *client,
-	enum power_supply_property psp)
-{
-	int count;
-	for (count = 0; count < ARRAY_SIZE(sbs_data); count++)
-		if (psp == sbs_data[count].psp)
-			return count;
-
-	dev_warn(&client->dev,
-		"%s: Invalid Property - %d\n", __func__, psp);
-
-	return -EINVAL;
-}
-
-static int sbs_get_property(struct power_supply *psy,
+static int smba_bat_get_property(struct power_supply *psy,
 	enum power_supply_property psp,
 	union power_supply_propval *val)
 {
-	int ret = 0;
-	struct sbs_info *chip = container_of(psy,
-				struct sbs_info, power_supply);
-	struct i2c_client *client = chip->client;
+	int count;
+	int ret;
+	struct i2c_client *client = smba_device->client;
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_PRESENT:
 	case POWER_SUPPLY_PROP_HEALTH:
-		ret = sbs_get_battery_presence_and_health(client, psp, val);
-		if (psp == POWER_SUPPLY_PROP_PRESENT)
-			return 0;
+		ret = smba_get_battery_presence_and_health(client, psp, val);
+		if (ret)
+			return ret;
 		break;
 
 	case POWER_SUPPLY_PROP_TECHNOLOGY:
 		val->intval = POWER_SUPPLY_TECHNOLOGY_LION;
-		goto done; /* don't trigger power_supply_changed()! */
+		break;
 
 	case POWER_SUPPLY_PROP_ENERGY_NOW:
 	case POWER_SUPPLY_PROP_ENERGY_FULL:
 	case POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN:
-	case POWER_SUPPLY_PROP_CHARGE_NOW:
-	case POWER_SUPPLY_PROP_CHARGE_FULL:
-	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
 	case POWER_SUPPLY_PROP_CAPACITY:
-		ret = sbs_get_property_index(client, psp);
-		if (ret < 0)
-			break;
+		for (count = 0; count < ARRAY_SIZE(smba_data); count++) {
+			if (psp == smba_data[count].psp)
+				break;
+		}
 
-		ret = sbs_get_battery_capacity(client, ret, psp, val);
+		ret = smba_get_battery_capacity(client, count, psp, val);
+		if (ret)
+			return ret;
+
 		break;
 
 	case POWER_SUPPLY_PROP_SERIAL_NUMBER:
-		ret = sbs_get_battery_serial_number(client, val);
+		ret = smba_get_battery_serial_number(client, val);
+		if (ret)
+			return ret;
 		break;
 
 	case POWER_SUPPLY_PROP_STATUS:
@@ -505,382 +399,221 @@ static int sbs_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_TIME_TO_EMPTY_AVG:
 	case POWER_SUPPLY_PROP_TIME_TO_FULL_AVG:
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
-		ret = sbs_get_property_index(client, psp);
-		if (ret < 0)
-			break;
+		for (count = 0; count < REG_MAX; count++) {
+			if (psp == smba_data[count].psp)
+				break;
+		}
 
-		ret = sbs_get_battery_property(client, ret, psp, val);
+		ret = smba_get_battery_property(client, count, psp, val);
+		if (ret)
+			return ret;
+
 		break;
 
 	default:
-		dev_err(&client->dev,
+		dev_err(&smba_device->client->dev,
 			"%s: INVALID property\n", __func__);
 		return -EINVAL;
 	}
 
-	if (!chip->enable_detection)
-		goto done;
-
-	if (!chip->gpio_detect &&
-		chip->is_present != (ret >= 0)) {
-		chip->is_present = (ret >= 0);
-		power_supply_changed(&chip->power_supply);
-	}
-
-done:
-	if (!ret) {
-		/* Convert units to match requirements for power supply class */
-		sbs_unit_adjustment(client, psp, val);
-	}
+	/* Convert units to match requirements for power supply class */
+	smba_unit_adjustment(client, psp, val);
 
 	dev_dbg(&client->dev,
-		"%s: property = %d, value = %x\n", __func__, psp, val->intval);
-
-	if (ret && chip->is_present)
-		return ret;
-
-	/* battery not present, so return NODATA for properties */
-	if (ret)
-		return -ENODATA;
+		"%s: property = %d, value = %d\n", __func__, psp, val->intval);
 
 	return 0;
 }
 
-static irqreturn_t sbs_irq(int irq, void *devid)
+static irqreturn_t ac_present_irq(int irq, void *data)
 {
-	struct power_supply *battery = devid;
-
-	power_supply_changed(battery);
-
+	power_supply_changed(&smba_supply[SUPPLY_TYPE_AC]);
+	power_supply_changed(&smba_supply[SUPPLY_TYPE_BATTERY]);
 	return IRQ_HANDLED;
 }
 
-static void sbs_external_power_changed(struct power_supply *psy)
+static void smba_delayed_work(struct work_struct *work)
 {
-	struct sbs_info *chip;
+	struct i2c_client *client = smba_device->client;
+	struct smba_device_info *smba_device =
+		i2c_get_clientdata(client);
 
-	chip = container_of(psy, struct sbs_info, power_supply);
-
-	if (chip->ignore_changes > 0) {
-		chip->ignore_changes--;
-		return;
-	}
-
-	/* cancel outstanding work */
-	cancel_delayed_work_sync(&chip->work);
-
-	//schedule_delayed_work(&chip->work, HZ);
-	queue_delayed_work(battery_work_queue, &chip->work, 2*HZ);
-	//chip->poll_time = chip->pdata->poll_retry_count;
+	power_supply_changed(&smba_supply[SUPPLY_TYPE_BATTERY]);
+	power_supply_changed(&smba_supply[SUPPLY_TYPE_AC]);
+	queue_delayed_work(battery_work_queue, &smba_device->work, BATTERY_POLLING_RATE*HZ);	
 }
 
-static void sbs_delayed_work(struct work_struct *work)
-{
-	struct sbs_info *chip;
-	s32 ret;
-
-	chip = container_of(work, struct sbs_info, work.work);
-
-	ret = sbs_read_word_data(chip->client, sbs_data[REG_STATUS].addr);
-	/* if the read failed, give up on this work */
-	if (ret < 0) {
-		chip->poll_time = 0;
-		return;
-	}
-
-	if (ret & BATTERY_FULL_CHARGED)
-		ret = POWER_SUPPLY_STATUS_FULL;
-	else if (ret & BATTERY_FULL_DISCHARGED)
-		ret = POWER_SUPPLY_STATUS_NOT_CHARGING;
-	else if (ret & BATTERY_DISCHARGING)
-		ret = POWER_SUPPLY_STATUS_DISCHARGING;
-	else
-		ret = POWER_SUPPLY_STATUS_CHARGING;
-
-	//if (chip->last_state != ret) {
-		//chip->poll_time = 0;
-		//power_supply_changed(&chip->power_supply);
-		//return;
-	//}
-	//if (chip->poll_time > 0) {
-	//	schedule_delayed_work(&chip->work, HZ);
-	//	chip->poll_time--;
-	//	return;
-	//}
-	
-	power_supply_changed(&chip->power_supply);
-	queue_delayed_work(battery_work_queue, &chip->work, BATTERY_POLLING_RATE*HZ);
-	return;
-	
-}
-
-#if defined(CONFIG_OF)
-
-#include <linux/of_device.h>
-#include <linux/of_gpio.h>
-
-static const struct of_device_id sbs_dt_ids[] = {
-	{ .compatible = "sbs,sbs-battery" },
-	{ .compatible = "ti,bq20z75" },
-	{ }
-};
-MODULE_DEVICE_TABLE(of, sbs_dt_ids);
-
-static struct sbs_platform_data *sbs_of_populate_pdata(
-		struct i2c_client *client)
-{
-	struct device_node *of_node = client->dev.of_node;
-	struct sbs_platform_data *pdata = client->dev.platform_data;
-	enum of_gpio_flags gpio_flags;
-	int rc;
-	u32 prop;
-
-	/* verify this driver matches this device */
-	if (!of_node)
-		return NULL;
-
-	/* if platform data is set, honor it */
-	if (pdata)
-		return pdata;
-
-	/* first make sure at least one property is set, otherwise
-	 * it won't change behavior from running without pdata.
-	 */
-	if (!of_get_property(of_node, "sbs,i2c-retry-count", NULL) &&
-		!of_get_property(of_node, "sbs,poll-retry-count", NULL) &&
-		!of_get_property(of_node, "sbs,battery-detect-gpios", NULL))
-		goto of_out;
-
-	pdata = devm_kzalloc(&client->dev, sizeof(struct sbs_platform_data),
-				GFP_KERNEL);
-	if (!pdata)
-		goto of_out;
-
-	rc = of_property_read_u32(of_node, "sbs,i2c-retry-count", &prop);
-	if (!rc)
-		pdata->i2c_retry_count = prop;
-
-	rc = of_property_read_u32(of_node, "sbs,poll-retry-count", &prop);
-	if (!rc)
-		pdata->poll_retry_count = prop;
-
-	if (!of_get_property(of_node, "sbs,battery-detect-gpios", NULL)) {
-		pdata->battery_detect = -1;
-		goto of_out;
-	}
-
-	pdata->battery_detect = of_get_named_gpio_flags(of_node,
-			"sbs,battery-detect-gpios", 0, &gpio_flags);
-
-	if (gpio_flags & OF_GPIO_ACTIVE_LOW)
-		pdata->battery_detect_present = 0;
-	else
-		pdata->battery_detect_present = 1;
-
-of_out:
-	return pdata;
-}
-#else
-#define sbs_dt_ids NULL
-static struct sbs_platform_data *sbs_of_populate_pdata(
-	struct i2c_client *client)
-{
-	return client->dev.platform_data;
-}
-#endif
-
-static int __devinit sbs_probe(struct i2c_client *client,
+static int smba_probe(struct i2c_client *client,
 	const struct i2c_device_id *id)
 {
-	struct sbs_info *chip;
-	struct sbs_platform_data *pdata = client->dev.platform_data;
-	int rc;
-	int irq;
-	char *name;
+	int rc, i, flags;
+	int supply_index = SUPPLY_TYPE_BATTERY;
 
-	name = kasprintf(GFP_KERNEL, "sbs-%s", dev_name(&client->dev));
-	if (!name) {
-		dev_err(&client->dev, "Failed to allocate device name\n");
+	smba_device = kzalloc(sizeof(*smba_device), GFP_KERNEL);
+	if (!smba_device)
 		return -ENOMEM;
+
+	smba_device->client = client;
+	flags = smba_device->client->flags;
+	smba_device->client->flags &= ~I2C_M_IGNORE_NAK;
+
+	rc = i2c_smbus_read_word_data(smba_device->client,
+		smba_data[REG_SERIAL_NUMBER].addr);
+	if (rc < 0) {
+		dev_err(&smba_device->client->dev,
+			"%s: no battery present(%d)\n", __func__, rc);
+		supply_index = SUPPLY_TYPE_AC;
+	} else {
+		smba_device->battery_present = true;
 	}
 
-	chip = kzalloc(sizeof(struct sbs_info), GFP_KERNEL);
-	if (!chip) {
-		rc = -ENOMEM;
-		goto exit_free_name;
+	smba_device->client->flags = flags;
+	smba_device->irq = client->irq;
+	i2c_set_clientdata(client, smba_device);
+
+	rc = request_threaded_irq(smba_device->irq, NULL,
+		ac_present_irq,
+		IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING,
+		"ac_present", smba_device);
+	if (rc < 0) {
+		dev_err(&smba_device->client->dev,
+			"%s: request_irq failed(%d)\n", __func__, rc);
+		goto fail_irq;
 	}
 
-	chip->client = client;
-	chip->enable_detection = false;
-	chip->gpio_detect = false;
-	chip->power_supply.name = name;
-	chip->power_supply.type = POWER_SUPPLY_TYPE_BATTERY;
-	chip->power_supply.properties = sbs_properties;
-	chip->power_supply.num_properties = ARRAY_SIZE(sbs_properties);
-	chip->power_supply.get_property = sbs_get_property;
-	/* ignore first notification of external change, it is generated
-	 * from the power_supply_register call back
-	 */
-	chip->ignore_changes = 1;
-	chip->last_state = POWER_SUPPLY_STATUS_UNKNOWN;
-	chip->power_supply.external_power_changed = sbs_external_power_changed;
-
-	pdata = sbs_of_populate_pdata(client);
-
-	if (pdata) {
-		chip->gpio_detect = gpio_is_valid(pdata->battery_detect);
-		chip->pdata = pdata;
+	for (i = supply_index; i < ARRAY_SIZE(smba_supply); i++) {
+		rc = power_supply_register(&client->dev,
+			&smba_supply[i]);
+		if (rc) {
+			dev_err(&smba_device->client->dev,
+				"%s: Failed to register power supply\n",
+				 __func__);
+			goto fail_power_register;
+		}
 	}
 
-	i2c_set_clientdata(client, chip);
-
-	if (!chip->gpio_detect)
-		goto skip_gpio;
-
-	rc = gpio_request(pdata->battery_detect, dev_name(&client->dev));
-	if (rc) {
-		dev_warn(&client->dev, "Failed to request gpio: %d\n", rc);
-		chip->gpio_detect = false;
-		goto skip_gpio;
+	if (smba_device->battery_present) {		
+		battery_work_queue = create_singlethread_workqueue("battery_workqueue");
+		INIT_DELAYED_WORK(&smba_device->work, smba_delayed_work);
+		queue_delayed_work(battery_work_queue, &smba_device->work, 15*HZ);
 	}
 
-	rc = gpio_direction_input(pdata->battery_detect);
-	if (rc) {
-		dev_warn(&client->dev, "Failed to get gpio as input: %d\n", rc);
-		gpio_free(pdata->battery_detect);
-		chip->gpio_detect = false;
-		goto skip_gpio;
-	}
-
-	irq = gpio_to_irq(pdata->battery_detect);
-	if (irq <= 0) {
-		dev_warn(&client->dev, "Failed to get gpio as irq: %d\n", irq);
-		gpio_free(pdata->battery_detect);
-		chip->gpio_detect = false;
-		goto skip_gpio;
-	}
-
-	rc = request_irq(irq, sbs_irq,
-		IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
-		dev_name(&client->dev), &chip->power_supply);
-	if (rc) {
-		dev_warn(&client->dev, "Failed to request irq: %d\n", rc);
-		gpio_free(pdata->battery_detect);
-		chip->gpio_detect = false;
-		goto skip_gpio;
-	}
-
-	chip->irq = irq;
-
-skip_gpio:
-
-	rc = power_supply_register(&client->dev, &chip->power_supply);
-	if (rc) {
-		dev_err(&client->dev,
-			"%s: Failed to register power supply\n", __func__);
-		goto exit_psupply;
-	}
-
-	dev_info(&client->dev,
-		"%s: battery gas gauge device registered\n", client->name);
-	
-	battery_work_queue = create_singlethread_workqueue("battery_workqueue");
-	INIT_DELAYED_WORK(&chip->work, sbs_delayed_work);
-	queue_delayed_work(battery_work_queue, &chip->work, 15*HZ);	
-
-	chip->enable_detection = true;
-
+	dev_info(&smba_device->client->dev, "driver registered\n");
 	return 0;
 
-exit_psupply:
-	if (chip->irq)
-		free_irq(chip->irq, &chip->power_supply);
-	if (chip->gpio_detect)
-		gpio_free(pdata->battery_detect);
-
-	kfree(chip);
-
-exit_free_name:
-	kfree(name);
-
+fail_power_register:
+	while (i--)
+		power_supply_unregister(&smba_supply[i]);
+	free_irq(smba_device->irq, smba_device);
+fail_irq:
+	kfree(smba_device);
 	return rc;
 }
 
-static int __devexit sbs_remove(struct i2c_client *client)
+static int smba_remove(struct i2c_client *client)
 {
-	struct sbs_info *chip = i2c_get_clientdata(client);
+	struct smba_device_info *smba_device =
+		i2c_get_clientdata(client);
+	int supply_index = 0, i;
 
-	if (chip->irq)
-		free_irq(chip->irq, &chip->power_supply);
-	if (chip->gpio_detect)
-		gpio_free(chip->pdata->battery_detect);
+	if (smba_device->battery_present){		
+		cancel_delayed_work_sync(&smba_device->work);
+		flush_workqueue(battery_work_queue);	
+	}
+	else
+		supply_index = SUPPLY_TYPE_AC;
 
-	power_supply_unregister(&chip->power_supply);
-
-	cancel_delayed_work_sync(&chip->work);
-	flush_workqueue(battery_work_queue);
-	kfree(chip->power_supply.name);
-	kfree(chip);
-	chip = NULL;
+	for (i = supply_index; i < ARRAY_SIZE(smba_supply); i++)
+		power_supply_unregister(&smba_supply[i]);
+	
+	kfree(smba_device);
 
 	return 0;
 }
 
-#if defined CONFIG_PM
-static int sbs_suspend(struct i2c_client *client,
+#if defined (CONFIG_PM)
+static int smba_suspend(struct i2c_client *client,
 	pm_message_t state)
 {
-	struct sbs_info *chip = i2c_get_clientdata(client);
 	s32 ret;
+	struct smba_device_info *smba_device =
+		i2c_get_clientdata(client);
 
-	//if (chip->poll_time > 0)
-	cancel_delayed_work_sync(&chip->work);
+	if (!smba_device->battery_present)
+		return 0;
+	
+	cancel_delayed_work_sync(&smba_device->work);
 	flush_workqueue(battery_work_queue);
 
-	/* write to manufacturer access with sleep command */
-	ret = sbs_write_word_data(client, sbs_data[REG_MANUFACTURER_DATA].addr,
+	/* write to manufacture access with sleep command */
+	ret = i2c_smbus_write_word_data(smba_device->client,
+		smba_data[REG_MANUFACTURER_DATA].addr,
 		MANUFACTURER_ACCESS_SLEEP);
-	if (chip->is_present && ret < 0)
-		return ret;
+	if (ret < 0) {
+		dev_err(&smba_device->client->dev,
+			"%s: i2c write for %d failed\n",
+			__func__, MANUFACTURER_ACCESS_SLEEP);
+		return -EINVAL;
+	}
 
 	return 0;
 }
 
-
-static int sbs_resume(struct i2c_client *client)
+/* any smbus transaction will wake up smba */
+static int smba_resume(struct i2c_client *client)
 {
-	struct sbs_info *chip = i2c_get_clientdata(client);
-	cancel_delayed_work_sync(&chip->work);
-	INIT_DELAYED_WORK(&chip->work, sbs_delayed_work);
-	queue_delayed_work(battery_work_queue, &chip->work, 5*HZ);
+	struct smba_device_info *smba_device =
+		i2c_get_clientdata(client);
 
-	return 0;	
+	if (!smba_device->battery_present)
+		return 0;	
+	
+	battery_work_queue = create_singlethread_workqueue("battery_workqueue");
+	INIT_DELAYED_WORK(&smba_device->work, smba_delayed_work);
+	queue_delayed_work(battery_work_queue, &smba_device->work, 15*HZ);
+
+	return 0;
 }
-#else
-#define sbs_suspend		NULL
-/* any smbus transaction will wake up sbs */
-#define sbs_resume		NULL
 #endif
 
-static const struct i2c_device_id sbs_id[] = {
+static const struct i2c_device_id smba_id[] = {
 	{ "bq20z75", 0 },
 	{ "smba-battery", 1 },
 	{}
 };
-MODULE_DEVICE_TABLE(i2c, sbs_id);
 
-static struct i2c_driver sbs_battery_driver = {
-	.probe		= sbs_probe,
-	.remove		= __devexit_p(sbs_remove),
-	.suspend	= sbs_suspend,
-	.resume		= sbs_resume,
-	.id_table	= sbs_id,
+static struct i2c_driver smba_battery_driver = {
+	.probe		= smba_probe,
+	.remove		= smba_remove,
+#if defined (CONFIG_PM)
+	.suspend	= smba_suspend,
+	.resume		= smba_resume,
+#endif
+	.id_table	= smba_id,
 	.driver = {
 		.name	= "smba-battery",
-		.of_match_table = sbs_dt_ids,
 	},
 };
-module_i2c_driver(sbs_battery_driver);
 
-MODULE_DESCRIPTION("SBS battery monitor driver");
+static int __init smba_battery_init(void)
+{
+	int ret;
+
+	ret = i2c_add_driver(&smba_battery_driver);
+	if (ret)
+		dev_err(&smba_device->client->dev,
+			"%s: i2c_add_driver failed\n", __func__);
+
+	return ret;
+}
+module_init(smba_battery_init);
+
+static void __exit smba_battery_exit(void)
+{
+	i2c_del_driver(&smba_battery_driver);
+}
+module_exit(smba_battery_exit);
+
+MODULE_AUTHOR("TeamDRH thexfactor2011");
+MODULE_DESCRIPTION("SMBA battery driver");
 MODULE_LICENSE("GPL");

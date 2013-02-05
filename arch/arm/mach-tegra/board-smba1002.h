@@ -143,7 +143,6 @@ extern int smba_nand_register_devices(void);
 extern int smba_camera_register_devices(void);
 extern int smba_charge_init(void);
 extern int smba_regulator_init(void);
-extern int smba_charger_init(void);
 extern int smba_s5k6aa_set_power(int enable);
 
 /* Autocalculate framebuffer sizes */
