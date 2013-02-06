@@ -226,6 +226,9 @@ void __init smba_setup_bluesleep(void)
 	/*Add Clock Resource*/
 	clk_add_alias("bcm4329_32k_clk", bluetooth_rfkill_device.name, \
 				"blink", NULL);
+#ifdef CONFIG_BT_BLUEDROID
+	bluesleep_setup_uart_port(&tegra_uartc_device);
+#endif
 	return;
 }
 
@@ -261,9 +264,6 @@ static struct platform_device *smba_devices[] __initdata = {
 	&tegra_pmu_device,
 	&bluetooth_rfkill_device,
 	&smba_bluesleep_device,
-#ifdef CONFIG_BT_BLUEDROID
-	&tegra_uartc_device,
-#endif
 	&tegra_wdt_device
 };
 
