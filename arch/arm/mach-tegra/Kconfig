@@ -83,13 +83,19 @@ config MACH_HARMONY
        help
          Support for NVIDIA Harmony development platform
 
-config MACH_SHUTTLE
-       bool "Shuttle (P10AN01) TabletPC"
-	   depends on ARCH_TEGRA_2x_SOC
-	   select MACH_HAS_SND_SOC_TEGRA_ALC5624 if SND_SOC
+config MACH_SMBA1002
+       bool "Malata smba1002"
+       depends on ARCH_TEGRA_2x_SOC
+       select MACH_HAS_SND_SOC_TEGRA_ALC5623 if SND_SOC
        help
-         Support for all TabletPCs based on the P10AN01 design,
-	     including Shuttle, Advent Vega, POV Mobii, Surfer 360.
+         Support for the Malata smba1002
+
+config MACH_SMBA9701
+       bool "Malata smba9701"
+       depends on ARCH_TEGRA_2x_SOC
+       select MACH_HAS_SND_SOC_TEGRA_ALC5623 if SND_SOC
+       help
+         Support for the Malata smba9701
 
 config MACH_VENTANA
        bool "Ventana board"
@@ -512,5 +518,21 @@ config TEGRA_PREPOWER_WIFI
 	default n
 	help
 	  Pre-power up the on board WiFi chip
+
+config TEGRA_SKIN_THROTTLE
+	bool "Skin Temperature throttling"
+	depends on TEGRA_THERMAL_THROTTLE
+	depends on THERM_EST
+	default n
+	help
+	  Enable throttling to control the temperature of the skin/case
+	  of the device.
+
+config TEGRA_LP1_950
+	bool "LP1 low core voltage"
+	default n
+	depends on ARCH_TEGRA_3x_SOC
+	help
+		Enable support for LP1 Core voltage to set to lowest
 
 endif
