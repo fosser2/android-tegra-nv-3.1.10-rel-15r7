@@ -44,16 +44,18 @@
 #define DVFS_RAIL_STATS_RANGE   ((DVFS_RAIL_STATS_TOP_BIN - 1) * \
 				 DVFS_RAIL_STATS_BIN / DVFS_RAIL_STATS_SCALE)
 
+#ifdef CONFIG_TEGRA_ENABLE_OC
+
+struct dvfs *cpu_dvfs = NULL;
+extern int *UV_mV_Ptr;
+
+#endif
+
 static LIST_HEAD(dvfs_rail_list);
 static DEFINE_MUTEX(dvfs_lock);
 static DEFINE_MUTEX(rail_disable_lock);
 
 static int dvfs_rail_update(struct dvfs_rail *rail);
-
-#ifdef CONFIG_DRH_OC_MODE
-struct dvfs *cpu_dvfs = NULL;
-extern int *UV_mV_Ptr;
-#endif
 
 void tegra_dvfs_add_relationships(struct dvfs_relationship *rels, int n)
 {
@@ -334,7 +336,11 @@ static inline unsigned long *dvfs_get_freqs(struct dvfs *d)
 static int
 __tegra_dvfs_set_rate(struct dvfs *d, unsigned long rate)
 {
+#ifdef CONFIG_TEGRA_ENABLE_OC
+	int i = 0, mvoffset = 0;
+#else
 	int i = 0;
+#endif
 	int ret;
 	unsigned long *freqs = dvfs_get_freqs(d);
 
@@ -353,24 +359,25 @@ __tegra_dvfs_set_rate(struct dvfs *d, unsigned long rate)
 		while (i < d->num_freqs && rate > freqs[i])
 			i++;
 
+#ifdef CONFIG_TEGRA_ENABLE_OC
+		if(UV_mV_Ptr != NULL)
+			mvoffset = UV_mV_Ptr[i];
+		
 		if ((d->max_millivolts) &&
-		    (d->millivolts[i] > d->max_millivolts)) {
+			((d->millivolts[i] - mvoffset) > d->max_millivolts)) {
+			pr_warn("tegra_dvfs: voltage %d too high for dvfs on"
+				" %s\n", (d->millivolts[i] - mvoffset), d->clk_name);
+			return -EINVAL;
+		}
+		d->cur_millivolts = d->millivolts[i] - mvoffset;	
+#else
+		if ((d->max_millivolts) &&
+			(d->millivolts[i] > d->max_millivolts)) {
 			pr_warn("tegra_dvfs: voltage %d too high for dvfs on"
 				" %s\n", d->millivolts[i], d->clk_name);
 			return -EINVAL;
 		}
-
-#ifdef CONFIG_DRH_OC_MODE
-
-                if(UV_mV_Ptr != NULL)
-                        d->cur_millivolts = d->millivolts[i] - UV_mV_Ptr[i];
-                else
-                        d->cur_millivolts = d->millivolts[i];
-
-                //printk( "d->clk_name = %s || ", d->clk_name );
-                
-#else
-		d->cur_millivolts = d->millivolts[i];
+		d->cur_millivolts = d->millivolts[i];	
 #endif
 
 	}
@@ -485,18 +492,17 @@ int __init tegra_enable_dvfs_on_clk(struct clk *c, struct dvfs *d)
 	}
 
 	c->dvfs = d;
-
-#ifdef CONFIG_DRH_OC_MODE
-        
-        if(cpu_dvfs == NULL)
-        {
-                if(strcmp(d->clk_name, "cpu")==0)
-                {
-                             printk( "TEGRA_OC: CPU DVFS FOUND" );
-                             cpu_dvfs = d;
-                }
-          }
-#endif
+	
+#ifdef CONFIG_TEGRA_ENABLE_OC
+	if(cpu_dvfs == NULL)
+	{
+		if(strcmp(d->clk_name,"cpu")==0)
+		{
+			 pr_debug( "TEGRA_OC: CPU DVFS FOUND" );
+			 cpu_dvfs = d;
+		}
+	}
+#endif	
 
 	mutex_lock(&dvfs_lock);
 	list_add_tail(&d->reg_node, &d->dvfs_rail->dvfs);
