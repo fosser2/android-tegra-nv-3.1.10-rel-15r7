@@ -33,7 +33,8 @@
 
 #include <trace/events/power.h>
 
-#ifdef CONFIG_DRH_OC_MODE
+	
+#ifdef CONFIG_TEGRA_ENABLE_OC
 #include "../dvfs.h"
 int *UV_mV_Ptr; // Stored voltage table from cpufreq sysfs
 extern struct dvfs *cpu_dvfs;
@@ -577,7 +578,7 @@ static ssize_t show_bios_limit(struct cpufreq_policy *policy, char *buf)
 	return sprintf(buf, "%u\n", policy->cpuinfo.max_freq);
 }
 
-#ifdef CONFIG_DRH_OC_MODE
+#ifdef CONFIG_TEGRA_ENABLE_OC
 static ssize_t show_frequency_voltage_table(struct cpufreq_policy *policy, char *buf)
 {
         int i = 0;
@@ -610,7 +611,7 @@ static ssize_t show_UV_mV_table(struct cpufreq_policy *policy, char *buf)
 
 static ssize_t store_UV_mV_table(struct cpufreq_policy *policy, const char *buf, size_t count)
 {
-       int ret = sscanf( buf, "%i %i %i %i %i %i %i %i %i %i %i %i %i %i %i", 
+       int ret = sscanf( buf, "%i %i %i %i %i %i %i %i %i %i %i %i %i %i %i",
                                                                  &UV_mV_Ptr[14], &UV_mV_Ptr[13],
                                                                  &UV_mV_Ptr[12], &UV_mV_Ptr[11],
                                                                  &UV_mV_Ptr[10], &UV_mV_Ptr[9],
@@ -624,7 +625,7 @@ static ssize_t store_UV_mV_table(struct cpufreq_policy *policy, const char *buf,
  
         return count;
 }
-#endif // CONFIG_TEGRA_OC
+#endif
 
 cpufreq_freq_attr_ro_perm(cpuinfo_cur_freq, 0400);
 cpufreq_freq_attr_ro(cpuinfo_min_freq);
@@ -636,17 +637,18 @@ cpufreq_freq_attr_ro(scaling_cur_freq);
 cpufreq_freq_attr_ro(bios_limit);
 cpufreq_freq_attr_ro(related_cpus);
 cpufreq_freq_attr_ro(affected_cpus);
+#ifdef CONFIG_TEGRA_ENABLE_OC
+cpufreq_freq_attr_ro(frequency_voltage_table);
+#endif
 cpufreq_freq_attr_rw(scaling_min_freq);
 cpufreq_freq_attr_rw(scaling_max_freq);
 cpufreq_freq_attr_rw(scaling_governor);
 cpufreq_freq_attr_rw(scaling_setspeed);
+#ifdef CONFIG_TEGRA_ENABLE_OC
+cpufreq_freq_attr_rw(UV_mV_table);
+#endif
 cpufreq_freq_attr_ro(policy_min_freq);
 cpufreq_freq_attr_ro(policy_max_freq);
-
-#ifdef CONFIG_DRH_OC_MODE
-cpufreq_freq_attr_ro(frequency_voltage_table);
-cpufreq_freq_attr_rw(UV_mV_table);
-#endif // CONFIG_TEGRA_OC
 
 static struct attribute *default_attrs[] = {
 	&cpuinfo_min_freq.attr,
@@ -656,16 +658,18 @@ static struct attribute *default_attrs[] = {
 	&scaling_max_freq.attr,
 	&affected_cpus.attr,
 	&related_cpus.attr,
+#ifdef CONFIG_TEGRA_ENABLE_OC
+	&frequency_voltage_table.attr,
+#endif
 	&scaling_governor.attr,
 	&scaling_driver.attr,
 	&scaling_available_governors.attr,
 	&scaling_setspeed.attr,
-#ifdef CONFIG_DRH_OC_MODE
-        &frequency_voltage_table.attr,
-        &UV_mV_table.attr,
-#endif // CONFIG_TEGRA_OC	
 	&policy_min_freq.attr,
 	&policy_max_freq.attr,
+#ifdef CONFIG_TEGRA_ENABLE_OC
+	&UV_mV_table.attr,
+#endif
 	NULL
 };
 
@@ -992,11 +996,21 @@ static int cpufreq_add_dev(struct sys_device *sys_dev)
 
 	/* Set governor before ->init, so that driver could check it */
 #ifdef CONFIG_HOTPLUG_CPU
+	struct cpufreq_policy *cp;
 	for_each_online_cpu(sibling) {
-		struct cpufreq_policy *cp = per_cpu(cpufreq_cpu_data, sibling);
+		cp = per_cpu(cpufreq_cpu_data, sibling);
 		if (cp && cp->governor &&
 		    (cpumask_test_cpu(cpu, cp->related_cpus))) {
+#ifdef CONFIG_TEGRA_ENABLE_OC
+			pr_debug("found sibling cpu, copying policy\n");
+#endif
 			policy->governor = cp->governor;
+#ifdef CONFIG_TEGRA_ENABLE_OC
+            policy->min = cp->min;
+            policy->max = cp->max;
+            policy->user_policy.min = cp->user_policy.min;
+            policy->user_policy.max = cp->user_policy.max;			
+#endif
 			found = 1;
 			break;
 		}
@@ -1015,6 +1029,17 @@ static int cpufreq_add_dev(struct sys_device *sys_dev)
 	policy->user_policy.min = policy->min;
 	policy->user_policy.max = policy->max;
 
+#ifdef CONFIG_TEGRA_ENABLE_OC
+    if (found)
+    {
+        /* Calling the driver can overwrite policy frequencies again */
+        pr_debug("Overriding policy max and min with sibling settings\n");
+        policy->min = cp->min;
+        policy->max = cp->max;
+        policy->user_policy.min = cp->user_policy.min;
+        policy->user_policy.max = cp->user_policy.max;
+    }
+#endif	
 	blocking_notifier_call_chain(&cpufreq_policy_notifier_list,
 				     CPUFREQ_START, policy);
 
@@ -2068,10 +2093,11 @@ static int __init cpufreq_core_init(void)
 	int cpu;
 	int rc;
 	
-#ifdef CONFIG_DRH_OC_MODE
+#ifdef CONFIG_TEGRA_ENABLE_OC
 	// Allocate some memory for the voltage tab
-	UV_mV_Ptr = kzalloc(sizeof(int)*(15), GFP_KERNEL); 
-#endif // CONFIG_TEGRA_OC	
+	UV_mV_Ptr = kzalloc(sizeof(int)*(MAX_DVFS_FREQS), GFP_KERNEL); 
+#endif
+
 
 	for_each_possible_cpu(cpu) {
 		per_cpu(cpufreq_policy_cpu, cpu) = -1;

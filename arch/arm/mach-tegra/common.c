@@ -101,7 +101,12 @@ static struct board_info pmu_board_info;
 static struct board_info display_board_info;
 static struct board_info camera_board_info;
 
-static int pmu_core_edp = 1350;	/* default 1.2V EDP limit */
+#ifndef CONFIG_TEGRA_ENABLE_OC
+static int pmu_core_edp = 1200;	/* default 1.2V EDP limit */
+#else
+static int pmu_core_edp = 1400;	/* default 1.4V EDP limit */
+#endif
+
 static int board_panel_type;
 static enum power_supply_type pow_supply_type = POWER_SUPPLY_TYPE_MAINS;
 
@@ -1023,4 +1028,3 @@ int cpufreq_restore_default_gov(void)
 	return ret;
 }
 #endif /* CONFIG_TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND */
-
