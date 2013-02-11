@@ -134,11 +134,7 @@ static void to_state_running_locked(struct nvhost_device *dev)
 
 		for (i = 0; i < dev->num_clks; i++) {
 			int err = clk_enable(dev->clk[i]);
-			if (err) {
-				dev_err(&dev->dev, "Cannot turn on clock %s",
-					dev->clocks[i].name);
-				return;
-			}
+			BUG_ON(err);
 		}
 
 		if (prev_state == NVHOST_POWER_STATE_POWERGATED
@@ -373,11 +369,7 @@ int nvhost_module_init(struct nvhost_device *dev)
 
 		snprintf(devname, MAX_DEVID_LENGTH, "tegra_%s", dev->name);
 		c = clk_get_sys(devname, dev->clocks[i].name);
-		if (IS_ERR_OR_NULL(c)) {
-			dev_err(&dev->dev, "Cannot get clock %s\n",
-					dev->clocks[i].name);
-			continue;
-		}
+		BUG_ON(IS_ERR_OR_NULL(c));
 
 		rate = clk_round_rate(c, rate);
 		clk_enable(c);
