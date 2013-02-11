@@ -85,8 +85,6 @@
 	
 #define DYNAMIC_GPU_MEM 0							/* use dynamic memory for GPU */
 
-//#define SMBA1002_GPS  							/* Define for Fosser's GPS MOD */
-
 #define SMBA1002_48KHZ_AUDIO 						/* <- define this if you want 48khz audio sampling rate instead of 44100Hz */
 /*#define USE_ORG_DAS 1*/
 
@@ -113,9 +111,6 @@
 /* The switch used to indicate rotation lock */
 //#define SW_ROTATION_LOCK 	(SW_MAX-1)
 
-extern void smba_gps_mag_poweron(void);
-extern void smba_gps_mag_poweroff(void);
-extern void smba_gps_mag_init(void);
 extern int smba_bt_wifi_gpio_set(bool on);
 extern int smba_bt_wifi_gpio_init(void);
 
@@ -136,7 +131,6 @@ extern int smba_touch_register_devices(void);
 extern int smba_sdhci_init(void);
 extern int smba_sensors_register_devices(void);
 extern int smba_wlan_pm_register_devices(void);
-extern int smba_gps_pm_register_devices(void);
 extern void smba_setup_bluesleep(void);
 extern void smba_bt_rfkill(void);
 extern int smba_nand_register_devices(void);
