@@ -159,6 +159,7 @@ static struct smba_device_info {
 	struct delayed_work	work;
 	struct i2c_client	*client;
 	int irq;
+	int last_health;
 	bool battery_present;
 } *smba_device;
 
@@ -242,11 +243,18 @@ static int smba_get_battery_property(struct i2c_client *client, int reg_offset,
 {
 	s32 ret;
 	int ac_status;
+	int retry = 10;
 
-	ret = i2c_smbus_read_word_data(client, smba_data[reg_offset].addr);
-	if (ret < 0) {
+	ret = i2c_smbus_read_word_data(client, smba_data[reg_offset].addr);	
+	while (ret < 0 && retry > 0)
+	{
+		ret = i2c_smbus_read_word_data(client, smba_data[reg_offset].addr);
+		retry --;		
+	}
+
+	if(ret < 0){
 		dev_err(&client->dev,
-			"%s: i2c read for %d failed\n", __func__, reg_offset);
+			"%s: i2c read for %d failed.\n", __func__, reg_offset);
 		return -EINVAL;
 	}
 
@@ -357,13 +365,17 @@ static int smba_bat_get_property(struct power_supply *psy,
 	int count;
 	int ret;
 	struct i2c_client *client = smba_device->client;
-
+	
 	switch (psp) {
 	case POWER_SUPPLY_PROP_PRESENT:
 	case POWER_SUPPLY_PROP_HEALTH:
 		ret = smba_get_battery_presence_and_health(client, psp, val);
-		if (ret)
+		if (ret){
+			smba_device->last_health = ret;
 			return ret;
+		}else{
+			return smba_device->last_health;
+		}
 		break;
 
 	case POWER_SUPPLY_PROP_TECHNOLOGY:
