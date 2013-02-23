@@ -1,5 +1,5 @@
 /*
- * arch/arm/mach-tegra/board-smba-panel.c
+ * arch/arm/mach-tegra/board-smba1002-panel.c
  *
  * Copyright (c) 2010-2012, NVIDIA Corporation.
  *

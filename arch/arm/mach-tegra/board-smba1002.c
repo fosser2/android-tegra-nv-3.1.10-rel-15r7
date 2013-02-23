@@ -32,6 +32,7 @@
 #include <linux/reboot.h>
 #include <linux/i2c-tegra.h>
 #include <linux/memblock.h>
+#include <linux/antares_dock.h>
 
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
@@ -217,6 +218,19 @@ static struct platform_device smba_bluesleep_device = {
 	.resource       = smba_bluesleep_resources,
 };
 
+static struct dock_platform_data dock_on_platform_data = {
+  .irq    = TEGRA_GPIO_TO_IRQ(SMBA1002_DOCK),
+  .gpio_num  = SMBA1002_DOCK,
+  };
+static struct platform_device tegra_dock_device =
+{
+	.name = "tegra_dock",
+	.id   = -1,
+	.dev = {
+	    .platform_data = &dock_on_platform_data,
+	},
+};
+
 static struct platform_device *smba_devices[] __initdata = {
 	&tegra_pmu_device,
 	&tegra_gart_device,
@@ -224,6 +238,7 @@ static struct platform_device *smba_devices[] __initdata = {
 	&smba_bluesleep_device,
 	&tegra_wdt_device,
 	&tegra_avp_device,
+	&tegra_dock_device
 };
 
 static void __init tegra_smba_init(void)
@@ -319,4 +334,3 @@ MACHINE_START(HARMONY, "harmony")
 .timer = &tegra_timer,
 .init_machine = tegra_smba_init,
 MACHINE_END
-
