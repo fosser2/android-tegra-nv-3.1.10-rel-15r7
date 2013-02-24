@@ -172,9 +172,6 @@ static void __init tegra_smba_init(void)
 	/* Register UART devices */
 	smba_uart_register_devices();
 
-	/* Register SPI devices */
-	smba_spi_register_devices();
-
 	/* Register GPU devices */
 	smba_panel_init();
 

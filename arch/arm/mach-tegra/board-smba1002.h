@@ -93,7 +93,6 @@ extern int smba_usb_register_devices(void);
 extern int smba_audio_register_devices(void);
 extern int smba_panel_init(void);
 extern int smba_uart_register_devices(void);
-extern int smba_spi_register_devices(void);
 extern int smba_i2c_register_devices(void);
 extern int smba_keys_init(void);
 extern int smba_touch_register_devices(void);

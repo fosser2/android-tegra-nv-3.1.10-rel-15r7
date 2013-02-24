@@ -205,7 +205,6 @@ obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-nand.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-pinmux.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-power.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-sensors.o
-obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-spi.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-touch.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-uart.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-usb.o
