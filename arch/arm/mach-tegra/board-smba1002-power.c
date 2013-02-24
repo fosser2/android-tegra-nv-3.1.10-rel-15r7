@@ -227,11 +227,11 @@ static struct tegra_suspend_platform_data smba_suspend_data = {
          * Check power on time and crystal oscillator start time
          * for appropriate settings.
          */
-        .cpu_timer      = 2000,
-        .cpu_off_timer  = 100,
+        .cpu_timer      = 5000,
+        .cpu_off_timer  = 5000,
         .suspend_mode   = TEGRA_SUSPEND_LP0,
         .core_timer     = 0x7e7e,
-        .core_off_timer = 0xf,
+        .core_off_timer = 0x7f,
         .corereq_high   = false,
         .sysclkreq_high = true,
         .board_suspend = smba_board_suspend,
