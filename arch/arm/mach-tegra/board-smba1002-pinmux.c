@@ -177,45 +177,14 @@ static __initdata struct tegra_pingroup_config smba_pinmux[] = {
 };
 
 static struct tegra_gpio_table gpio_table[] = {
-	{ .gpio = SMBA1002_BT_RESET,		.enable = true },
-	{ .gpio = SMBA1002_KEY_VOLUMEUP,	.enable = true },
-	#ifdef SMBA1002_GPS
-	{ .gpio = SMBA1002_GPSMAG_DISABLE, .enable = true },
-	#endif 
-	{ .gpio = SMBA1002_KEY_VOLUMEDOWN,	.enable = true },
-	{ .gpio = SMBA1002_KEY_POWER,		.enable = true },
-	//{ .gpio = SMBA1002_KEY_BACK,		.enable = true },
-	//{ .gpio = SMBA1002_KEY_HOME,		.enable = true },
-	//{ .gpio = SMBA1002_KEY_MENU,		.enable = true },
-	//{ .gpio = SMBA1002_CAMERA_POWER,	.enable = true },
-	{ .gpio = SMBA1002_NAND_WPN,		.enable = true },
-	{ .gpio = SMBA1002_BL_ENB,			.enable = true },
-	{ .gpio = SMBA1002_LVDS_SHUTDOWN,	.enable = true },
-	{ .gpio = SMBA1002_EN_VDD_PANEL,	.enable = true },
-	{ .gpio = SMBA1002_BL_VDD,			.enable = true },
-	{ .gpio = SMBA1002_BL_PWM,			.enable = false }, /* We want the PWM function here! */
-	
-	//{ .gpio = SMBA1002_HDMI_ENB,		.enable = true },
-	{ .gpio = SMBA1002_HDMI_HPD,		.enable = true },
-	{ .gpio = SMBA1002_ENABLE_VDD_VID,	.enable = true },
-	//{ .gpio = SMBA1002_SDIO2_CD,		.enable = true },
-	//{ .gpio = SMBA1002_SDIO2_POWER,	.enable = true },
-	{ .gpio = SMBA1002_SDHC_CD,			.enable = true },
-	{ .gpio = SMBA1002_SDHC_POWER,		.enable = true },
-	{ .gpio = SMBA1002_TS_IRQ,			.enable = true },
-	{ .gpio = SMBA1002_TS_POWER,		.enable = true },
-	{ .gpio = SMBA1002_TS_RESET,		.enable = true },
-	{ .gpio = SMBA1002_WL_BT_POWER,		.enable = true },
-	{ .gpio = SMBA1002_WLAN_RESET,		.enable = true },
-	{ .gpio = SMBA1002_LOW_BATT,		.enable = true },
-	//{ .gpio = SMBA1002_IN_S3,			.enable = true },
-	{ .gpio = SMBA1002_USB0_VBUS,		.enable = true },
-	//{ .gpio = SMBA1002_USB1_RESET,		.enable = true },
-	{ .gpio = SMBA1002_HP_DETECT,		.enable = true },
-	{ .gpio = SMBA1002_ISL29023,		.enable = true },
-	{ .gpio = SMBA1002_AC_PRESENT,    .enable = true },
-	{ .gpio = SMBA1002_CHARGING_DISABLE,  .enable = true },
-	{ .gpio = SMBA1002_INT_MIC_EN,		.enable = true },
+	{ .gpio = SMBA1002_SDHC_CD,			.enable = true	},
+	{ .gpio = SMBA1002_SDHC_WP,			.enable = true	},
+	{ .gpio = SMBA1002_SDHC_POWER,		.enable = true	},
+	{ .gpio = SMBA1002_SDINT_POWER,		.enable = true	},
+	//{ .gpio = TEGRA_GPIO_CDC_IRQ,		.enable = true	}, //harmony audio gpio
+	{ .gpio = SMBA1002_HP_DETECT,		.enable = true	},
+	{ .gpio = SMBA1002_INT_MIC_EN,		.enable = true	},
+	{ .gpio = SMBA1002_USB0_VBUS,		.enable = false },
 };
 
 int __init smba_pinmux_init(void)
@@ -227,4 +196,5 @@ int __init smba_pinmux_init(void)
 	tegra_gpio_config(gpio_table, ARRAY_SIZE(gpio_table));
 	return 0;
 }
+
 
