@@ -52,7 +52,8 @@ static struct tegra_i2c_platform_data smba_i2c2_platform_data = {
 	.bus_count	= 2,
 	.bus_clk_rate	= { 10000, 10000 },
 	//FIX ME
-	.bus_mux	= { &i2c2_ddc, &i2c2_gen2 },
+	//.bus_mux	= { &i2c2_ddc, &i2c2_gen2 },
+	.bus_mux	= { &i2c2_ddc },
 	.bus_mux_len	= { 1, 1 },
 };
 
