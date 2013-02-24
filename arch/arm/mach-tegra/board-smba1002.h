@@ -68,9 +68,6 @@
 #define SMBA1002_WAKE_KEY_POWER 	TEGRA_WAKE_GPIO_PV2
 #define SMBA1002_WAKE_KEY_RESUME	TEGRA_WAKE_GPIO_PV2
 
-
-#define SMBA1002_BL_PWM_ID			0				/* PWM0 controls backlight */
-
 #define SMBA1002_FB_PAGES			2				/* At least, 2 video pages */
 #define SMBA1002_FB_HDMI_PAGES		2				/* At least, 2 video pages for HDMI */
 
