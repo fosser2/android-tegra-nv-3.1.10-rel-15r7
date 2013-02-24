@@ -4,7 +4,7 @@
  * Copyright (C) 2010 Google, Inc.
  * Author: Erik Gilling <konkers@android.com>
  *
- * Copyright (C) 2010-2011 NVIDIA Corporation
+ * Copyright (c) 2010-2012, NVIDIA CORPORATION, All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -1213,22 +1213,6 @@ static int tegra_dc_calc_clock_per_frame(const struct fb_videomode *mode)
 	       (mode->upper_margin + mode->yres +
 		mode->lower_margin + mode->vsync_len);
 }
-static bool tegra_dc_hdmi_mode_equal(const struct fb_videomode *mode1,
-					const struct fb_videomode *mode2)
-{
-	int clock_per_frame1 = tegra_dc_calc_clock_per_frame(mode1);
-	int clock_per_frame2 = tegra_dc_calc_clock_per_frame(mode2);
-
-	/* allows up to 1Hz of pixclock difference */
-	return (clock_per_frame1 == clock_per_frame2 &&
-			mode1->xres == mode2->xres &&
-			mode1->yres == mode2->yres &&
-			mode1->vmode == mode2->vmode &&
-			(mode1->pixclock == mode2->pixclock ||
-			(abs(PICOS2KHZ(mode1->pixclock) -
-			PICOS2KHZ(mode2->pixclock)) *
-			1000 / clock_per_frame1 <= 1)));
-}
 
 static bool tegra_dc_hdmi_valid_pixclock(const struct tegra_dc *dc,
 					const struct fb_videomode *mode)
@@ -1386,18 +1370,31 @@ bool tegra_dc_hdmi_detect_test(struct tegra_dc *dc, unsigned char *edid_ptr)
 
 	err = tegra_edid_get_monspecs_test(hdmi->edid, &specs, edid_ptr);
 	if (err < 0) {
-		dev_err(&dc->ndev->dev, "error reading edid\n");
-		goto fail;
-	}
+		/* Check if there's a hard-wired mode, if so, enable it */
+		if (dc->out->n_modes)
+			tegra_dc_enable(dc);
+		else {
+			dev_err(&dc->ndev->dev, "error reading edid\n");
+			goto fail;
+		}
+#ifdef CONFIG_SWITCH
+		hdmi->hpd_switch.state = 0;
+		switch_set_state(&hdmi->hpd_switch, 1);
+#endif
+		dev_info(&dc->ndev->dev, "display detected\n");
 
-	err = tegra_edid_get_eld(hdmi->edid, &hdmi->eld);
-	if (err < 0) {
-		dev_err(&dc->ndev->dev, "error populating eld\n");
-		goto fail;
-	}
-	hdmi->eld_retrieved = true;
+		dc->connected = true;
+		tegra_dc_ext_process_hotplug(dc->ndev->id);
+	} else {
+		err = tegra_edid_get_eld(hdmi->edid, &hdmi->eld);
+		if (err < 0) {
+			dev_err(&dc->ndev->dev, "error populating eld\n");
+			goto fail;
+		}
+		hdmi->eld_retrieved = true;
 
-	tegra_dc_hdmi_detect_config(dc, &specs);
+		tegra_dc_hdmi_detect_config(dc, &specs);
+	}
 
 	return true;
 
@@ -1422,18 +1419,30 @@ static bool tegra_dc_hdmi_detect(struct tegra_dc *dc)
 
 	err = tegra_edid_get_monspecs(hdmi->edid, &specs);
 	if (err < 0) {
-		dev_err(&dc->ndev->dev, "error reading edid\n");
-		goto fail;
-	}
+		if (dc->out->n_modes)
+			tegra_dc_enable(dc);
+		else {
+			dev_err(&dc->ndev->dev, "error reading edid\n");
+			goto fail;
+		}
+#ifdef CONFIG_SWITCH
+		hdmi->hpd_switch.state = 0;
+		switch_set_state(&hdmi->hpd_switch, 1);
+#endif
+		dev_info(&dc->ndev->dev, "display detected\n");
 
-	err = tegra_edid_get_eld(hdmi->edid, &hdmi->eld);
-	if (err < 0) {
-		dev_err(&dc->ndev->dev, "error populating eld\n");
-		goto fail;
-	}
-	hdmi->eld_retrieved = true;
+		dc->connected = true;
+		tegra_dc_ext_process_hotplug(dc->ndev->id);
+	} else {
+		err = tegra_edid_get_eld(hdmi->edid, &hdmi->eld);
+		if (err < 0) {
+			dev_err(&dc->ndev->dev, "error populating eld\n");
+			goto fail;
+		}
+		hdmi->eld_retrieved = true;
 
-	tegra_dc_hdmi_detect_config(dc, &specs);
+		tegra_dc_hdmi_detect_config(dc, &specs);
+	}
 
 	return true;
 
@@ -1515,10 +1524,10 @@ static void tegra_dc_hdmi_resume(struct tegra_dc *dc)
 	tegra_nvhdcp_resume(hdmi->nvhdcp);
 }
 
+#ifdef CONFIG_SWITCH
 static ssize_t underscan_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
-#ifdef CONFIG_SWITCH
 	struct tegra_dc_hdmi_data *hdmi =
 			container_of(dev_get_drvdata(dev), struct tegra_dc_hdmi_data, hpd_switch);
 
@@ -1526,19 +1535,19 @@ static ssize_t underscan_show(struct device *dev,
 		return sprintf(buf, "%d\n", tegra_edid_underscan_supported(hdmi->edid));
 	else
 		return 0;
-#else
-	return 0;
-#endif
 }
 
 static DEVICE_ATTR(underscan, S_IRUGO | S_IWUSR, underscan_show, NULL);
+#endif
 
 static int tegra_dc_hdmi_init(struct tegra_dc *dc)
 {
 	struct tegra_dc_hdmi_data *hdmi;
 	struct resource *res;
 	struct resource *base_res;
+#ifdef CONFIG_SWITCH
 	int ret;
+#endif
 	void __iomem *base;
 	struct clk *clk = NULL;
 	struct clk *disp1_clk = NULL;
@@ -1685,8 +1694,10 @@ static int tegra_dc_hdmi_init(struct tegra_dc *dc)
 
 	return 0;
 
+#ifdef CONFIG_TEGRA_NVHDCP
 err_edid_destroy:
 	tegra_edid_destroy(hdmi->edid);
+#endif
 err_free_irq:
 	free_irq(gpio_to_irq(dc->out->hotplug_gpio), dc);
 err_put_clock:
