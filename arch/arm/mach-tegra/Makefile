@@ -192,6 +192,7 @@ obj-${CONFIG_TEGRA_BB_XMM_POWER}        += baseband-xmm-power.o
 obj-${CONFIG_TEGRA_BB_XMM_POWER2}       += baseband-xmm-power2.o
 
 # smba1002 arch drivers
+obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-atag.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-audio.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-camera.o
 obj-${CONFIG_MACH_SMBA1002}              += board-smba1002-clocks.o
