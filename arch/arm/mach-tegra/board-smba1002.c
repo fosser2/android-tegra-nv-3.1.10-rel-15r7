@@ -201,10 +201,6 @@ static void __init tegra_smba_init(void)
 	
 	/* Register Bluetooth powermanagement devices */
 	smba_setup_bluesleep();
-#ifdef SMBA1002_GPS
-	/* Register gps powermanagement devices */
-	smba_gps_pm_register_devices();
-#endif	
 
 	/* Release the tegra bootloader framebuffer */
 	tegra_release_bootloader_fb();
@@ -215,10 +211,8 @@ static void __init tegra_smba_reserve(void)
 	if (memblock_reserve(0x0, 4096) < 0)
 		pr_warn("Cannot reserve first 4K of memory for safety\n");
 
-	/* Reserve the graphics memory */		
-#if defined(DYNAMIC_GPU_MEM)
+	/* Reserve the graphics memory */
 	tegra_reserve(SMBA1002_GPU_MEM_SIZE, SMBA1002_FB1_MEM_SIZE, SMBA1002_FB2_MEM_SIZE);
-#endif
 }
 
 static void __init tegra_smba_fixup(struct machine_desc *desc,
@@ -226,11 +220,7 @@ static void __init tegra_smba_fixup(struct machine_desc *desc,
 {
 	mi->nr_banks = SMBA1002_MEM_BANKS;
 	mi->bank[0].start = PHYS_OFFSET;
-#if defined(DYNAMIC_GPU_MEM)
-	mi->bank[0].size  = SMBA1002_MEM_SIZE;
-#else
-	mi->bank[0].size  = SMBA1002_MEM_SIZE - SMBA1002_GPU_MEM_SIZE;
-#endif
+	mi->bank[0].size  = SMBA1002_MEM_SIZE - SMBA1002_TOTAL_GPU_MEM_SIZE;
 } 
 
 MACHINE_START(HARMONY, "harmony")
@@ -243,3 +233,4 @@ MACHINE_START(HARMONY, "harmony")
 .timer = &tegra_timer,
 .init_machine = tegra_smba_init,
 MACHINE_END
+
