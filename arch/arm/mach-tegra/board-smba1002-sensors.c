@@ -1,19 +1,34 @@
 /*
- * Copyright (C) 2011 Eduardo José Tagle <ejtagle@tutopia.com> 
-	 *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
-	 *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * arch/arm/mach-tegra/board-smba1002-sensors.c
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * Copyright (c) 2011-2012, NVIDIA CORPORATION, All rights reserved.
  *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *
+ * Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright
+ * notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution.
+ *
+ * Neither the name of NVIDIA CORPORATION nor the names of its contributors
+ * may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include <linux/delay.h>
@@ -28,6 +43,30 @@
 #include "board-smba1002.h"
 #include "gpio-names.h"
 #include "cpu-tegra.h"
+
+static void smba_isl29023_init(void)
+{
+	gpio_request(SMBA1002_ISL29023, "isl29023");
+	gpio_direction_input(SMBA1002_ISL29023);
+}
+
+static void smba_lis3lv02d_init(void)
+{
+	gpio_request(SMBA1002_LIS3LV02D, "lis3lv02d");
+	gpio_direction_input(SMBA1002_LIS3LV02D);
+}
+
+static void smba_so340010_kbd_init(void)
+{
+	gpio_request(SMBA1002_KEYBOARD, "so340010_kbd");
+	gpio_direction_input(SMBA1002_KEYBOARD);
+}
+
+static void smba_adt7461_init(void)
+{
+	gpio_request(SMBA1002_TEMP_ALERT, "adt7461");
+	gpio_direction_input(SMBA1002_TEMP_ALERT);
+}
 
 static struct i2c_board_info __initdata smba_i2c_bus0_sensor_info[] = {
 	{
@@ -77,22 +116,19 @@ static struct i2c_board_info __initdata smba_i2c_bus4_sensor_info[] = {
 
 int __init smba_sensors_register_devices(void)
 {
-	gpio_request(SMBA1002_ISL29023, "isl29023_irq");
-	gpio_direction_input(SMBA1002_ISL29023);
-
-	gpio_request(SMBA1002_LIS3LV02D, "lis33de_irq");
-	gpio_direction_input(SMBA1002_LIS3LV02D);
-
-	gpio_request(SMBA1002_KEYBOARD, "so340010_kbd_irq");
-	gpio_direction_input(SMBA1002_KEYBOARD);
-	
-	gpio_request(SMBA1002_TEMP_ALERT, "adt7461_temp_alert_irq");
-	gpio_direction_input(SMBA1002_TEMP_ALERT);
+	smba_isl29023_init();
+	smba_lis3lv02d_init();
+	smba_so340010_kbd_init();
+	smba_adt7461_init();
 
 	i2c_register_board_info(0, smba_i2c_bus0_sensor_info,
-	                        ARRAY_SIZE(smba_i2c_bus0_sensor_info));
+		ARRAY_SIZE(smba_i2c_bus0_sensor_info));
+		
 	i2c_register_board_info(4, smba_i2c_bus4_sensor_info,
-	                        ARRAY_SIZE(smba_i2c_bus4_sensor_info));
-	return i2c_register_board_info(3, smba_i2c_bus3_sensor_info,
-	                               ARRAY_SIZE(smba_i2c_bus3_sensor_info));
+		ARRAY_SIZE(smba_i2c_bus4_sensor_info));
+			
+	i2c_register_board_info(3, smba_i2c_bus3_sensor_info,
+		ARRAY_SIZE(smba_i2c_bus3_sensor_info));
+								   
+	return 0;
 }
