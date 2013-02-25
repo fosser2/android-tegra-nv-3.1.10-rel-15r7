@@ -35,8 +35,6 @@
 #include "board.h"
 #include "board-smba1002.h"
 
-//#define smba_hdmi_hpd	TEGRA_GPIO_PN7
-
 /* panel power on sequence timing */
 #define smba_pnl_to_lvds_ms	0
 #define smba_lvds_to_bl_ms	200
@@ -248,7 +246,7 @@ static struct tegra_dc_out smba_disp2_out = {
 	.flags		= TEGRA_DC_OUT_HOTPLUG_HIGH,
 
 	.dcc_bus	= 1,
-	.hotplug_gpio	= SMBA1002_HDMI_HPD, // <-- DAFUK? FIX THIS!
+	.hotplug_gpio	= SMBA1002_HDMI_HPD,
 
 	.align		= TEGRA_DC_ALIGN_MSB,
 	.order		= TEGRA_DC_ORDER_RED_BLUE,
@@ -340,8 +338,8 @@ int __init smba_panel_init(void)
 	gpio_request(SMBA1002_LVDS_SHUTDOWN, "lvds_shdn");
 	gpio_direction_output(SMBA1002_LVDS_SHUTDOWN, 1);
 
-//	gpio_request(smba_hdmi_hpd, "hdmi_hpd");
-//	gpio_direction_input(smba_hdmi_hpd);
+	gpio_request(SMBA1002_HDMI_HPD, "hdmi_hpd");
+	gpio_direction_input(SMBA1002_HDMI_HPD);
 
 #if defined(CONFIG_TEGRA_NVMAP)
 	smba_carveouts[1].base = tegra_carveout_start;
