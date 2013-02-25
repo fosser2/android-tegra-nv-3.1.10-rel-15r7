@@ -186,6 +186,7 @@ static struct tegra_gpio_table gpio_table[] = {
 	{ .gpio = SMBA1002_INT_MIC_EN,		.enable = true	},
 	{ .gpio = SMBA1002_AC_PRESENT,    	.enable = true  },
 	{ .gpio = SMBA1002_USB0_VBUS,		.enable = false },
+	{ .gpio = SMBA1002_ENABLE_VDD_VID,  	.enable = true  }, //FIX MEEE
 };
 
 int __init smba_pinmux_init(void)
