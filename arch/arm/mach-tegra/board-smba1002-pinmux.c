@@ -184,6 +184,7 @@ static struct tegra_gpio_table gpio_table[] = {
 	//{ .gpio = TEGRA_GPIO_CDC_IRQ,		.enable = true	}, //harmony audio gpio
 	{ .gpio = SMBA1002_HP_DETECT,		.enable = true	},
 	{ .gpio = SMBA1002_INT_MIC_EN,		.enable = true	},
+	{ .gpio = SMBA1002_AC_PRESENT,    	.enable = true  },
 	{ .gpio = SMBA1002_USB0_VBUS,		.enable = false },
 };
 
