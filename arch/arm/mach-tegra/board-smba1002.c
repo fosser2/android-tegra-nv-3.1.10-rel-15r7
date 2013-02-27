@@ -173,6 +173,9 @@ static void __init tegra_smba_init(void)
 	/* Register UART devices */
 	smba_uart_register_devices();
 
+	/* Register RAM Console */
+	tegra_ram_console_debug_init();
+
 	/* Register GPU devices */
 	smba_panel_init();
 
@@ -211,6 +214,7 @@ static void __init tegra_smba_reserve(void)
 
 	/* Reserve the graphics memory */
 	tegra_reserve(SMBA1002_GPU_MEM_SIZE, SMBA1002_FB1_MEM_SIZE, SMBA1002_FB2_MEM_SIZE);
+	tegra_ram_console_debug_reserve(SZ_1M);
 }
 
 static void __init tegra_smba_fixup(struct machine_desc *desc,
