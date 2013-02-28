@@ -89,6 +89,10 @@
 #define SMBA
 #endif
 
+#ifdef CONFIG_MACH_SMBA1007
+#define SMBA
+#endif
+
 /* possible audio sources */
 enum tegra_audio_device {
 	SND_AUDIO_DEVICE_NONE	   = 0,		/* no device */

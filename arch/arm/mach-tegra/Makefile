@@ -234,3 +234,26 @@ obj-${CONFIG_MACH_SMBA9701}              += board-smba9701.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-sdhci.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-pm-camera.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-pm-gsm.o
+
+# smba1007 arch drivers
+obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-atag.o
+obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-audio.o
+obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-bootinfo.o
+obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-camera.o
+obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-clocks.o
+obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-panel.o
+#obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-gsm.o
+obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-i2c.o
+obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-keyboard.o
+obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-nand.o
+obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-pinmux.o
+obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-power.o
+obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-sensors.o
+obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-touch.o
+obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-uart.o
+obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-usb.o
+obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-wake.o
+obj-${CONFIG_MACH_SMBA1007}              += board-smba1007.o
+obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-sdhci.o
+obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-pm-camera.o
+obj-${CONFIG_MACH_SMBA1007}              += bcb.o
