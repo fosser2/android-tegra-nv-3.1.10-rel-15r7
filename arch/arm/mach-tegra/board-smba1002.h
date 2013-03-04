@@ -78,6 +78,7 @@
 #define SMBA1002_FB1_MEM_SIZE 	SZ_8M			/* Memory reserved for Framebuffer 1: LCD <-- Is this actually the size of the framebuffer?*/
 #define SMBA1002_FB2_MEM_SIZE 	SZ_16M			/* Memory reserved for Framebuffer 2: HDMI out <-- Is this actually the size of the framebuffer?*/
 #define SMBA1002_TOTAL_GPU_MEM_SIZE (SMBA1002_GPU_MEM_SIZE+SMBA1002_FB1_MEM_SIZE+SMBA1002_FB2_MEM_SIZE)
+//#define smba1002_1920x1080HDMI //Define this for 1080p output
 
 /* TPS6586X gpios */
 #define TPS6586X_GPIO_BASE	TEGRA_NR_GPIOS

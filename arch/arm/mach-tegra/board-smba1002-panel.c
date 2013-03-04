@@ -215,6 +215,16 @@ static struct tegra_fb_data smba_fb_data = {
 	.flags		= TEGRA_FB_FLIP_ON_PROBE,
 };
 
+#if defined(SMBA1002_1920x1080HDMI)
+static struct tegra_fb_data smba_hdmi_fb_data = {
+	.win		= 0,
+	.xres		= 1920,
+	.yres		= 1080,
+	.bits_per_pixel	= 32,
+//	.flags		= TEGRA_FB_FLIP_ON_PROBE, NEEDED?
+};
+
+#else
 static struct tegra_fb_data smba_hdmi_fb_data = {
 	.win		= 0,
 	.xres		= 1280,
@@ -222,6 +232,7 @@ static struct tegra_fb_data smba_hdmi_fb_data = {
 	.bits_per_pixel	= 32,
 //	.flags		= TEGRA_FB_FLIP_ON_PROBE, NEEDED?
 };
+#endif
 
 static struct tegra_dc_out smba_disp1_out = {
 	.type		= TEGRA_DC_OUT_RGB,
