@@ -70,6 +70,11 @@
 #define SMBA1002_WAKE_KEY_POWER 	TEGRA_WAKE_GPIO_PV2
 #define SMBA1002_WAKE_KEY_RESUME	TEGRA_WAKE_GPIO_PV2
 
+#define TPS_GPIO_EN_1V5                 (TPS6586X_GPIO(0))
+#define TPS_GPIO_EN_1V2                 (TPS6586X_GPIO(1))
+#define TPS_GPIO_EN_1V05                (TPS6586X_GPIO(2))
+#define TPS_GPIO_MODE_1V05              (TPS6586X_GPIO(3))
+
 // SMBA1002 memory is 1xSZ_512M
 #define SMBA1002_MEM_SIZE 			SZ_512M			/* Total memory */
 #define SMBA1002_MEM_BANKS			1

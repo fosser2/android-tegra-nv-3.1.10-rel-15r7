@@ -37,6 +37,12 @@
 #include "board.h"
 #include "board-smba1002.h"
 
+/*
+ *Pulled from Harmony
+*/
+#include <linux/regulator/machine.h>
+#include <linux/regulator/fixed.h>
+
 #define PMC_CTRL		0x0
 #define PMC_CTRL_INTR_LOW	(1 << 17)
 
@@ -62,7 +68,7 @@ static struct regulator_consumer_supply tps658621_ldo0_supply[] = {
 };
 static struct regulator_consumer_supply tps658621_ldo1_supply[] = {
 	REGULATOR_SUPPLY("vdd_ldo1", NULL),
-	REGULATOR_SUPPLY("avdd_pll", NULL),
+	REGULATOR_SUPPLY("avdd_pll", NULL),	
 };
 static struct regulator_consumer_supply tps658621_ldo2_supply[] = {
 	REGULATOR_SUPPLY("vdd_ldo2", NULL),
@@ -73,20 +79,29 @@ static struct regulator_consumer_supply tps658621_ldo3_supply[] = {
 	REGULATOR_SUPPLY("vdd_ldo3", NULL),
 	REGULATOR_SUPPLY("avdd_usb", NULL),
 	REGULATOR_SUPPLY("avdd_usb_pll", NULL),
+	REGULATOR_SUPPLY("avdd_lvds", NULL),
 };
 static struct regulator_consumer_supply tps658621_ldo4_supply[] = {
 	REGULATOR_SUPPLY("vdd_ldo4", NULL),
-    REGULATOR_SUPPLY("avdd_osc", NULL),
-    REGULATOR_SUPPLY("vddio_sys", "at168_touch"),
+    	REGULATOR_SUPPLY("avdd_osc", NULL),
+    	REGULATOR_SUPPLY("vddio_sys", "at168_touch"),
 };
 static struct regulator_consumer_supply tps658621_ldo5_supply[] = {
 	REGULATOR_SUPPLY("vdd_ldo5", NULL),
 	REGULATOR_SUPPLY("vmmc", "sdhci-tegra.3"),
+	REGULATOR_SUPPLY("vmmc", "sdhci-tegra.0"),
+	REGULATOR_SUPPLY("vmmc", "sdhci-tegra.2"),
+	REGULATOR_SUPPLY("vddio_sdmmc", "sdhci-tegra.2"),
+	REGULATOR_SUPPLY("vddio_sd_slot", "sdhci-tegra.2"),
+	REGULATOR_SUPPLY("vcore_mmc", "sdhci-tegra.0"),
+	REGULATOR_SUPPLY("vcore_mmc", "sdhci-tegra.1"),
+	REGULATOR_SUPPLY("vcore_mmc", "sdhci-tegra.2"),
+	REGULATOR_SUPPLY("vcore_mmc", "sdhci-tegra.3"),
 };
 static struct regulator_consumer_supply tps658621_ldo6_supply[] = {
 	REGULATOR_SUPPLY("vdd_ldo6", NULL),
 //	REGULATOR_SUPPLY("vcsi", "tegra_camera"),
-//	REGULATOR_SUPPLY("vdd_i2c", "3-0030"),
+	REGULATOR_SUPPLY("vdd_i2c", "3-0030"),
 //	REGULATOR_SUPPLY("dvdd", "6-0072"),
 //	REGULATOR_SUPPLY("dvdd", "7-0072"),
 	REGULATOR_SUPPLY("avdd_vdac", NULL)
@@ -104,8 +119,83 @@ static struct regulator_consumer_supply tps658621_ldo9_supply[] = {
 	REGULATOR_SUPPLY("vdd_ldo9", NULL),
 	REGULATOR_SUPPLY("avdd_2v85", NULL),
 	REGULATOR_SUPPLY("vdd_ddr_rx", NULL),
-    REGULATOR_SUPPLY("vddio_vi", NULL),
+    	REGULATOR_SUPPLY("vddio_vi", NULL),
+	REGULATOR_SUPPLY("avdd_amp", NULL),
 };
+
+/* regulator supplies power to WLAN - enable here, to satisfy SDIO probing */
+static struct regulator_consumer_supply vdd_1v2_consumer_supply[] = {
+	REGULATOR_SUPPLY("vdd_1v2", NULL),
+};
+
+static struct regulator_init_data vdd_1v2_initdata = {
+	.consumer_supplies = vdd_1v2_consumer_supply,
+	.num_consumer_supplies = 1,
+	.constraints = {
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
+		.always_on = 1,
+	},
+};
+
+static struct fixed_voltage_config vdd_1v2 = {
+	.supply_name		= "vdd_1v2",
+	.microvolts		= 1200000, /* Enable 1.2V */
+	.gpio			= TPS_GPIO_EN_1V2, /* GPIO BASE+1 */
+	.startup_delay		= 0,
+	.enable_high		= 1,
+	.enabled_at_boot	= 1,
+	.init_data		= &vdd_1v2_initdata,
+};
+
+/* regulator supplies power to PLL - enable here */
+static struct regulator_consumer_supply vdd_1v05_consumer_supply[] = {
+	REGULATOR_SUPPLY("vdd_1v05", NULL),
+};
+
+static struct regulator_init_data vdd_1v05_initdata = {
+	.consumer_supplies = vdd_1v05_consumer_supply,
+	.num_consumer_supplies = 1,
+	.constraints = {
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
+		.always_on = 1,
+	},
+};
+
+static struct fixed_voltage_config vdd_1v05 = {
+	.supply_name		= "vdd_1v05",
+	.microvolts		= 1050000, /* Enable 1.05V */
+	.gpio			= TPS_GPIO_EN_1V05, /* BASE+2 */
+	.startup_delay		= 0,
+	.enable_high		= 1,
+	.enabled_at_boot	= 0,
+	.init_data		= &vdd_1v05_initdata,
+};
+
+/* mode pin for 1.05V regulator - enable here */
+static struct regulator_consumer_supply vdd_1v05_mode_consumer_supply[] = {
+	REGULATOR_SUPPLY("vdd_1v05_mode", NULL),
+};
+
+static struct regulator_init_data vdd_1v05_mode_initdata = {
+	.consumer_supplies = vdd_1v05_mode_consumer_supply,
+	.num_consumer_supplies = 1,
+	.constraints = {
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
+		.always_on = 1,
+	},
+};
+
+static struct fixed_voltage_config vdd_1v05_mode = {
+	.supply_name		= "vdd_1v05_mode",
+	.microvolts		= 1050000, /* Enable 1.05V */
+	.gpio			= TPS_GPIO_MODE_1V05, /* BASE+3 */
+	.startup_delay		= 0,
+	.enable_high		= 1,
+	.enabled_at_boot	= 0,
+	.init_data		= &vdd_1v05_mode_initdata,
+};
+
+
 
 static struct tps6586x_settings sm0_config = {
 	.sm_pwm_mode = PWM_DEFAULT_VALUE,
@@ -121,6 +211,8 @@ static struct tps6586x_settings sm1_config = {
 	.slew_rate = SLEW_RATE_3520UV_PER_SEC,
 };
 
+
+// From Smba1002. Gonna try Harmony First
 #define REGULATOR_INIT(_id, _minmv, _maxmv, on, config)			\
 	{								\
 		.constraints = {					\
@@ -141,6 +233,7 @@ static struct tps6586x_settings sm1_config = {
 
 #define ON	1
 #define OFF	0
+
 
 static struct regulator_init_data sm0_data = REGULATOR_INIT(sm0, 725, 1500, ON, &sm0_config);
 static struct regulator_init_data sm1_data = REGULATOR_INIT(sm1, 725, 1500, ON, &sm1_config);
@@ -173,6 +266,13 @@ static struct tps6586x_rtc_platform_data rtc_data = {
 		.platform_data = _data,		\
 	}
 
+#define TPS_GPIO_FIXED_REG(_id, _data)		\
+	{					\
+		.id = _id,			\
+		.name = "reg-fixed-voltage",	\
+		.platform_data = _data,		\
+	}
+
 static struct tps6586x_subdev_info tps_devs[] = {
 	TPS_REG(SM_0, &sm0_data),
 	TPS_REG(SM_1, &sm1_data),
@@ -187,11 +287,15 @@ static struct tps6586x_subdev_info tps_devs[] = {
 	TPS_REG(LDO_7, &ldo7_data),
 	TPS_REG(LDO_8, &ldo8_data),
 	TPS_REG(LDO_9, &ldo9_data),
+	//TPS_GPIO_FIXED_REG(0, &vdd_1v5),
+	TPS_GPIO_FIXED_REG(1, &vdd_1v2),
+	TPS_GPIO_FIXED_REG(2, &vdd_1v05),
+	TPS_GPIO_FIXED_REG(3, &vdd_1v05_mode),
 	{
-		.id	= 0,
-		.name	= "tps6586x-rtc",
-		.platform_data = &rtc_data,
-	},
+	 .id = 0,
+	 .name = "tps6586x-rtc",
+	 .platform_data = &rtc_data,
+	 },
 };
 
 static struct tps6586x_platform_data tps_platform = {
@@ -205,7 +309,7 @@ static struct tps6586x_platform_data tps_platform = {
 static struct i2c_board_info __initdata smba_regulators[] = {
 	{
 		I2C_BOARD_INFO("tps6586x", 0x34),
-		.irq		= INT_EXTERNAL_PMU, //on .39 treznorx had this commented out? check commit d5305db209e18037de61183bde0693273bbe9236
+		.irq		= INT_EXTERNAL_PMU,
 		.platform_data	= &tps_platform,
 	},
 };
