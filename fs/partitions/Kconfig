@@ -257,12 +257,12 @@ config NVTEGRA_PARTITION
          Add support for undocummented partition table format used by Tegra2
          systems.
           
-config NVTEGRA_HIDE_PARTS
-       string "Hidden NVidia Tegra partitions"
+config NVTEGRA_UNHIDE_PARTS
+       string "Unhidden NVidia Tegra partitions"
        depends on NVTEGRA_PARTITION
        default ""
        help
-         Fill here the list of partitions you want to hide to the kennel.
+         Fill here the list of partitions you visible by the kennel.
          This is likely used to hide boot configuration partition,
          bootloader, and others which does not contain valid filesystem.
          List each partition name (the 3,4 letters identifier) separated

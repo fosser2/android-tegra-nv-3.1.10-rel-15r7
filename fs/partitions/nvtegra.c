@@ -92,7 +92,7 @@ typedef struct {
 } t_partinfo;
 
 
-char* hidden_parts_str = CONFIG_NVTEGRA_HIDE_PARTS;
+char* unhidden_parts_str = CONFIG_NVTEGRA_UNHIDE_PARTS;
 
 
 
@@ -177,7 +177,7 @@ nvtegra_partition(struct parsed_partitions *state)
         count=1;
         for (i=1; (p->id < 128) && (i<=22); i++) {
                 memcpy(part->name, p->name, 4);
-                part->valid = 1;
+                part->valid = 0;
                 part->start = p->start*4 - part_offset;
                 part->size  = p->size*4;
                 p++;
@@ -185,7 +185,7 @@ nvtegra_partition(struct parsed_partitions *state)
         }
 
         /* hide partitions */
-        s = hidden_parts_str;
+        s = unhidden_parts_str;
         while(*s) {
                 unsigned len;
 
@@ -193,9 +193,9 @@ nvtegra_partition(struct parsed_partitions *state)
                 part = parts;
 
                 for(i=1; i<=22; i++) {
-                        if (part->valid) {
+                        if (!part->valid) {
                                 if (!strncmp(part->name, s, len) && ((len>=4) || (part->name[len]=='\0'))) {
-                                        part->valid = 0;
+                                        part->valid = 1;
                                         break;
                                 }
                         }
@@ -205,10 +205,10 @@ nvtegra_partition(struct parsed_partitions *state)
                 s += strspn(s, ",: ");
         }
 
-        if (*hidden_parts_str)
+        if (*unhidden_parts_str)
 #ifdef BRIEF
           printk(KERN_INFO "\n");
-          printk(KERN_INFO "nvtegrapart: hidden_parts = %s\n", hidden_parts_str);
+          printk(KERN_INFO "nvtegrapart: unhidden_parts = %s\n", unhidden_parts_str);
 #endif
         /* log partitions */
         part = parts;
@@ -235,11 +235,11 @@ nvtegra_partition(struct parsed_partitions *state)
         return 1;
 }
 
-static int __init nvtegra_hideparts_setup(char *options) {
+static int __init nvtegra_unhideparts_setup(char *options) {
         if (options)
-                hidden_parts_str = options;
+                unhidden_parts_str = options;
         return 0;
 }
 
-__setup("nvtegra_hideparts=", nvtegra_hideparts_setup);
+__setup("nvtegra_unhideparts=", nvtegra_unhideparts_setup);
 
