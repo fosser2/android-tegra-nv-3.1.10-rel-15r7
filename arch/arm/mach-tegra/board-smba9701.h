@@ -58,11 +58,9 @@
 #define SMBA9701_MEM_BANKS		2
 
 #define SMBA9701_GPU_MEM_SIZE 		SZ_128M		/* Memory reserved for GPU */
-
 #define SMBA9701_FB1_MEM_SIZE 		SZ_8M		/* Memory reserved for Framebuffer 1: LCD */
 #define SMBA9701_FB2_MEM_SIZE 		SZ_16M		/* Memory reserved for Framebuffer 2: HDMI out */
-
-#define DYNAMIC_GPU_MEM			1		/* use dynamic memory for GPU */
+#define SMBA9701_TOTAL_GPU_MEM_SIZE     (SMBA9701_GPU_MEM_SIZE+SMBA9701_FB1_MEM_SIZE+SMBA9701_FB2_MEM_SIZE)
 
 #define SMBA9701_48KHZ_AUDIO   /* <- define this if you want 48khz audio sampling rate instead of 44100Hz */
 #define SMBA9701_INT_MIC_EN		TEGRA_GPIO_PX0 /* 0 = disabled */
@@ -112,10 +110,6 @@
 
 #define SMBA9701_HP_DETECT		TEGRA_GPIO_PW2 	/* HeadPhone detect for audio codec: 1=Hedphone plugged */
 
-//#define SMBA9701_NVEC_REQ		TEGRA_GPIO_PD0	/* Set to 0 to send a command to the NVidia Embedded controller */
-//#define SMBA9701_NVEC_I2C_ADDR		0x8a 		/* I2C address of Tegra, when acting as I2C slave */
-
-
 #define SMBA9701_TEMP_ALERT	TEGRA_GPIO_PN6
 
 #define TPS6586X_GPIO_BASE      TEGRA_NR_GPIOS
@@ -139,7 +133,6 @@ extern int smba_audio_register_devices(void);
 extern int smba_jack_register_devices(void);
 extern int smba_panel_init(void);
 extern int smba_uart_register_devices(void);
-extern int smba_spi_register_devices(void);
 extern int smba_aes_register_devices(void);
 extern int smba_wdt_register_devices(void);
 extern int smba_i2c_register_devices(void);

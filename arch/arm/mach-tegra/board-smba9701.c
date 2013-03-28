@@ -51,6 +51,7 @@
 #include <mach/i2s.h>
 #include <mach/system.h>
 #include <linux/nvmap.h>
+#include <linux/antares_dock.h>
 
 #include "board.h"
 #include "board-smba9701.h"
@@ -240,12 +241,28 @@ void __init smba_setup_bluesleep(void)
 	return;
 }
 
+static struct dock_platform_data dock_on_platform_data = {
+        .irq = TEGRA_GPIO_TO_IRQ(SMBA9701_DOCK),
+        .gpio_num = SMBA9701_DOCK,
+      };
+
+static struct platform_device tegra_dock_device = {
+        .name = "tegra_dock",
+        .id   = -1,
+        .dev = {
+            .platform_data = &dock_on_platform_data,
+        },
+};
 
 static struct platform_device *smba_devices[] __initdata = {
 	&tegra_pmu_device,
+        &tegra_gart_device,
+	&tegra_aes_device,
 	&bluetooth_rfkill_device,
 	&smba_bluesleep_device,
-	&tegra_wdt_device
+	&tegra_wdt_device,
+        &tegra_avp_device,
+        &tegra_dock_device
 };
 
 static void __init tegra_smba_init(void)
@@ -288,9 +305,6 @@ static void __init tegra_smba_init(void)
 	/* Register UART devices */
 	smba_uart_register_devices();
 
-	/* Register SPI devices */
-	smba_spi_register_devices();
-
 	/* Register GPU devices */
 	smba_panel_init();
 
@@ -315,8 +329,6 @@ static void __init tegra_smba_init(void)
 	/* Register Bluetooth powermanagement devices */
 	smba_setup_bluesleep();
 
-	tegra_release_bootloader_fb();
-
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
 	/* Register the RAM console device */
 	platform_device_register(&ram_console_device);
@@ -332,13 +344,7 @@ static void __init tegra_smba_reserve(void)
 		pr_warn("Cannot reserve first 4K of memory for safety\n");
 
 	/* Reserve the graphics memory */		
-#if defined(DYNAMIC_GPU_MEM)
-#if defined(CONFIG_NVMAP_CONVERT_CARVEOUT_TO_IOVMM)	
-	tegra_reserve(0, SMBA9701_FB1_MEM_SIZE, SMBA9701_FB2_MEM_SIZE);
-#else
 	tegra_reserve(SMBA9701_GPU_MEM_SIZE, SMBA9701_FB1_MEM_SIZE, SMBA9701_FB2_MEM_SIZE);
-#endif
-#endif
 
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
 	/* Reserve 1M memory for the RAM console */
@@ -351,11 +357,7 @@ static void __init tegra_smba_fixup(struct machine_desc *desc,
 {
 	mi->nr_banks = SMBA9701_MEM_BANKS;
 	mi->bank[0].start = PHYS_OFFSET;
-#if defined(DYNAMIC_GPU_MEM)
-	mi->bank[0].size  = SMBA9701_MEM_SIZE;
-#else
-	mi->bank[0].size  = SMBA9701_MEM_SIZE - SMBA9701_GPU_MEM_SIZE;
-#endif
+	mi->bank[0].size  = SMBA9701_MEM_SIZE - SMBA9701_TOTAL_GPU_MEM_SIZE;
 } 
 
 MACHINE_START(HARMONY, "harmony")

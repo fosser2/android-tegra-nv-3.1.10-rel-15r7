@@ -213,7 +213,6 @@ static struct tegra_gpio_table gpio_table[] = {
 	{ .gpio = SMBA9701_HP_DETECT,		.enable = true },
 	{ .gpio = SMBA9701_ISL29023,		.enable = true },
 	{ .gpio = SMBA9701_AC_PRESENT,		.enable = true },
-	{ .gpio = SMBA9701_CHARGING_DISABLE,	.enable = true },
 	{ .gpio = SMBA9701_INT_MIC_EN,		.enable = true },
 };
 

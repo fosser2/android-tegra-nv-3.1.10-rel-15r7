@@ -225,7 +225,6 @@ obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-keyboard.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-pinmux.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-power.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-sensors.o
-obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-spi.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-touch.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-uart.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-usb.o
@@ -234,6 +233,7 @@ obj-${CONFIG_MACH_SMBA9701}              += board-smba9701.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-sdhci.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-pm-camera.o
 obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-pm-gsm.o
+obj-${CONFIG_MACH_SMBA9701}              += board-smba9701-bcb.o
 
 # smba1007 arch drivers
 obj-${CONFIG_MACH_SMBA1007}              += board-smba1007-atag.o

@@ -33,7 +33,6 @@
 #include <mach/dc.h>
 #include <mach/fb.h>
 #include <linux/mfd/tps6586x.h>
-#include <linux/antares_dock.h>
 
 #include "devices.h"
 #include "gpio-names.h"
@@ -341,26 +340,10 @@ static struct platform_device smba_nvmap_device = {
 	},
 };
 
-static struct dock_platform_data dock_on_platform_data = {
-	.irq = TEGRA_GPIO_TO_IRQ(SMBA9701_DOCK),
-	.gpio_num = SMBA9701_DOCK,
-      };
-static struct platform_device tegra_dock_device = {
-	.name = "tegra_dock",
-	.id   = -1,
-	.dev = {
-	    .platform_data = &dock_on_platform_data,
-	},
-};
-                                              
-
 static struct platform_device *smba_gfx_devices[] __initdata = {
 	&smba_nvmap_device,
 	&tegra_pwfm0_device,
-	&smba_backlight_device,
-        &tegra_gart_device,
-        &tegra_avp_device,
-        &tegra_dock_device
+	&smba_backlight_device
 };
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -377,22 +360,12 @@ static void smba_panel_early_suspend(struct early_suspend *h)
 		fb_blank(registered_fb[0], FB_BLANK_POWERDOWN);
 	if (num_registered_fb > 1)
 		fb_blank(registered_fb[1], FB_BLANK_NORMAL);
-#ifdef CONFIG_TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND
-	cpufreq_store_default_gov();
-	if (cpufreq_change_gov(cpufreq_conservative_gov))
-			pr_err("Early_suspend: Error changing governor to %s\n",
-					cpufreq_conservative_gov);
-#endif
 }
 
 static void smba_panel_late_resume(struct early_suspend *h)
 {
 	unsigned i;
 	tps6586x_suspend_led(0);
-#ifdef CONFIG_TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND
-	if (cpufreq_restore_default_gov())
-			pr_err("Early_suspend: Unable to restore governor\n");
-#endif
 	for (i = 0; i < num_registered_fb; i++)
 		fb_blank(registered_fb[i], FB_BLANK_UNBLANK);
 }
