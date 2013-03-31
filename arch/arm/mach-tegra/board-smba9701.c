@@ -157,43 +157,7 @@ static int __init parse_tag_nvidia(const struct tag *tag)
 
         return 0;
 }
-
 __tagtable(ATAG_NVIDIA, parse_tag_nvidia);
-
-#ifdef CONFIG_ANDROID_RAM_CONSOLE
-static struct resource ram_console_resources[] = {
-	{
-		.flags = IORESOURCE_MEM,
-	},
- };
- 
- static struct platform_device ram_console_device = {
-	.name           = "ram_console",
-	.id             = -1,
-	.num_resources  = ARRAY_SIZE(ram_console_resources),
-	.resource       = ram_console_resources,
-};
-
-static void __init tegra_ramconsole_reserve(unsigned long size)
-{
-	struct resource *res;
-	long ret;
-
-	res = platform_get_resource(&ram_console_device, IORESOURCE_MEM, 0);
-	if (!res) {
-		pr_err("Failed to find memory resource for ram console\n");
-		return;
-	}
-	res->start = memblock_end_of_DRAM() - size;
-	res->end = res->start + size - 1;
-	ret = memblock_remove(res->start, size);
-	if (ret) {
-		ram_console_device.resource = NULL;
-		ram_console_device.num_resources = 0;
-		pr_err("Failed to reserve memory block for ram console\n");
-	}
-}
-#endif
 
 static struct rfkill_gpio_platform_data bluetooth_rfkill = {
 	.name		= "bluetooth_rfkill",
@@ -305,6 +269,9 @@ static void __init tegra_smba_init(void)
 	/* Register UART devices */
 	smba_uart_register_devices();
 
+        /* Register RAM Console */
+        tegra_ram_console_debug_init();
+
 	/* Register GPU devices */
 	smba_panel_init();
 
@@ -319,7 +286,7 @@ static void __init tegra_smba_init(void)
 
 	/* Register accelerometer device */
 	smba_sensors_register_devices();
-	
+
 	/* Register Camera powermanagement devices */
 	smba_camera_register_devices();
 
@@ -329,10 +296,8 @@ static void __init tegra_smba_init(void)
 	/* Register Bluetooth powermanagement devices */
 	smba_setup_bluesleep();
 
-#ifdef CONFIG_ANDROID_RAM_CONSOLE
-	/* Register the RAM console device */
-	platform_device_register(&ram_console_device);
-#endif
+	/* Register gps powermanagement devices */
+	smba_gsm_pm_register_devices();
 
 	/* Release the tegra bootloader framebuffer */
 	tegra_release_bootloader_fb();
@@ -343,13 +308,9 @@ static void __init tegra_smba_reserve(void)
 	if (memblock_reserve(0x0, 4096) < 0)
 		pr_warn("Cannot reserve first 4K of memory for safety\n");
 
-	/* Reserve the graphics memory */		
+	/* Reserve the graphics memory */
 	tegra_reserve(SMBA9701_GPU_MEM_SIZE, SMBA9701_FB1_MEM_SIZE, SMBA9701_FB2_MEM_SIZE);
-
-#ifdef CONFIG_ANDROID_RAM_CONSOLE
-	/* Reserve 1M memory for the RAM console */
-	tegra_ramconsole_reserve(SZ_1M);
-#endif
+	tegra_ram_console_debug_reserve(SZ_1M);
 }
 
 static void __init tegra_smba_fixup(struct machine_desc *desc,
