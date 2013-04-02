@@ -296,7 +296,7 @@ static void __init tegra_smba_init(void)
 	/* Register Bluetooth powermanagement devices */
 	smba_setup_bluesleep();
 
-	/* Register gps powermanagement devices */
+	/* Register gsm powermanagement devices */
 	smba_gsm_pm_register_devices();
 
 	/* Release the tegra bootloader framebuffer */
@@ -319,7 +319,9 @@ static void __init tegra_smba_fixup(struct machine_desc *desc,
 	mi->nr_banks = SMBA9701_MEM_BANKS;
 	mi->bank[0].start = PHYS_OFFSET;
 	mi->bank[0].size  = SMBA9701_MEM_SIZE - SMBA9701_TOTAL_GPU_MEM_SIZE;
-} 
+        mi->bank[1].start = SZ_512M;
+        mi->bank[1].size  = SZ_512M;
+}
 
 MACHINE_START(HARMONY, "harmony")
 .boot_params	= 0x00000100,
