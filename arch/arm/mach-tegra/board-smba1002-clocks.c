@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-smba1002-clocks.c
  *
- * Copyright (C) 2011 Eduardo José Tagle <ejtagle@tutopia.com>
+ * Copyright (C) 2011 Eduardo Josï¿½ Tagle <ejtagle@tutopia.com>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -266,6 +266,9 @@ static __initdata struct tegra_clk_init_table smba_clk_init_table[] = {
 
 static __initdata struct tegra_clk_init_table smba_clk_init_table[] = {
 	/* name			parent		 rate		enabled */
+	{ "vde",	"pll_m",		 222000000,	false},                                
+        { "3d",     	"pll_m",    	         333000000,     false},
+        { "2d",     	"pll_m",    	         444000000,     false},
 	{ "cdev1",		NULL,		     0, 	true },
 	{ "blink",	"clk_32k",		 32768,		false},
 	{ "pll_p_out4",	"pll_p",  24000000,		true },
